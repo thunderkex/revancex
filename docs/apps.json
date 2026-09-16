@@ -1,0 +1,635 @@
+{
+  "apps": [
+    {
+      "id": "adguard",
+      "enabled": true,
+      "package": "com.adguard.android",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a",
+        "armeabi-v7a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "camscanner",
+      "enabled": true,
+      "package": "com.intsig.camscanner",
+      "patch_source": "rushiranpise",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [
+        "unlock-premium"
+      ],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "duolingo",
+      "enabled": true,
+      "package": "com.duolingo",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "facebook",
+      "enabled": true,
+      "package": "com.facebook.katana",
+      "patch_source": "sapitosucio",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "flightradar24",
+      "enabled": true,
+      "package": "com.flightradar24free",
+      "patch_source": "rushiranpise",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "gboard",
+      "enabled": true,
+      "package": "com.google.android.inputmethod.latin",
+      "patch_source": "jkennethcarino",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "google_news",
+      "enabled": true,
+      "package": "com.google.android.apps.magazines",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "google_photos",
+      "enabled": true,
+      "package": "com.google.android.apps.photos",
+      "patch_source": "de_revanced",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [
+        "microg"
+      ],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "instagram",
+      "enabled": true,
+      "package": "com.instagram.android",
+      "patch_source": "piko",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "lightroom",
+      "enabled": true,
+      "package": "com.adobe.lrmobile",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "microg",
+      "enabled": true,
+      "package": "app.revanced.android.gms",
+      "patch_source": "none",
+      "architectures": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "mode": "install",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": false
+      }
+    },
+    {
+      "id": "moviebox",
+      "enabled": true,
+      "package": "com.community.oneroom",
+      "patch_source": "dhrubonai",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "myfitnesspal",
+      "enabled": true,
+      "package": "com.myfitnesspal.android",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [
+        "unlock-premium"
+      ],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "nova_launcher",
+      "enabled": true,
+      "package": "com.teslacoilsw.launcher",
+      "patch_source": "rushiranpise",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [
+        "unlock-prime"
+      ],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "pixiv",
+      "enabled": true,
+      "package": "jp.pxv.android",
+      "patch_source": "de_revanced",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "prime_video",
+      "enabled": true,
+      "package": "com.amazon.avod.thirdpartyclient",
+      "patch_source": "de_revanced",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "proton_vpn",
+      "enabled": true,
+      "package": "ch.protonvpn.android",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [
+        "unlock-plus"
+      ],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "reddit",
+      "enabled": true,
+      "package": "com.reddit.frontpage",
+      "patch_source": "jkennethcarino",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "solid_explorer",
+      "enabled": true,
+      "package": "pl.solidexplorer2",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "soundcloud",
+      "enabled": true,
+      "package": "com.soundcloud.android",
+      "patch_source": "de_revanced",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "both",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "spotify",
+      "enabled": true,
+      "package": "com.spotify.music",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "strava",
+      "enabled": true,
+      "package": "com.strava",
+      "patch_source": "de_revanced",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "threads",
+      "enabled": true,
+      "package": "com.instagram.barcelona",
+      "patch_source": "de_revanced",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "tiktok",
+      "enabled": true,
+      "package": "com.zhiliaoapp.musically",
+      "patch_source": "sysdmindoc",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "wps_office",
+      "enabled": true,
+      "package": "cn.wps.moffice_eng",
+      "patch_source": "hoodles",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [
+        "remove-ads",
+        "unlock-premium"
+      ],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "x_piko",
+      "enabled": true,
+      "package": "com.twitter.android",
+      "patch_source": "piko",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "youtube",
+      "enabled": true,
+      "package": "com.google.android.youtube",
+      "patch_source": "anddea",
+      "architectures": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "mode": "both",
+      "patches": [],
+      "dependencies": [
+        "microg"
+      ],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "pinterest",
+      "enabled": true,
+      "package": "com.pinterest",
+      "patch_source": "browzomje",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "telegram",
+      "enabled": true,
+      "package": "org.telegram.messenger",
+      "patch_source": "rushiranpise",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "mx_player",
+      "enabled": true,
+      "package": "com.mxtech.videoplayer.ad",
+      "patch_source": "blazeftl",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "capcut",
+      "enabled": true,
+      "package": "com.lemon.lvoverseas",
+      "patch_source": "rikydev",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "pvz_free",
+      "enabled": true,
+      "package": "com.ea.game.pvzfree_row",
+      "patch_source": "miguelninja",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "cloudflare_warp",
+      "enabled": true,
+      "package": "com.cloudflare.onedotonedotonedotone",
+      "patch_source": "rushiranpise",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "sticker_maker",
+      "enabled": true,
+      "package": "com.marsvard.stickermakerforwhatsapp",
+      "patch_source": "rushiranpise",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "drama_box",
+      "enabled": true,
+      "package": "com.storymatrix.drama",
+      "patch_source": "rushiranpise",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "stellarium",
+      "enabled": true,
+      "package": "com.noctuasoftware.stellarium_free",
+      "patch_source": "bholey",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "serverauditor",
+      "enabled": true,
+      "package": "com.server.auditor.ssh.client",
+      "patch_source": "rushiranpise",
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    },
+    {
+      "id": "youtube_music",
+      "enabled": true,
+      "package": "com.google.android.apps.youtube.music",
+      "patch_source": "anddea",
+      "architectures": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "mode": "both",
+      "patches": [],
+      "dependencies": [
+        "microg"
+      ],
+      "module": {
+        "single": true,
+        "bundle": true
+      }
+    }
+  ]
+}

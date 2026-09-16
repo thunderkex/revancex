@@ -1,0 +1,9 @@
+module:
+  id: revancex
+  name: "ReVanceX"
+  version: "1.0"
+  author: "Thunderkex"
+  description: "Patched apps bundle"
+  updateJson: ""
+  min_magisk: 20400
+  min_kernelsu: 10200

@@ -1,0 +1,48 @@
+build:
+  java_min_version: 17
+  tools_dir: ./tools
+  output_dir: ./output
+  keys_dir: ./keys
+  temp_dir: ./tmp
+
+  keystore:
+    validity_days: 10000
+    key_algorithm: RSA
+    key_size: 4096
+    sig_algorithm: SHA256withRSA
+    distinguished_name: "CN=Revancex, OU=Ministry of Silly Builds, O=Thunderkex, L=CyberSpace, ST=Somewhere Over The Galaxy, C=XX"
+
+  workers: 4
+
+  download_retries: 3
+  download_timeout_secs: 120
+
+  version_cache: ./tmp/version_cache.json
+
+  patcher:
+    max_patch_retries: 2
+    auto_disable: incompatible
+    rules:
+      root:
+        exclude:
+          - contains: "custom branding"
+          - contains: "change package name"
+          - contains: "change app icon"
+          - contains: "gmscore"
+          - contains: "microg"
+      nonroot:
+        exclude:
+          - contains: "custom branding"
+        include_if_dependency:
+          microg:
+            - contains: "gmscore support"
+
+  testing:
+    enabled: auto
+    startup_grace_secs: 8
+    install_timeout_secs: 180
+    logcat_lines: 80
+    crash_patterns:
+      - "FATAL EXCEPTION"
+      - "ANR in"
+      - "E AndroidRuntime"

@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>ReVanceX</title>
+  <style>
+    :root {
+      --bg: #f5f8fc;
+      --surface: #ffffff;
+      --surface-variant: #f0f4fa;
+      --surface-card: #ffffff;
+      --card-border: #e2e8f4;
+      --primary: #0e336b;
+      --primary-light: #1d4b8f;
+      --accent: #2563eb;
+      --accent-soft: #e0ecff;
+      --text: #1a2233;
+      --text-muted: #6b7a99;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius-sm: 10px;
+      --radius-md: 18px;
+      --radius-lg: 24px;
+      --shadow: 0 4px 16px rgba(14, 51, 107, 0.05)
+    }
+
+    @media (prefers-color-scheme:dark) {
+      :root {
+        --bg: #0d121d;
+        --surface: #151c2b;
+        --surface-variant: #1c2538;
+        --surface-card: #151c2b;
+        --card-border: #242f47;
+        --primary: #194685;
+        --primary-light: #285da6;
+        --accent: #3b82f6;
+        --accent-soft: rgba(59, 130, 246, 0.15);
+        --text: #f0f4fc;
+        --text-muted: #8c9cb8;
+        --shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    html,
+    body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 90px;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    .app-wrap {
+      width: 100%;
+      max-width: 540px;
+      margin: 0 auto;
+      padding: 14px 16px;
+      overflow-x: hidden
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
+      margin-bottom: 18px
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03)
+    }
+
+    .top-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.2px
+    }
+
+    .badge-dot {
+      position: relative
+    }
+
+    .badge-dot::after {
+      content: '';
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      border: 2px solid var(--surface)
+    }
+
+    .greeting-sec {
+      margin-bottom: 16px
+    }
+
+    .greeting-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.4px;
+      line-height: 1.2
+    }
+
+    .greeting-sub {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+      word-break: break-word
+    }
+
+    .search-wrap {
+      position: relative;
+      margin-bottom: 18px;
+      width: 100%
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 12px 16px 12px 44px;
+      font-size: 0.85rem;
+      color: var(--text);
+      outline: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 4px 14px var(--accent-soft)
+    }
+
+    .hero-banner {
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow);
+      width: 100%
+    }
+
+    .hero-content h3 {
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--primary)
+    }
+
+    .hero-content p {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 3px
+    }
+
+    .hero-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 4px 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600
+    }
+
+    .stats-card {
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+      width: 100%
+    }
+
+    .stat-box {
+      flex: 1
+    }
+
+    .stat-num {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--primary)
+    }
+
+    .stat-lbl {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-weight: 500
+    }
+
+    .sec-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 2px
+    }
+
+    .sec-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: var(--text)
+    }
+
+    .sec-link {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+      cursor: pointer
+    }
+
+    .apps-list-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 24px
+    }
+
+    .app-card {
+      background: var(--surface-card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: var(--shadow);
+      width: 100%;
+      box-sizing: border-box;
+      transition: transform 0.15s, border-color 0.15s
+    }
+
+    .app-card:active {
+      transform: scale(0.99)
+    }
+
+    .app-c-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: var(--surface-variant);
+      border: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      flex-shrink: 0
+    }
+
+    .app-c-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px
+    }
+
+    .app-c-header {
+      display: flex;
+      align-items: center;
+      gap: 6px
+    }
+
+    .app-c-name {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .app-c-pkg {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .app-c-tags {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      margin-top: 3px
+    }
+
+    .badge {
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2px
+    }
+
+    .badge-ok {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3)
+    }
+
+    .badge-mounted {
+      background: rgba(37, 99, 235, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(37, 99, 235, 0.3)
+    }
+
+    .badge-warn {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3)
+    }
+
+    .badge-mode {
+      background: var(--surface-variant);
+      color: var(--text-muted);
+      border: 1px solid var(--card-border)
+    }
+
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0
+    }
+
+    .card-btn {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      border: 1px solid var(--card-border);
+      background: var(--surface-variant);
+      color: var(--text);
+      transition: all 0.15s;
+      min-width: 64px
+    }
+
+    .card-btn.btn-open {
+      background: var(--primary);
+      color: #ffffff;
+      border: none
+    }
+
+    .card-btn.btn-open:active {
+      opacity: 0.9
+    }
+
+    .card-btn.btn-stop:active {
+      border-color: var(--danger);
+      color: var(--danger)
+    }
+
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 8px 16px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+      z-index: 100;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05)
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-decoration: none;
+      flex: 1
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+      font-weight: 700
+    }
+
+    .nav-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .nav-fab {
+      position: relative;
+      top: -16px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 18px rgba(14, 51, 107, 0.35);
+      border: 4px solid var(--surface);
+      cursor: pointer;
+      flex-shrink: 0
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: flex-end
+    }
+
+    .modal-overlay.open {
+      display: flex
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      background: var(--surface);
+      border-top-left-radius: var(--radius-lg);
+      border-top-right-radius: var(--radius-lg);
+      padding: 22px 20px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2)
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px
+    }
+
+    .modal-btn {
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--card-border);
+      background: var(--surface-variant);
+      color: var(--text);
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px
+    }
+
+    .modal-btn.primary {
+      background: var(--primary);
+      color: #ffffff;
+      border: none
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a2233;
+      color: #ffffff;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      z-index: 999
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(8px)
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app-wrap">
+    <div class="top-bar">
+      <div class="icon-btn" onclick="toggleModal()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="3" width="7" height="7" rx="1.5" />
+          <rect x="14" y="14" width="7" height="7" rx="1.5" />
+          <rect x="3" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      </div>
+      <div class="top-title">Dashboard</div>
+      <div class="icon-btn badge-dot" onclick="showToast('Module Active')">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+      </div>
+    </div>
+
+    <div class="greeting-sec">
+      <h2 class="greeting-title">ReVanceX</h2>
+      <p class="greeting-sub" id="greetingSub">Checking system info...</p>
+    </div>
+
+    <div class="search-wrap">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.4" stroke-linecap="round">
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+      <input type="text" id="searchBox" class="search-input" placeholder="Search installed apps or packages..."
+        oninput="filterApps()">
+    </div>
+
+    <div class="hero-banner">
+      <div class="hero-content">
+        <h3>Self-Mount Engine</h3>
+        <p>Direct bind-mount over /data/app/</p>
+        <div class="hero-chip">
+          <span style="width:6px;height:6px;background:var(--accent);border-radius:50%;"></span>
+          <span id="rootStatusText">Checking root context...</span>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.7rem;color:var(--text-muted);font-weight:700;">ARCH</div>
+        <div id="heroAbi" style="font-size:0.95rem;font-weight:800;color:var(--primary);">arm64-v8a</div>
+      </div>
+    </div>
+
+    <!-- Real Metrics Strip -->
+    <div class="stats-card">
+      <div class="stat-box">
+        <div class="stat-num" id="statAppsCount">0</div>
+        <div class="stat-lbl">Bundled</div>
+      </div>
+      <div class="stat-box" style="border-left:1px solid var(--card-border);border-right:1px solid var(--card-border);">
+        <div class="stat-num" id="statInstalledCount">0</div>
+        <div class="stat-lbl">Installed</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="statSelinux" style="font-size:0.92rem;padding-top:4px;">Enforcing</div>
+        <div class="stat-lbl">SELinux</div>
+      </div>
+    </div>
+
+    <!-- Apps Header -->
+    <div class="sec-head">
+      <div class="sec-title">Applications</div>
+      <div class="sec-link" onclick="refreshApps()">Refresh</div>
+    </div>
+
+    <!-- Dynamic Auto-Fit App List -->
+    <div class="apps-list-wrap" id="appsList">
+      <div style="text-align:center;padding:24px;color:var(--text-muted);">Loading apps...</div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar with FAB -->
+  <div class="bottom-nav">
+    <div class="nav-item active" onclick="showToast('Dashboard')">
+      <div class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      </div>
+      <span>Home</span>
+    </div>
+    <div class="nav-item" onclick="toggleModal()">
+      <div class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      </div>
+      <span>Mounts</span>
+    </div>
+    <div class="nav-fab" onclick="toggleModal()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
+        stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+    </div>
+    <div class="nav-item" onclick="restartAllApps()">
+      <div class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <rect x="9" y="9" width="6" height="6" rx="1" />
+        </svg>
+      </div>
+      <span>Stop</span>
+    </div>
+    <div class="nav-item" onclick="rebootDevice()">
+      <div class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10" />
+        </svg>
+      </div>
+      <span>Reboot</span>
+    </div>
+  </div>
+
+  <!-- Module Controls Drawer -->
+  <div id="modalOverlay" class="modal-overlay" onclick="onOverlayClick(event)">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3 style="font-size:1.05rem;font-weight:700;">Module Controls</h3>
+        <div style="cursor:pointer;display:flex;align-items:center;" onclick="toggleModal()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </div>
+      </div>
+      <div class="modal-grid">
+        <button class="modal-btn primary" onclick="toggleMount()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+          <span>Toggle Mounts</span>
+        </button>
+        <button class="modal-btn" onclick="remountAll()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+          </svg>
+          <span>Re-Mount All</span>
+        </button>
+        <button class="modal-btn" onclick="restartAllApps()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3" />
+          </svg>
+          <span>Force Stop Apps</span>
+        </button>
+        <button class="modal-btn" style="color:var(--danger);" onclick="rebootDevice()">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10" />
+          </svg>
+          <span>Reboot Device</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Action completed</div>
+
+  <script>
+    function ksuExec(cmd) {
+      return new Promise((resolve) => {
+        try {
+          if (typeof ksu !== 'undefined' && ksu && typeof ksu.exec === 'function') {
+            try {
+              const res = ksu.exec(cmd);
+              if (typeof res === 'string') {
+                return resolve(res);
+              }
+              if (res && typeof res.then === 'function') {
+                return res.then(r => {
+                  if (typeof r === 'string') return resolve(r);
+                  if (r && r.stdout !== undefined) return resolve(r.stdout);
+                  return resolve(String(r || ''));
+                }).catch(() => resolve(''));
+              }
+            } catch (e) {
+            }
+          }
+        } catch (e) { }
+
+        const cbName = 'ksu_cb_' + Math.random().toString(36).substring(2, 9);
+        let resolved = false;
+
+        const timer = setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            delete window[cbName];
+            resolve('');
+          }
+        }, 5000);
+
+        window[cbName] = function (errno, stdout, stderr) {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timer);
+            delete window[cbName];
+            resolve(errno === 0 ? (stdout || '') : (stderr || ''));
+          }
+        };
+
+        try {
+          if (typeof ksu !== 'undefined' && ksu && typeof ksu.exec === 'function') {
+            try {
+              ksu.exec(cmd, cbName);
+            } catch (e) {
+              ksu.exec(cmd, '{}', cbName);
+            }
+          } else if (typeof apatch !== 'undefined' && apatch && typeof apatch.exec === 'function') {
+            apatch.exec(cmd, '{}', cbName);
+          } else {
+            clearTimeout(timer);
+            delete window[cbName];
+            resolve('');
+          }
+        } catch (e) {
+          clearTimeout(timer);
+          delete window[cbName];
+          resolve('');
+        }
+      });
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function toggleModal() {
+      const el = document.getElementById('modalOverlay');
+      el.classList.toggle('open');
+    }
+
+    function onOverlayClick(e) {
+      if (e.target.id === 'modalOverlay') toggleModal();
+    }
+
+    let loadedApps = [];
+
+    function formatAppName(id) {
+      return id
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase())
+        .replace(/Youtube/g, 'YouTube')
+        .replace(/Microg/g, 'MicroG')
+        .replace(/Piko/g, 'Piko')
+        .replace(/Vpn/g, 'VPN');
+    }
+
+    function getAppIcon(id) {
+      const lower = id.toLowerCase();
+      if (lower.includes('music')) {
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+      }
+      if (lower.includes('youtube')) {
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+      }
+      if (lower.includes('microg') || lower.includes('gms') || lower.includes('adguard') || lower.includes('vpn')) {
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+      }
+      if (lower.includes('photo') || lower.includes('camera') || lower.includes('insta')) {
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+      }
+      if (lower.includes('record')) {
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+      }
+      if (lower.includes('twitter') || lower.includes('piko')) {
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
+      }
+      if (lower.includes('reddit')) {
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+      }
+      return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><polyline points="2.5 8.27 12 13.73 21.5 8.27"/><polyline points="12 22.5 12 13.73"/><path d="m21.5 8.27-9.5-5.5-9.5 5.5v11l9.5 5.5 9.5-5.5z"/></svg>';
+    }
+
+    async function loadDynamicApps() {
+      loadedApps = [];
+
+      try {
+        const res = await fetch('./apps.json');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) loadedApps = data;
+        }
+      } catch (e) { }
+
+      if (!loadedApps.length) {
+        const listOut = await ksuExec('for f in /data/adb/modules/revancex*/apps.list /data/adb/modules_update/revancex*/apps.list /data/adb/modules/revanced-extended/apps.list ./apps.list; do [ -f "$f" ] && cat "$f" && break; done');
+        if (listOut) {
+          const lines = listOut.split('\n').map(l => l.trim()).filter(Boolean);
+          for (const line of lines) {
+            const parts = line.split(':');
+            if (parts.length >= 2) {
+              loadedApps.push({
+                id: parts[0],
+                name: formatAppName(parts[0]),
+                package: parts[1],
+                mode: parts[2] || 'patch'
+              });
+            }
+          }
+        }
+      }
+
+      const countEl = document.getElementById('statAppsCount');
+      if (countEl) countEl.textContent = loadedApps.length;
+
+      await loadRealSystemAndApps();
+    }
+
+    async function loadRealSystemAndApps() {
+      const sysOut = await ksuExec('echo "ROOT:$(id -u)"; echo "MODEL:$(getprop ro.product.model)"; echo "OS:$(getprop ro.build.version.release)"; echo "SELINUX:$(getenforce)"; echo "KERNEL:$(uname -r)"; echo "ABI:$(getprop ro.product.cpu.abi)"');
+
+      let rootUid = '';
+      let model = '';
+      let osVer = '';
+      let selinux = '';
+      let kernel = '';
+      let abi = '';
+
+      if (sysOut) {
+        for (const line of sysOut.split('\n')) {
+          const t = line.trim();
+          if (t.startsWith('ROOT:')) rootUid = t.substring(5);
+          else if (t.startsWith('MODEL:')) model = t.substring(6);
+          else if (t.startsWith('OS:')) osVer = t.substring(3);
+          else if (t.startsWith('SELINUX:')) selinux = t.substring(8);
+          else if (t.startsWith('KERNEL:')) kernel = t.substring(7);
+          else if (t.startsWith('ABI:')) abi = t.substring(4);
+        }
+      }
+
+      const isRoot = (rootUid === '0');
+      const rootEnv = (typeof ksu !== 'undefined' && ksu) ? 'KernelSU' : ((typeof apatch !== 'undefined' && apatch) ? 'APatch' : (isRoot ? 'Root' : 'Browser'));
+
+      document.getElementById('greetingSub').textContent = [model || 'Device', osVer ? 'Android ' + osVer : '', kernel ? 'Linux ' + kernel.split('-')[0] : ''].filter(Boolean).join(' • ');
+      document.getElementById('rootStatusText').textContent = isRoot ? `${rootEnv} Active (UID 0)` : 'Demo Mode';
+      document.getElementById('heroAbi').textContent = abi || 'arm64-v8a';
+
+      const selinuxEl = document.getElementById('statSelinux');
+      if (selinuxEl) {
+        selinuxEl.textContent = selinux || 'Enforcing';
+        selinuxEl.style.color = (selinux.toLowerCase() === 'enforcing') ? 'var(--success)' : 'var(--warning)';
+      }
+
+      const [pkgsOut, mountsOut] = await Promise.all([
+        ksuExec('pm list packages -f 2>/dev/null'),
+        ksuExec('cat /proc/mounts 2>/dev/null')
+      ]);
+
+      const installedMap = new Map();
+      if (pkgsOut) {
+        for (const line of pkgsOut.split('\n')) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('package:')) {
+            const eqIdx = trimmed.lastIndexOf('=');
+            if (eqIdx !== -1) {
+              const apkPath = trimmed.substring(8, eqIdx);
+              const pkgName = trimmed.substring(eqIdx + 1);
+              installedMap.set(pkgName, apkPath);
+            }
+          }
+        }
+      }
+
+      await renderList(loadedApps, installedMap, mountsOut || '');
+    }
+
+    async function renderList(apps, installedMap, mountsOut) {
+      const list = document.getElementById('appsList');
+      if (!apps.length) {
+        list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">No apps bundled.</div>';
+        return;
+      }
+
+      list.innerHTML = '';
+      let installedCount = 0;
+
+      for (const app of apps) {
+        const activePkg = app.package;
+        const isInstalled = installedMap.has(activePkg);
+
+        if (isInstalled) {
+          installedCount++;
+        }
+
+        const isMounted = mountsOut.includes(activePkg) || mountsOut.includes(app.id) || mountsOut.includes(app.package);
+
+        let statusText = isMounted ? 'Mounted' : (isInstalled ? 'Installed' : 'Not Installed');
+        let badgeClass = isMounted ? 'badge-mounted' : (isInstalled ? 'badge-ok' : 'badge-warn');
+        let modeText = (app.mode === 'install') ? 'Install' : 'Patch';
+
+        const card = document.createElement('div');
+        card.className = 'app-card';
+        card.dataset.query = `${app.name} ${app.id} ${activePkg}`.toLowerCase();
+
+        card.innerHTML = `
+          <div class="app-c-icon">${getAppIcon(app.id)}</div>
+          <div class="app-c-info">
+            <div class="app-c-header">
+              <span class="app-c-name">${app.name || formatAppName(app.id)}</span>
+            </div>
+            <div class="app-c-pkg" title="${activePkg}">${activePkg}</div>
+            <div class="app-c-tags">
+              <span class="badge ${badgeClass}">${statusText}</span>
+              <span class="badge badge-mode">${modeText}</span>
+            </div>
+          </div>
+          <div class="card-actions">
+            <button class="card-btn btn-open" ${!isInstalled ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="launchApp('${activePkg}')">Open</button>
+            <button class="card-btn btn-stop" ${!isInstalled ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="stopApp('${activePkg}')">Stop</button>
+          </div>
+        `;
+
+        list.appendChild(card);
+      }
+
+      document.getElementById('statInstalledCount').textContent = installedCount;
+    }
+
+    function filterApps() {
+      const q = document.getElementById('searchBox').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.app-card');
+      cards.forEach(card => {
+        if (!q || card.dataset.query.includes(q)) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    async function launchApp(pkg) {
+      showToast('Launching ' + pkg);
+      await ksuExec(`monkey -p ${pkg} -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || am start $(cmd package resolve-activity --brief ${pkg} 2>/dev/null | tail -n 1) >/dev/null 2>&1`);
+    }
+
+    async function stopApp(pkg) {
+      showToast('Stopping ' + pkg);
+      await ksuExec(`am force-stop ${pkg}`);
+      refreshApps();
+    }
+
+    async function toggleMount() {
+      showToast('Toggling module mounts...');
+      toggleModal();
+      await ksuExec('for f in /data/adb/modules/revancex*/action.sh /data/adb/modules/revanced-extended/action.sh; do [ -f "$f" ] && sh "$f"; done');
+      setTimeout(refreshApps, 1500);
+    }
+
+    async function remountAll() {
+      showToast('Re-mounting all apps...');
+      toggleModal();
+      await ksuExec('for f in /data/adb/modules/revancex*/service.sh /data/adb/modules/revanced-extended/service.sh; do [ -f "$f" ] && sh "$f"; done');
+      setTimeout(refreshApps, 1500);
+    }
+
+    async function restartAllApps() {
+      showToast('Force-stopping apps...');
+      for (const app of loadedApps) {
+        if (app.package) {
+          await ksuExec(`am force-stop ${app.package} 2>/dev/null || :`);
+        }
+      }
+      refreshApps();
+    }
+
+    async function rebootDevice() {
+      if (confirm('Reboot device now?')) {
+        await ksuExec('/system/bin/reboot');
+      }
+    }
+
+    async function refreshApps() {
+      showToast('Refreshing...');
+      await loadDynamicApps();
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadDynamicApps();
+    });
+  </script>
+</body>
+
+</html>

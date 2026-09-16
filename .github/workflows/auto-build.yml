@@ -1,0 +1,42 @@
+name: Auto Build
+
+on:
+  workflow_call:
+    inputs:
+      apps:
+        description: 'Apps to build (or "all")'
+        required: false
+        default: 'all'
+        type: string
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: 'Apps to build (or "all")'
+        required: false
+        default: 'all'
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: revancex-release-write
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-and-release.yml
+    with:
+      apps: ${{ inputs.apps || 'all' }}
+      arch: arm64-v8a
+      tag_prefix: auto
+      prerelease: false
+      make_latest: false
+      build_single_modules: true
+    secrets: inherit
+
+  pages:
+    needs: build
+    if: success()
+    uses: ./.github/workflows/update-pages.yml
+    secrets: inherit

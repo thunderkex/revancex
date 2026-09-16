@@ -1,0 +1,187 @@
+name: Release CLI Binaries
+
+on:
+  push:
+    branches:
+      - extended
+    tags:
+      - 'v*'
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'config/**'
+      - 'Cargo.toml'
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: 'Force release even if tag already exists'
+        required: false
+        default: false
+        type: boolean
+      tag_name:
+        description: 'Custom release tag name (leave blank to auto-detect from Cargo.toml)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-cli-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  check_release:
+    name: Check Release Need
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+      tag: ${{ steps.check.outputs.tag }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check version and determine release need
+        id: check
+        run: |
+          CARGO_VER=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+          TAG="v${CARGO_VER}"
+          echo "version=${CARGO_VER}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+          if [ "${{ inputs.force_release }}" = "true" ]; then
+            echo "Force release requested."
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ -n "${{ inputs.tag_name }}" ]; then
+            echo "tag=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}")
+
+          if [ "$HTTP_STATUS" = "404" ]; then
+            echo "Release ${TAG} does not exist yet. Will build and release binaries."
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "Release ${TAG} already exists (HTTP $HTTP_STATUS). Skipping binary release."
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          fi
+
+  build-release:
+    name: Build (${{ matrix.target }})
+    needs: check_release
+    if: needs.check_release.outputs.should_release == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: revancex-linux-x86_64.tar.gz
+            bin_name: revancex
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: revancex-windows-x86_64.zip
+            bin_name: revancex.exe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Package binary (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czvf ../../../${{ matrix.artifact_name }} ${{ matrix.bin_name }}
+          cd ../../..
+          sha256sum ${{ matrix.artifact_name }} > ${{ matrix.artifact_name }}.sha256
+
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "target\${{ matrix.target }}\release\${{ matrix.bin_name }}" -DestinationPath "${{ matrix.artifact_name }}"
+          (Get-FileHash "${{ matrix.artifact_name }}" -Algorithm SHA256).Hash.ToLower() + "  ${{ matrix.artifact_name }}" | Out-File -Encoding ascii "${{ matrix.artifact_name }}.sha256"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            ${{ matrix.artifact_name }}
+            ${{ matrix.artifact_name }}.sha256
+
+  publish:
+    name: Publish GitHub Release
+    needs: [check_release, build-release]
+    if: needs.check_release.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release_assets
+          merge-multiple: true
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.check_release.outputs.tag }}
+          name: "ReVanceX CLI ${{ needs.check_release.outputs.tag }}"
+          body: |
+            ## ReVanceX CLI ${{ needs.check_release.outputs.tag }}
+            
+            Standalone executable binaries for patching apps locally without needing to install Rust or run `cargo build`.
+
+            ### Assets
+            - **Linux (x86_64)**: `revancex-linux-x86_64.tar.gz`
+            - **Windows (x86_64)**: `revancex-windows-x86_64.zip`
+
+            ### Quick Start
+            
+            #### Linux
+            ```bash
+            tar -xzf revancex-linux-x86_64.tar.gz
+            chmod +x revancex
+            ./revancex download-tools
+            ./revancex build --apps youtube,microg --arch arm64-v8a
+            ```
+
+            #### Windows (PowerShell)
+            ```powershell
+            Expand-Archive revancex-windows-x86_64.zip -DestinationPath .
+            .\revancex.exe download-tools
+            .\revancex.exe build --apps youtube,microg --arch arm64-v8a
+            ```
+          files: |
+            release_assets/*
+          fail_on_unmatched_files: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

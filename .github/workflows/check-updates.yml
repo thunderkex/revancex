@@ -1,0 +1,76 @@
+name: Check Patch Updates
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'  # Run every 3 hours
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force trigger auto-build workflow'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: check-updates
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      has_updates: ${{ steps.poll.outputs.has_updates }}
+      changed_apps: ${{ steps.poll.outputs.changed_apps }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Cargo cache (used if CLI build-from-source fallback fires)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Download CLI
+        uses: ./.github/actions/download-cli
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Poll patch repositories for updates
+        id: poll
+        run: |
+          if [ "${{ inputs.force_build }}" = "true" ]; then
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+            echo "changed_apps=all" >> $GITHUB_OUTPUT
+          else
+            OUTPUT=$(revancex check-updates --json)
+            echo "$OUTPUT"
+            HAS_UPDATES=$(echo "$OUTPUT" | jq -r '.has_updates // false')
+            CHANGED_APPS=$(echo "$OUTPUT" | jq -r '.changed_apps // [] | join(",")')
+            [ -z "$CHANGED_APPS" ] && [ "$HAS_UPDATES" = "true" ] && CHANGED_APPS="all"
+            echo "has_updates=$HAS_UPDATES" >> $GITHUB_OUTPUT
+            echo "changed_apps=$CHANGED_APPS" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report status
+        run: |
+          echo "Updates detected: ${{ steps.poll.outputs.has_updates }}"
+          echo "Changed apps: ${{ steps.poll.outputs.changed_apps }}"
+
+  build:
+    needs: check
+    if: needs.check.outputs.has_updates == 'true'
+    uses: ./.github/workflows/auto-build.yml
+    with:
+      apps: ${{ needs.check.outputs.changed_apps }}
+    secrets: inherit

@@ -1,0 +1,240 @@
+name: Build and Release
+
+on:
+  workflow_call:
+    inputs:
+      apps:
+        description: 'Apps to build (or "all")'
+        required: false
+        default: 'all'
+        type: string
+      arch:
+        description: 'Target architecture'
+        required: false
+        default: 'arm64-v8a'
+        type: string
+      tag_prefix:
+        description: 'Release tag prefix'
+        required: false
+        default: 'auto'
+        type: string
+      release_title:
+        description: 'Release title'
+        required: false
+        default: ''
+        type: string
+      release_note:
+        description: 'Release body note'
+        required: false
+        default: ''
+        type: string
+      prerelease:
+        description: 'Whether release is a prerelease'
+        required: false
+        default: false
+        type: boolean
+      make_latest:
+        description: 'Whether to mark release as latest'
+        required: false
+        default: false
+        type: boolean
+      build_single_modules:
+        description: 'Whether to build single Magisk modules for each app'
+        required: false
+        default: false
+        type: boolean
+    outputs:
+      release_tag:
+        description: 'Created release tag'
+        value: ${{ jobs.build.outputs.release_tag }}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+
+      - name: Set up Cargo cache (used if CLI build-from-source fallback fires)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Download CLI
+        uses: ./.github/actions/download-cli
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install download accelerator (aria2)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq aria2
+
+      - name: Download tools
+        run: revancex download-tools
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate configuration
+        run: revancex validate --strict
+
+      - name: Build apps and bundle module
+        continue-on-error: true
+        run: |
+          mkdir -p output
+          revancex build \
+            --apps "${{ inputs.apps || 'all' }}" \
+            --arch "${{ inputs.arch }}" \
+            --output output
+          revancex module \
+            --bundle \
+            --apps "${{ inputs.apps || 'all' }}" \
+            --include-webui \
+            --output output
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+
+      - name: Verify build produced output
+        run: |
+          count=$(find output -maxdepth 1 \( -name '*.apk' -o -name '*.zip' \) -type f 2>/dev/null | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "::error::Build produced zero APK/ZIP files in output/. Aborting release pipeline."
+            exit 1
+          fi
+          echo "Build OK: $count output file(s) found."
+
+      - name: Build single modules for enabled apps
+        if: inputs.build_single_modules
+        continue-on-error: true
+        run: |
+          for apk in output/*.apk; do
+            [ -f "$apk" ] || continue
+            fname=$(basename "$apk")
+            appid="${fname%.apk}"
+            appid="${appid%-patched}"
+            [ "$appid" = "microg" ] && continue
+            revancex module \
+              --single \
+              --apps "$appid" \
+              --output output
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve Release Metadata
+        id: meta
+        run: |
+          CARGO_VER=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
+          DATE_STR=$(date -u +'%Y.%m.%d')
+          TAG="${{ inputs.tag_prefix }}-v${CARGO_VER}-${DATE_STR}-b${{ github.run_number }}"
+
+          TITLE="${{ inputs.release_title }}"
+          if [ -z "$TITLE" ]; then
+            if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
+              TITLE="Custom Bundle — ${{ inputs.apps }} (${DATE_STR})"
+            else
+              TITLE="ReVanceX Apps & Modules — ${DATE_STR} (Build #${{ github.run_number }})"
+            fi
+          fi
+
+          BODY="${{ inputs.release_note }}"
+          if [ -z "$BODY" ]; then
+            if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
+              BODY=$(printf "Custom bundle requested via GitHub Pages.\n- **Apps**: %s\n- **Arch**: %s\n- **CLI Version**: \`v%s\`\n- **Date**: %s" "${{ inputs.apps }}" "${{ inputs.arch }}" "$CARGO_VER" "$DATE_STR")
+            else
+              BODY=$(printf "## %s\n\nAutomatic build triggered by schedule or patch updates.\n- **CLI Version**: \`v%s\`\n- **Date**: %s" "$TITLE" "$CARGO_VER" "$DATE_STR")
+            fi
+          fi
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "version=$CARGO_VER" >> $GITHUB_OUTPUT
+          echo "date=$DATE_STR" >> $GITHUB_OUTPUT
+          {
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Verify and cap asset sizes for release upload
+        run: |
+          for f in output/*; do
+            [ -f "$f" ] || continue
+            fsize=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)
+            if [ "$fsize" -gt 2000000000 ]; then
+              echo "Warning: $f exceeds 2GB ($fsize bytes), removing before release upload to prevent failure"
+              rm -f "$f"
+            fi
+          done
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.title }}
+          body: ${{ steps.meta.outputs.body }}
+          files: |
+            output/*.apk
+            output/*.zip
+          fail_on_unmatched_files: false
+          make_latest: ${{ inputs.make_latest }}
+          prerelease: ${{ inputs.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Python script dependencies
+        run: pip install --quiet -r scripts/requirements.txt
+
+      - name: Update README tables and send Telegram notification
+        run: |
+          python3 scripts/update_readme_and_notify.py
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          OUTPUT_DIR: output
+          TG_CHAT: ${{ secrets.TG_CHAT || secrets.TELEGRAM_CHAT_ID }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
+          TG_TOPIC: ${{ secrets.TG_TOPIC || secrets.TG_THREAD_ID || secrets.TELEGRAM_TOPIC_ID }}
+
+      - name: Commit and push updated README & release registry
+        continue-on-error: true
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md config/releases_registry.json
+          # [skip ci] is mandatory in commit messages to prevent triggering release-cli.yml via config/** path filters
+          if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
+            COMMIT_MSG="docs: update custom bundle registry for ${{ steps.meta.outputs.tag }} [skip ci]"
+          else
+            COMMIT_MSG="docs: auto-update apps and modules registry for ${{ steps.meta.outputs.tag }} [skip ci]"
+          fi
+          git diff --quiet && git diff --staged --quiet || git commit -m "$COMMIT_MSG"
+          for i in 1 2 3; do
+            git fetch origin ${{ github.ref_name }}
+            git rebase origin/${{ github.ref_name }}
+            if git push origin HEAD:${{ github.ref }}; then
+              break
+            fi
+            echo "Push failed, retrying in 3s (attempt $i of 3)..."
+            sleep 3
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

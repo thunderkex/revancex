@@ -1,0 +1,51 @@
+name: 'Download CLI Binary'
+description: 'Downloads revancex Linux CLI binary and adds it to PATH, falls back to cargo build from source'
+
+inputs:
+  github_token:
+    description: 'GitHub token for API authentication'
+    required: true
+  tag:
+    description: 'Release tag to download (empty for latest)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download and unpack revancex CLI
+      shell: bash
+      run: |
+        mkdir -p bin
+        TARGET_TAG="${{ inputs.tag }}"
+        if [ -n "$TARGET_TAG" ]; then
+          CLI_URL="https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/revancex-linux-x86_64.tar.gz"
+        else
+          CLI_URL="https://github.com/${{ github.repository }}/releases/latest/download/revancex-linux-x86_64.tar.gz"
+        fi
+
+        DOWNLOADED=false
+        if curl -sSLf "$CLI_URL" | tar -xz -C bin/; then
+          DOWNLOADED=true
+        else
+          echo "Direct fetch failed, resolving release tag via GitHub API..."
+          RELEASES_JSON=$(curl -sSL -H "Authorization: token ${{ inputs.github_token }}" "https://api.github.com/repos/${{ github.repository }}/releases")
+          CLI_TAG=$(echo "$RELEASES_JSON" | jq -r '[.[] | select(.assets[]?.name == "revancex-linux-x86_64.tar.gz")][0].tag_name // empty')
+          if [ -n "$CLI_TAG" ] && [ "$CLI_TAG" != "null" ]; then
+            echo "Resolved fallback CLI tag: $CLI_TAG"
+            if curl -sSLf "https://github.com/${{ github.repository }}/releases/download/${CLI_TAG}/revancex-linux-x86_64.tar.gz" | tar -xz -C bin/; then
+              DOWNLOADED=true
+            fi
+          fi
+        fi
+
+        if [ "$DOWNLOADED" = "false" ]; then
+          echo "::warning::No pre-built CLI release found. Building from source (this will take a few minutes)..."
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+          source "$HOME/.cargo/env"
+          cargo build --release
+          cp target/release/revancex bin/revancex
+        fi
+
+        chmod +x bin/revancex*
+        echo "$PWD/bin" >> $GITHUB_PATH

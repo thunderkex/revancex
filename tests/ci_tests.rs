@@ -137,16 +137,79 @@ fn test_real_arch_stripping() {
     assert!(!has_x86, "x86 native lib must be stripped");
     assert!(!has_v7a, "armeabi-v7a native lib must be stripped");
 
-    // Task 3 sanity check: verifying native libs for preserved arch succeeds
     builder::arch::verify_arch_native_libs(test_apk_path, test_apk_path, "arm64-v8a")
         .expect("verify_arch_native_libs should succeed for preserved arch");
 
-    // Verifying native libs for stripped/missing arch fails with clear message
     let err =
         builder::arch::verify_arch_native_libs(test_apk_path, test_apk_path, "x86_64").unwrap_err();
     assert!(err
         .to_string()
         .contains("no native libs for x86_64 after arch-stripping — check the input APK / cache"));
+}
+
+#[test]
+fn test_arch_stripping_preserves_original_cache() {
+    let tmp_dir = tempfile::tempdir().expect("Failed to create tempdir");
+    let original_apk = tmp_dir.path().join("original-multiarch.apk");
+    let orig_path = original_apk.to_str().unwrap();
+
+    {
+        let file = std::fs::File::create(&original_apk).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts =
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+        zip.start_file("AndroidManifest.xml", opts).unwrap();
+        zip.write_all(b"manifest").unwrap();
+
+        zip.start_file("lib/arm64-v8a/libtest.so", opts).unwrap();
+        zip.write_all(&vec![0x11; 1000]).unwrap();
+
+        zip.start_file("lib/x86_64/libtest.so", opts).unwrap();
+        zip.write_all(&vec![0x22; 1000]).unwrap();
+
+        zip.finish().unwrap();
+    }
+
+    let orig_len = std::fs::metadata(&original_apk).unwrap().len();
+
+    let arm64_work = tmp_dir.path().join("arm64-work.apk");
+    let arm64_path = arm64_work.to_str().unwrap();
+    builder::arch::strip_unsupported_archs_to(orig_path, arm64_path, "arm64-v8a")
+        .expect("strip to arm64 failed");
+
+    assert_eq!(
+        std::fs::metadata(&original_apk).unwrap().len(),
+        orig_len,
+        "Original cached APK must be completely untouched after arm64 stripping"
+    );
+    let mut orig_archive =
+        zip::ZipArchive::new(std::fs::File::open(&original_apk).unwrap()).unwrap();
+    let orig_entries: Vec<String> = (0..orig_archive.len())
+        .map(|i| orig_archive.by_index(i).unwrap().name().to_string())
+        .collect();
+    assert!(orig_entries.contains(&"lib/arm64-v8a/libtest.so".to_string()));
+    assert!(orig_entries.contains(&"lib/x86_64/libtest.so".to_string()));
+
+    let x86_work = tmp_dir.path().join("x86_64-work.apk");
+    let x86_path = x86_work.to_str().unwrap();
+    builder::arch::strip_unsupported_archs_to(orig_path, x86_path, "x86_64")
+        .expect("strip to x86_64 failed");
+
+    let mut arm64_archive =
+        zip::ZipArchive::new(std::fs::File::open(&arm64_work).unwrap()).unwrap();
+    let arm64_entries: Vec<String> = (0..arm64_archive.len())
+        .map(|i| arm64_archive.by_index(i).unwrap().name().to_string())
+        .collect();
+    assert!(arm64_entries.contains(&"lib/arm64-v8a/libtest.so".to_string()));
+    assert!(!arm64_entries.contains(&"lib/x86_64/libtest.so".to_string()));
+
+    let mut x86_archive = zip::ZipArchive::new(std::fs::File::open(&x86_work).unwrap()).unwrap();
+    let x86_entries: Vec<String> = (0..x86_archive.len())
+        .map(|i| x86_archive.by_index(i).unwrap().name().to_string())
+        .collect();
+    assert!(x86_entries.contains(&"lib/x86_64/libtest.so".to_string()));
+    assert!(!x86_entries.contains(&"lib/arm64-v8a/libtest.so".to_string()));
 }
 
 #[test]
@@ -489,11 +552,6 @@ fn test_plan_resolve_with_apk_version_auto_disables_incompatible() {
 fn test_resolve_compatible_versions_maximum_coverage() {
     use revancex::patcher::metadata::{resolve_compatible_versions, PackageCompat, PatchMeta};
 
-    // Patch 1 supports 1.0, 2.0
-    // Patch 2 supports 2.0, 3.0
-    // Patch 3 supports 2.0
-    // Patch 4 supports 4.0
-    // Global intersection was empty [], but version 2.0 has maximum coverage (3 patches).
     let patches = vec![
         PatchMeta {
             name: "P1".to_string(),
@@ -537,7 +595,6 @@ fn test_resolve_compatible_versions_maximum_coverage() {
 fn test_max_version_semver_ordering() {
     use revancex::utils::semver::max_version;
 
-    // Unordered versions from patch listing
     let versions = vec!["19.05.36", "19.16.39", "19.01.33", "19.11.43", "18.45.43"];
     let max = max_version(versions);
     assert_eq!(max, Some("19.16.39".to_string()));
@@ -568,7 +625,6 @@ fn test_check_app_version_compatibility_warning() {
     let mut app = cfg.apps.get("instagram").cloned().unwrap();
     app.max_version = Some("439.0.0.37.89".to_string());
 
-    // Patches only support older versions up to 430.0.0.0
     let patches = vec![PatchMeta {
         name: "TestPatch".to_string(),
         description: "".to_string(),
@@ -579,10 +635,8 @@ fn test_check_app_version_compatibility_warning() {
     }];
 
     let warn = check_app_version_compatibility("instagram", &app, &patches);
-    // 420 and 430 satisfy max_version 439 (they are <= 439).
     assert!(warn.is_none());
 
-    // But if max_version is pinned to a version lower than any supported version:
     app.max_version = Some("400.0.0.0".to_string());
     let warn2 = check_app_version_compatibility("instagram", &app, &patches);
     assert!(warn2.is_some());

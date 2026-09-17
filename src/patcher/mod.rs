@@ -34,13 +34,22 @@ pub async fn patch(
         "-patched.apk"
     };
     let output_apk = format!("{output_dir}/{id}{suffix}");
+
+    let mpp_path = metadata::resolve_mpp_path(cfg, app);
+    let meta = if let Some(ref p) = mpp_path {
+        metadata::load(cfg, p).await.ok()
+    } else {
+        None
+    };
+    let plan = plan::resolve(app, is_root, meta.as_ref(), None, &cfg.build.patcher.rules);
+
     let args = cli::build_args(
         &cfg.build.tools_dir,
         &repo,
         app,
         apk_path,
         &output_apk,
-        is_root,
+        &plan,
     );
 
     let mut cmd = tokio::process::Command::new("java");

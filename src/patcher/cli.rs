@@ -1,4 +1,5 @@
 use crate::config::apps::AppConfig;
+use crate::patcher::plan::PatchPlan;
 use std::path::Path;
 
 pub struct MorpheCliArgs {
@@ -18,7 +19,7 @@ pub fn build_args(
     app: &AppConfig,
     input_apk: &str,
     output_apk: &str,
-    is_root: bool,
+    plan: &PatchPlan,
 ) -> MorpheCliArgs {
     let cli_jar = format!("{tools_dir}/morphe-cli.jar");
     let safe_name = repo_or_alias.replace('/', "_");
@@ -64,70 +65,6 @@ pub fn build_args(
         "https://github.com/MorpheApp/morphe-patches".to_string()
     };
 
-    let mut included = app.included_patches.clone();
-    included.extend(app.patches.clone());
-
-    let is_branding_patch = |name: &str| -> bool {
-        let lower = name.to_lowercase().replace(['-', '_'], " ");
-        lower.contains("custom branding")
-            || lower.contains("change package name")
-            || lower.contains("change app icon")
-            || lower.contains("premium icon")
-    };
-    let is_gmscore_patch = |name: &str| -> bool {
-        let lower = name.to_lowercase().replace(['-', '_'], " ");
-        lower.contains("gmscore") || lower.contains("microg")
-    };
-
-    if is_root {
-        included.retain(|p| !is_branding_patch(p) && !is_gmscore_patch(p));
-    } else {
-        included.retain(|p| !is_branding_patch(p));
-    }
-
-    let mut excluded = app.excluded_patches.clone();
-    let default_excludes = [
-        "Custom branding icon for YouTube",
-        "Custom branding name for YouTube",
-        "Custom branding for YouTube",
-        "Custom branding icon for YouTube Music",
-        "Custom branding name for YouTube Music",
-        "Custom branding for YouTube Music",
-        "Custom branding",
-        "Change package name",
-        "Change app icon",
-        "premium-icon-reddit",
-    ];
-    for b in default_excludes {
-        if !excluded.iter().any(|e| e.eq_ignore_ascii_case(b)) {
-            excluded.push(b.to_string());
-        }
-    }
-
-    if is_root {
-        if !excluded.iter().any(|e| is_gmscore_patch(e)) {
-            excluded.push("GmsCore support".to_string());
-        }
-        for b in [
-            "Custom branding for YouTube",
-            "Custom branding for YouTube Music",
-            "Custom branding",
-            "Change package name",
-        ] {
-            if !excluded.iter().any(|e| e.eq_ignore_ascii_case(b)) {
-                excluded.push(b.to_string());
-            }
-        }
-    } else {
-        excluded.retain(|e| !is_gmscore_patch(e));
-        if !included.is_empty()
-            && app.dependencies.contains("microg")
-            && !included.iter().any(|p| is_gmscore_patch(p))
-        {
-            included.push("GmsCore support".to_string());
-        }
-    }
-
     let mut raw_args = Vec::new();
     if let Some(args) = &app.patcher_args {
         for part in args.split_whitespace() {
@@ -149,8 +86,8 @@ pub fn build_args(
         patches_arg,
         output_apk: output_apk.to_string(),
         input_apk: input_apk.to_string(),
-        included,
-        excluded,
+        included: plan.included.clone(),
+        excluded: plan.excluded.clone(),
         raw_args,
         keystore,
     }

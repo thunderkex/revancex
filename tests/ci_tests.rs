@@ -399,6 +399,38 @@ fn test_patch_plan_invariants() {
 }
 
 #[test]
+fn test_build_args_uses_resolved_plan() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    for (id, app) in &cfg.apps {
+        for is_root in [false, true] {
+            let plan = revancex::patcher::plan::resolve(
+                app,
+                is_root,
+                None,
+                None,
+                &cfg.build.patcher.rules,
+            );
+            let args = revancex::patcher::cli::build_args(
+                &cfg.build.tools_dir,
+                &app.patch_source,
+                app,
+                "input.apk",
+                "output.apk",
+                &plan,
+            );
+            assert_eq!(
+                args.included, plan.included,
+                "App {id} (root={is_root}): args.included must equal plan.included"
+            );
+            assert_eq!(
+                args.excluded, plan.excluded,
+                "App {id} (root={is_root}): args.excluded must equal plan.excluded"
+            );
+        }
+    }
+}
+
+#[test]
 fn test_uptodown_turnstile_blocked_detected() {
     let html = std::fs::read_to_string("tests/fixtures/uptodown/turnstile_blocked.html")
         .expect("fixture file missing");

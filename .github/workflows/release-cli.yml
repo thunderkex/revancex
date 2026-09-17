@@ -71,15 +71,17 @@ jobs:
             exit 0
           fi
 
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          RELEASE_JSON=$(curl -sSL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}")
 
-          if [ "$HTTP_STATUS" = "404" ]; then
-            echo "Release ${TAG} does not exist yet. Will build and release binaries."
+          HTTP_STATUS=$(echo "$RELEASE_JSON" | jq -r '.message // empty')
+          HAS_ASSET=$(echo "$RELEASE_JSON" | jq -r '[.assets[]?.name == "revancex-linux-x86_64.tar.gz"] | any' 2>/dev/null || echo "false")
+
+          if [ "$HTTP_STATUS" = "Not Found" ] || [ "$HAS_ASSET" != "true" ]; then
+            echo "Release ${TAG} does not exist or lacks revancex-linux-x86_64.tar.gz. Will build and release binaries."
             echo "should_release=true" >> $GITHUB_OUTPUT
           else
-            echo "Release ${TAG} already exists (HTTP $HTTP_STATUS). Skipping binary release."
+            echo "Release ${TAG} already exists with revancex-linux-x86_64.tar.gz. Skipping binary release."
             echo "should_release=false" >> $GITHUB_OUTPUT
           fi
 

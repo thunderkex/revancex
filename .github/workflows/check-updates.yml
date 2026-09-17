@@ -44,6 +44,18 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Verify Pre-built CLI Binary Availability
+        run: |
+          if [ "${{ env.CLI_SOURCE }}" = "built from source" ]; then
+            echo "::warning::Pre-built revancex-linux-x86_64.tar.gz was NOT found in releases. CLI was built from source."
+            echo "### ⚠️ Pre-built CLI Binary Missing" >> $GITHUB_STEP_SUMMARY
+            echo "No pre-built \`revancex-linux-x86_64.tar.gz\` was found in GitHub Releases. The job had to build the CLI from source using cargo (~10 minutes)." >> $GITHUB_STEP_SUMMARY
+            echo "To fix this, trigger the **Release CLI Binaries** workflow manually or push a new release tag." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ Pre-built CLI Binary Used" >> $GITHUB_STEP_SUMMARY
+            echo "CLI downloaded quickly from pre-built GitHub Release asset." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Poll patch repositories for updates
         id: poll
         run: |

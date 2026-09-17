@@ -93,18 +93,14 @@ jobs:
       - name: Validate configuration
         run: revancex validate --strict
 
-      - name: Build apps and bundle module
+      - name: Build apps
         continue-on-error: true
         run: |
           mkdir -p output
           revancex build \
             --apps "${{ inputs.apps || 'all' }}" \
             --arch "${{ inputs.arch }}" \
-            --output output
-          revancex module \
-            --bundle \
-            --apps "${{ inputs.apps || 'all' }}" \
-            --include-webui \
+            --keep-going \
             --output output
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -118,6 +114,25 @@ jobs:
             exit 1
           fi
           echo "Build OK: $count output file(s) found."
+
+      - name: Build bundle modules
+        continue-on-error: true
+        run: |
+          if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
+            revancex module \
+              --bundle \
+              --apps "${{ inputs.apps }}" \
+              --include-webui \
+              --output output
+          else
+            revancex module \
+              --bundle \
+              --apps all \
+              --include-webui \
+              --output output
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build single modules for enabled apps
         if: inputs.build_single_modules

@@ -1,0 +1,39 @@
+[package]
+name = "revancex"
+version = "1.0.4"
+edition = "2021"
+rust-version = "1.75"
+license = "GPL-3.0"
+description = "Modern, high-performance Rust patcher & orchestrator for ReVanced, Morphe, Magisk, and KernelSU modules"
+
+[lib]
+name = "revancex"
+path = "src/lib.rs"
+
+[[bin]]
+name = "revancex"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+clap = { version = "4.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "cookies", "rustls-tls"] }
+anyhow = "1.0"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+semver = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1.0"
+tempfile = "3.0"
+futures = "0.3"
+ua_generator = { version = "0.5.79", default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

@@ -1,0 +1,62 @@
+name: Deploy GitHub Pages
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Pull latest changes
+        run: |
+          git fetch origin ${{ github.ref_name }}
+          git reset --hard origin/${{ github.ref_name }}
+
+      - name: Download docs artifact from build if present
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: docs-dist
+          path: docs/
+
+      - name: Download CLI artifact from build if present
+        id: cli_artifact
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: cli-binary
+          path: bin/
+
+      - name: Make downloaded CLI executable and add to PATH
+        if: steps.cli_artifact.outcome == 'success'
+        run: |
+          chmod +x bin/revancex*
+          echo "$PWD/bin" >> $GITHUB_PATH
+
+      - name: Download CLI (fallback)
+        if: steps.cli_artifact.outcome != 'success'
+        uses: ./.github/actions/download-cli
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Regenerate docs/apps.json
+        run: revancex gen-apps-json --registry config/releases_registry.json
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
+          keep_files: true

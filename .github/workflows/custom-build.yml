@@ -1,0 +1,57 @@
+name: Custom Bundle Build
+
+on:
+  repository_dispatch:
+    types: [custom-bundle-request]
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: 'Comma-separated app IDs to build'
+        required: true
+        default: 'youtube,youtube_music,microg'
+      arch:
+        description: 'Target architecture'
+        required: true
+        default: 'arm64-v8a'
+        type: choice
+        options:
+          - arm64-v8a
+          - x86_64
+          - armeabi-v7a
+
+permissions:
+  contents: write
+
+concurrency:
+  group: revancex-release-write
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    outputs:
+      apps: ${{ steps.inputs.outputs.apps }}
+      arch: ${{ steps.inputs.outputs.arch }}
+    steps:
+      - name: Resolve inputs (dispatch vs manual)
+        id: inputs
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "apps=${{ github.event.client_payload.apps }}" >> $GITHUB_OUTPUT
+            echo "arch=${{ github.event.client_payload.arch }}" >> $GITHUB_OUTPUT
+          else
+            echo "apps=${{ inputs.apps }}" >> $GITHUB_OUTPUT
+            echo "arch=${{ inputs.arch }}" >> $GITHUB_OUTPUT
+          fi
+
+  build:
+    needs: resolve
+    uses: ./.github/workflows/build-and-release.yml
+    with:
+      apps: ${{ needs.resolve.outputs.apps }}
+      arch: ${{ needs.resolve.outputs.arch }}
+      tag_prefix: custom
+      prerelease: true
+      make_latest: false
+      build_single_modules: false
+    secrets: inherit

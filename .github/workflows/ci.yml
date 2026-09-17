@@ -1,0 +1,74 @@
+name: CI Validation
+
+on:
+  workflow_dispatch: {}
+  workflow_call: {}
+  push:
+    branches: [extended]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'config/**'
+      - 'Cargo.toml'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [extended]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'config/**'
+      - 'Cargo.toml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ci-validate
+          cache-on-failure: true
+
+      - name: Code format check (cargo fmt)
+        run: cargo fmt --check
+
+      - name: Linter check (cargo clippy)
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Run unit & integration tests
+        run: cargo test
+
+      # pip cache skips PyPI network round-trips; pip install --quiet no-ops fast on warm cache
+      - name: Cache pip dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('scripts/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Smoke-test Python scripts
+        run: |
+          pip install --quiet -r scripts/requirements.txt
+          python3 scripts/tests/test_update_readme.py
+
+      - name: Validate config
+        run: cargo run -- validate --strict
+
+      - name: Hygiene checks (clean patterns, no dead code)
+        run: |
+          ! grep -rnF '|| true' --exclude-dir='.git' --exclude='ci.yml' .github/workflows/ || (echo "Found forbidden || true in workflows" && exit 1)
+          ! grep -rn 'allow(dead_code)' src/ || (echo "Found dead code in src/" && exit 1)

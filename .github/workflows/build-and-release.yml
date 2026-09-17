@@ -167,7 +167,7 @@ jobs:
 
       - name: Smoke test built APKs
         run: |
-          revancex test --output output
+          revancex test --output output --apps "${{ inputs.apps }}"
 
       - name: Resolve Release Metadata
         id: meta

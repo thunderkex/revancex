@@ -45,6 +45,7 @@ pub async fn run_device_tests(
             info!("No connected adb device detected — falling back to static APK smoke tests");
             let out_p = Path::new(output_dir);
             if out_p.exists() {
+                let cfg = crate::config::load_config("./config").ok();
                 if let Ok(entries) = std::fs::read_dir(out_p) {
                     for entry in entries.flatten() {
                         let path = entry.path();
@@ -53,13 +54,20 @@ pub async fn run_device_tests(
                             let app_id =
                                 name.trim_end_matches("-root").trim_end_matches("-patched");
                             if apps_input != "all"
-                                && !apps_input.split(',').any(|a| a.trim() == app_id)
+                                && !apps_input.split(',').any(|a| {
+                                    let clean = a.trim();
+                                    clean == app_id || clean.trim_end_matches("-root") == app_id
+                                })
                             {
                                 continue;
                             }
 
-                            let pkg =
-                                crate::utils::apk::get_apk_package_name(&path).unwrap_or_default();
+                            let app_cfg = cfg.as_ref().and_then(|c| c.apps.get(app_id));
+                            let pkg = crate::utils::apk::get_apk_package_name(&path)
+                                .ok()
+                                .or_else(|| app_cfg.map(|a| a.package.clone()))
+                                .unwrap_or_default();
+
                             if pkg.is_empty() {
                                 report.items.push(TestReportItem {
                                     app: app_id.to_string(),
@@ -93,34 +101,47 @@ pub async fn run_device_tests(
                                 }
                             };
 
-                            let mut input_found = None;
-                            if let Ok(tmp_entries) = std::fs::read_dir("./tmp") {
-                                for tmp_entry in tmp_entries.flatten() {
-                                    let p = tmp_entry.path();
-                                    let fname =
-                                        p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-                                    if fname.starts_with(app_id) && fname.ends_with("-input.apk") {
-                                        input_found = Some(p);
-                                        break;
+                            let is_unpatched_app = app_cfg
+                                .map(|a| {
+                                    a.mode == "install"
+                                        || a.patch_source == "none"
+                                        || a.patch_source.is_empty()
+                                })
+                                .unwrap_or(app_id == "microg");
+
+                            if !is_unpatched_app {
+                                let mut input_found = None;
+                                if let Ok(tmp_entries) = std::fs::read_dir("./tmp") {
+                                    for tmp_entry in tmp_entries.flatten() {
+                                        let p = tmp_entry.path();
+                                        let fname =
+                                            p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                                        if fname == format!("{app_id}-input.apk")
+                                            || (fname.starts_with(&format!("{app_id}-"))
+                                                && fname.ends_with("-input.apk"))
+                                        {
+                                            input_found = Some(p);
+                                            break;
+                                        }
                                     }
                                 }
-                            }
 
-                            if let Some(input_p) = input_found {
-                                if let Ok(in_dex) = crate::utils::apk::dex_entries_crc(&input_p) {
-                                    if in_dex == out_dex {
-                                        report.items.push(TestReportItem {
-                                            app: app_id.to_string(),
-                                            package: pkg,
-                                            status: "failed".to_string(),
-                                            install_ms: None,
-                                            launch_ms: None,
-                                            reason: Some(
-                                                "output APK dex is identical to unpatched input APK — 0 patches applied".to_string(),
-                                            ),
-                                        });
-                                        report.failed += 1;
-                                        continue;
+                                if let Some(input_p) = input_found {
+                                    if let Ok(in_dex) = crate::utils::apk::dex_entries_crc(&input_p) {
+                                        if in_dex == out_dex {
+                                            report.items.push(TestReportItem {
+                                                app: app_id.to_string(),
+                                                package: pkg,
+                                                status: "failed".to_string(),
+                                                install_ms: None,
+                                                launch_ms: None,
+                                                reason: Some(
+                                                    "output APK dex is identical to unpatched input APK — 0 patches applied".to_string(),
+                                                ),
+                                            });
+                                            report.failed += 1;
+                                            continue;
+                                        }
                                     }
                                 }
                             }
@@ -150,6 +171,7 @@ pub async fn run_device_tests(
     }
 
     let mut apks = Vec::new();
+    let cfg = crate::config::load_config("./config").ok();
     if let Ok(entries) = std::fs::read_dir(out_p) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -160,7 +182,12 @@ pub async fn run_device_tests(
                     .unwrap_or("")
                     .to_string();
                 let app_id = name.trim_end_matches("-root").trim_end_matches("-patched");
-                if apps_input == "all" || apps_input.split(',').any(|a| a.trim() == app_id) {
+                if apps_input == "all"
+                    || apps_input.split(',').any(|a| {
+                        let clean = a.trim();
+                        clean == app_id || clean.trim_end_matches("-root") == app_id
+                    })
+                {
                     apks.push((app_id.to_string(), path.to_string_lossy().to_string()));
                 }
             }
@@ -168,7 +195,11 @@ pub async fn run_device_tests(
     }
 
     for (app_id, apk_path) in apks {
-        let pkg = crate::utils::apk::get_apk_package_name(&apk_path).unwrap_or_default();
+        let app_cfg = cfg.as_ref().and_then(|c| c.apps.get(&app_id));
+        let pkg = crate::utils::apk::get_apk_package_name(&apk_path)
+            .ok()
+            .or_else(|| app_cfg.map(|a| a.package.clone()))
+            .unwrap_or_default();
         if pkg.is_empty() {
             report.items.push(TestReportItem {
                 app: app_id.clone(),

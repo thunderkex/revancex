@@ -771,6 +771,52 @@ async fn test_smoke_testing_static_dex_check() {
         .await
         .expect("smoke test run failed");
     assert_eq!(report.failed, 0);
+
+    let out_dir = tempfile::tempdir().expect("Failed to create out tempdir");
+    let manifest_bytes = std::fs::read("tests/fixtures/test_manifest.xml")
+        .expect("test_manifest.xml fixture missing");
+
+    let microg_apk = out_dir.path().join("microg.apk");
+    {
+        let file = std::fs::File::create(&microg_apk).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("AndroidManifest.xml", opts).unwrap();
+        zip.write_all(&manifest_bytes).unwrap();
+        zip.start_file("classes.dex", opts).unwrap();
+        zip.write_all(b"sample dex bytecode 12345").unwrap();
+        zip.finish().unwrap();
+    }
+
+    let report_microg = revancex::testing::run_device_tests(
+        "microg",
+        out_dir.path().to_str().unwrap(),
+        false,
+        0,
+        0,
+    )
+    .await
+    .expect("smoke test run for microg failed");
+
+    assert_eq!(report_microg.failed, 0);
+    assert_eq!(report_microg.passed, 1);
+    assert_eq!(report_microg.items[0].app, "microg");
+    assert_eq!(report_microg.items[0].package, "app.revanced.android.gms");
+    assert_eq!(report_microg.items[0].status, "passed");
+}
+
+#[test]
+fn test_find_manifest_attr_real_binary_xml() {
+    let manifest_bytes = std::fs::read("tests/fixtures/test_manifest.xml")
+        .expect("test_manifest.xml fixture missing");
+    let pkg = revancex::utils::apk::find_manifest_attr(&manifest_bytes, "package");
+    assert_eq!(pkg.as_deref(), Some("app.revanced.android.gms"));
+
+    let ver_name = revancex::utils::apk::find_manifest_attr(&manifest_bytes, "versionName");
+    assert_eq!(ver_name.as_deref(), Some("7.1.1"));
+
+    let ver_code = revancex::utils::apk::find_manifest_attr(&manifest_bytes, "versionCode");
+    assert_eq!(ver_code.as_deref(), Some("255070107"));
 }
 
 #[test]

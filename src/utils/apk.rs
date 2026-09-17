@@ -68,18 +68,21 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
     if magic != 0x0003 {
         return None;
     }
+
     let chunk_type = u16::from_le_bytes([data[8], data[9]]);
     if chunk_type != 0x0001 {
         return None;
     }
 
-    let chunk_sz = u32::from_le_bytes([data[16], data[17], data[18], data[19]]) as usize;
-    let str_count = u32::from_le_bytes([data[20], data[21], data[22], data[23]]) as usize;
-    let flags = u32::from_le_bytes([data[28], data[29], data[30], data[31]]);
-    let str_start = u32::from_le_bytes([data[32], data[33], data[34], data[35]]) as usize;
+    let c_hdr_sz = u16::from_le_bytes([data[10], data[11]]) as usize;
+    let chunk_sz = u32::from_le_bytes([data[12], data[13], data[14], data[15]]) as usize;
+    let str_count = u32::from_le_bytes([data[16], data[17], data[18], data[19]]) as usize;
+    let _style_count = u32::from_le_bytes([data[20], data[21], data[22], data[23]]) as usize;
+    let flags = u32::from_le_bytes([data[24], data[25], data[26], data[27]]);
+    let str_start = u32::from_le_bytes([data[28], data[29], data[30], data[31]]) as usize;
 
     let is_utf8 = (flags & (1 << 8)) != 0;
-    let offset_table_start = 36;
+    let offset_table_start = 8 + c_hdr_sz;
     let offset_table_end = offset_table_start + str_count * 4;
 
     if data.len() < offset_table_end {
@@ -150,25 +153,100 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
         }
     }
 
-    let target_idx = strings.iter().position(|s| s == attr)?;
+    let target_idx = strings.iter().position(|s| s == attr)? as u32;
 
-    let search_start = 8 + chunk_sz;
-    if search_start + 8 <= data.len() {
-        let mut i = search_start;
-        while i + 8 <= data.len() {
-            let name_ref =
-                u32::from_le_bytes([data[i], data[i + 1], data[i + 2], data[i + 3]]) as usize;
+    let chunks_start = 8 + chunk_sz;
+    let mut cur = chunks_start;
+    while cur + 8 <= data.len() {
+        let chunk_type = u16::from_le_bytes([data[cur], data[cur + 1]]);
+        let chunk_hdr_sz = u16::from_le_bytes([data[cur + 2], data[cur + 3]]) as usize;
+        let node_chunk_sz =
+            u32::from_le_bytes([data[cur + 4], data[cur + 5], data[cur + 6], data[cur + 7]]) as usize;
+        if node_chunk_sz < 8 || cur + node_chunk_sz > data.len() {
+            break;
+        }
+
+        if chunk_type == 0x0102 && cur + 36 <= data.len() {
+            let attr_start = u16::from_le_bytes([data[cur + 24], data[cur + 25]]) as usize;
+            let attr_sz = u16::from_le_bytes([data[cur + 26], data[cur + 27]]) as usize;
+            let attr_cnt = u16::from_le_bytes([data[cur + 28], data[cur + 29]]) as usize;
+            let first_attr = cur + chunk_hdr_sz + attr_start;
+
+            if attr_sz >= 20 {
+                for a in 0..attr_cnt {
+                    let a_off = first_attr + a * attr_sz;
+                    if a_off + 20 <= data.len() {
+                        let a_name = u32::from_le_bytes([
+                            data[a_off + 4],
+                            data[a_off + 5],
+                            data[a_off + 6],
+                            data[a_off + 7],
+                        ]);
+                        if a_name == target_idx {
+                            let a_raw = u32::from_le_bytes([
+                                data[a_off + 8],
+                                data[a_off + 9],
+                                data[a_off + 10],
+                                data[a_off + 11],
+                            ]);
+                            if a_raw != 0xFFFFFFFF && (a_raw as usize) < strings.len() {
+                                let val = strings[a_raw as usize].trim().to_string();
+                                if !val.is_empty() {
+                                    return Some(val);
+                                }
+                            }
+                            let val_type = data[a_off + 15];
+                            let val_data = u32::from_le_bytes([
+                                data[a_off + 16],
+                                data[a_off + 17],
+                                data[a_off + 18],
+                                data[a_off + 19],
+                            ]);
+                            if val_type == 0x03 && (val_data as usize) < strings.len() {
+                                let val = strings[val_data as usize].trim().to_string();
+                                if !val.is_empty() {
+                                    return Some(val);
+                                }
+                            }
+                            if val_type == 0x10 || val_type == 0x11 {
+                                return Some(val_data.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        cur += node_chunk_sz;
+    }
+
+    let mut i = chunks_start;
+    while i + 20 <= data.len() {
+        let name_ref =
+            u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]);
+        if name_ref == target_idx {
             let raw_ref =
-                u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]) as usize;
-
-            if name_ref == target_idx && raw_ref < strings.len() && raw_ref != 0xFFFFFFFF {
-                let val = strings[raw_ref].trim().to_string();
+                u32::from_le_bytes([data[i + 8], data[i + 9], data[i + 10], data[i + 11]]);
+            if raw_ref != 0xFFFFFFFF && (raw_ref as usize) < strings.len() {
+                let val = strings[raw_ref as usize].trim().to_string();
                 if !val.is_empty() {
                     return Some(val);
                 }
             }
-            i += 4;
+            let val_type = data[i + 15];
+            let val_data = u32::from_le_bytes([
+                data[i + 16],
+                data[i + 17],
+                data[i + 18],
+                data[i + 19],
+            ]);
+            if val_type == 0x03 && (val_data as usize) < strings.len() {
+                let val = strings[val_data as usize].trim().to_string();
+                if !val.is_empty() {
+                    return Some(val);
+                }
+            }
         }
+        i += 4;
     }
 
     None

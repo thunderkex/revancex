@@ -119,6 +119,7 @@ async fn build_single(
             warn!("{id}: arch stripping note: {e}");
             raw_apk
         } else {
+            builder::arch::verify_arch_native_libs(&raw_apk, &work_apk, arch)?;
             work_apk
         }
     } else {

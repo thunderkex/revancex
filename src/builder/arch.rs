@@ -68,6 +68,51 @@ pub fn strip_unsupported_archs_to(src_apk: &str, dst_apk: &str, target_arch: &st
     Ok(saved)
 }
 
+pub fn verify_arch_native_libs(
+    original_apk: &str,
+    stripped_apk: &str,
+    target_arch: &str,
+) -> Result<()> {
+    let original_has_native_libs = {
+        let file = std::fs::File::open(original_apk)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+        let mut has_lib = false;
+        for i in 0..archive.len() {
+            let entry = archive.by_index(i)?;
+            if entry.name().starts_with("lib/") && entry.name().ends_with(".so") {
+                has_lib = true;
+                break;
+            }
+        }
+        has_lib
+    };
+
+    if !original_has_native_libs {
+        return Ok(());
+    }
+
+    let target_prefix = format!("lib/{target_arch}/");
+    let file = std::fs::File::open(stripped_apk)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut has_target_lib = false;
+
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i)?;
+        if entry.name().starts_with(&target_prefix) && entry.name().ends_with(".so") {
+            has_target_lib = true;
+            break;
+        }
+    }
+
+    if !has_target_lib {
+        anyhow::bail!(
+            "no native libs for {target_arch} after arch-stripping — check the input APK / cache"
+        );
+    }
+
+    Ok(())
+}
+
 fn should_strip(name: &str, target_arch: &str) -> bool {
     if name.starts_with("lib/") {
         let parts: Vec<&str> = name.split('/').collect();

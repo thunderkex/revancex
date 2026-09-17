@@ -136,6 +136,17 @@ fn test_real_arch_stripping() {
     assert!(has_arm64, "arm64-v8a native lib should be preserved");
     assert!(!has_x86, "x86 native lib must be stripped");
     assert!(!has_v7a, "armeabi-v7a native lib must be stripped");
+
+    // Task 3 sanity check: verifying native libs for preserved arch succeeds
+    builder::arch::verify_arch_native_libs(test_apk_path, test_apk_path, "arm64-v8a")
+        .expect("verify_arch_native_libs should succeed for preserved arch");
+
+    // Verifying native libs for stripped/missing arch fails with clear message
+    let err =
+        builder::arch::verify_arch_native_libs(test_apk_path, test_apk_path, "x86_64").unwrap_err();
+    assert!(err
+        .to_string()
+        .contains("no native libs for x86_64 after arch-stripping — check the input APK / cache"));
 }
 
 #[test]

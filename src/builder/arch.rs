@@ -14,16 +14,24 @@ pub const ANDROID_ABIS: &[&str] = &[
 ];
 
 pub fn strip_unsupported_archs(apk_path: &str, target_arch: &str) -> Result<u64> {
-    let initial_size = std::fs::metadata(apk_path)?.len();
-    let temp_out = format!("{apk_path}.arch_stripped.tmp");
+    strip_unsupported_archs_to(apk_path, apk_path, target_arch)
+}
 
-    info!("Stripping native libs for arch '{target_arch}' from {apk_path}...");
+pub fn strip_unsupported_archs_to(src_apk: &str, dst_apk: &str, target_arch: &str) -> Result<u64> {
+    let initial_size = std::fs::metadata(src_apk)?.len();
+    let temp_out = if src_apk == dst_apk {
+        format!("{src_apk}.arch_stripped.tmp")
+    } else {
+        dst_apk.to_string()
+    };
+
+    info!("Stripping native libs for arch '{target_arch}' from {src_apk} to {dst_apk}...");
 
     let mut stripped_files = 0u32;
     let mut stripped_bytes = 0u64;
 
     {
-        let src = std::fs::File::open(apk_path)?;
+        let src = std::fs::File::open(src_apk)?;
         let mut zip_in = zip::ZipArchive::new(src)?;
         for i in 0..zip_in.len() {
             let entry = zip_in.by_index(i)?;
@@ -36,7 +44,7 @@ pub fn strip_unsupported_archs(apk_path: &str, target_arch: &str) -> Result<u64>
     }
 
     let arch = target_arch.to_string();
-    rewrite(apk_path, &temp_out, move |name| {
+    rewrite(src_apk, &temp_out, move |name| {
         if should_strip(name, &arch) {
             EntryAction::Drop
         } else {
@@ -44,10 +52,12 @@ pub fn strip_unsupported_archs(apk_path: &str, target_arch: &str) -> Result<u64>
         }
     })?;
 
-    std::fs::remove_file(apk_path)?;
-    std::fs::rename(&temp_out, apk_path)?;
+    if src_apk == dst_apk {
+        std::fs::remove_file(src_apk)?;
+        std::fs::rename(&temp_out, src_apk)?;
+    }
 
-    let final_size = std::fs::metadata(apk_path)?.len();
+    let final_size = std::fs::metadata(dst_apk)?.len();
     let saved = initial_size.saturating_sub(final_size);
 
     info!(

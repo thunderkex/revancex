@@ -104,20 +104,26 @@ async fn build_single(
         app.patch_source
     );
 
-    let apk_path = builder::fetch_apk(cfg, id, app, arch, force, uptodown_cb).await?;
+    let raw_apk = builder::fetch_apk(cfg, id, app, arch, force, uptodown_cb).await?;
 
     if effective_mode == "install" || app.patch_source == "none" || app.patch_source.is_empty() {
         let dest = format!("{output_dir}/{id}.apk");
-        std::fs::copy(&apk_path, &dest)?;
+        std::fs::copy(&raw_apk, &dest)?;
         info!("{id}: copied unpatched official APK to {dest}");
         return Ok(dest);
     }
 
-    if arch != "all" {
-        if let Err(e) = builder::arch::strip_unsupported_archs(&apk_path, arch) {
+    let apk_path = if arch != "all" {
+        let work_apk = format!("{}/{id}-{arch}-work.apk", cfg.build.temp_dir);
+        if let Err(e) = builder::arch::strip_unsupported_archs_to(&raw_apk, &work_apk, arch) {
             warn!("{id}: arch stripping note: {e}");
+            raw_apk
+        } else {
+            work_apk
         }
-    }
+    } else {
+        raw_apk
+    };
 
     if effective_mode == "both" {
         let non_root = patcher::patch(cfg, id, app, &apk_path, output_dir, false).await?;

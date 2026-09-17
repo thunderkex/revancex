@@ -674,6 +674,53 @@ fn test_generate_apps_json_with_registry_integration() {
 }
 
 #[test]
+fn test_check_updates_independent_branches_per_app() {
+    use revancex::orchestrator::discovery::detect_changed_apps_from_tags;
+    use std::collections::HashMap;
+
+    let mut pairs: HashMap<(String, String, Option<String>), Vec<String>> = HashMap::new();
+    pairs.insert(
+        (
+            "mysource".to_string(),
+            "org/patches".to_string(),
+            Some("main".to_string()),
+        ),
+        vec!["app_stable".to_string()],
+    );
+    pairs.insert(
+        (
+            "mysource".to_string(),
+            "org/patches".to_string(),
+            Some("dev".to_string()),
+        ),
+        vec!["app_dev".to_string()],
+    );
+
+    let mut cached_tags: HashMap<String, String> = HashMap::new();
+    cached_tags.insert("mysource@main".to_string(), "v1.0.0".to_string());
+    cached_tags.insert("mysource@dev".to_string(), "v2.0.0".to_string());
+
+    let mut latest_tags: HashMap<(String, Option<String>), String> = HashMap::new();
+    latest_tags.insert(
+        ("mysource".to_string(), Some("main".to_string())),
+        "v1.0.0".to_string(),
+    );
+    latest_tags.insert(
+        ("mysource".to_string(), Some("dev".to_string())),
+        "v2.1.0".to_string(),
+    );
+
+    let (changed_sources, changed_apps, updated_cache) =
+        detect_changed_apps_from_tags(&pairs, &cached_tags, &latest_tags);
+
+    assert_eq!(changed_sources, vec!["mysource".to_string()]);
+    assert_eq!(changed_apps, vec!["app_dev".to_string()]);
+    assert!(!changed_apps.contains(&"app_stable".to_string()));
+    assert_eq!(updated_cache.get("mysource@dev").unwrap(), "v2.1.0");
+    assert_eq!(updated_cache.get("mysource@main").unwrap(), "v1.0.0");
+}
+
+#[test]
 fn test_check_app_version_compatibility_warning() {
     use revancex::patcher::metadata::{check_app_version_compatibility, PackageCompat, PatchMeta};
 

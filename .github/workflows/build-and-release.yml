@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: temurin
@@ -109,6 +109,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+
+      - name: Verify build produced output
+        run: |
+          count=$(find output -maxdepth 1 \( -name '*.apk' -o -name '*.zip' \) -type f 2>/dev/null | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "::error::Build produced zero APK/ZIP files in output/. Aborting release pipeline."
+            exit 1
+          fi
+          echo "Build OK: $count output file(s) found."
 
       - name: Build single modules for enabled apps
         if: inputs.build_single_modules
@@ -188,6 +197,9 @@ jobs:
           prerelease: ${{ inputs.prerelease }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Python script dependencies
+        run: pip install --quiet -r scripts/requirements.txt
 
       - name: Update README tables and send Telegram notification
         run: |

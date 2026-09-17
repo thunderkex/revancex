@@ -58,6 +58,11 @@ jobs:
       - name: Run unit & integration tests
         run: cargo test
 
+      - name: Smoke-test Python scripts
+        run: |
+          pip install --quiet -r scripts/requirements.txt
+          python3 scripts/tests/test_update_readme.py
+
       - name: Validate config
         run: cargo run -- validate --strict
 

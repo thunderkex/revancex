@@ -6,6 +6,12 @@ import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
 
+try:
+    import yaml
+    _YAML_AVAILABLE = True
+except ImportError:
+    _YAML_AVAILABLE = False
+
 README_PATH = "README.md"
 RELEASES_REGISTRY_PATH = "config/releases_registry.json"
 START_MARKER = "<!-- AUTO-APP-LIST-START -->"
@@ -163,11 +169,14 @@ def main():
 
     modules_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "modules.yaml")
     modules_cfg = {}
-    if os.path.exists(modules_yaml_path):
-        with open(modules_yaml_path, "r", encoding="utf-8") as f:
-            y = yaml.safe_load(f)
-            if y and "modules" in y:
-                modules_cfg = y["modules"]
+    if _YAML_AVAILABLE and os.path.exists(modules_yaml_path):
+        try:
+            with open(modules_yaml_path, "r", encoding="utf-8") as f:
+                y = yaml.safe_load(f)
+                if y and "modules" in y:
+                    modules_cfg = y["modules"]
+        except Exception as e:
+            print(f"[modules.yaml] Failed to load, bundle table will use fallback: {e}")
 
     bundle_table = [
         "| Bundle Name | Included Apps & Payload Files | Download Link | Release Tag | Updated At |",

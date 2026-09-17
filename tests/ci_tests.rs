@@ -475,6 +475,54 @@ fn test_plan_resolve_with_apk_version_auto_disables_incompatible() {
 }
 
 #[test]
+fn test_resolve_compatible_versions_maximum_coverage() {
+    use revancex::patcher::metadata::{resolve_compatible_versions, PackageCompat, PatchMeta};
+
+    // Patch 1 supports 1.0, 2.0
+    // Patch 2 supports 2.0, 3.0
+    // Patch 3 supports 2.0
+    // Patch 4 supports 4.0
+    // Global intersection was empty [], but version 2.0 has maximum coverage (3 patches).
+    let patches = vec![
+        PatchMeta {
+            name: "P1".to_string(),
+            description: "".to_string(),
+            compatible_packages: vec![PackageCompat {
+                name: "com.pkg".to_string(),
+                versions: vec!["1.0.0".to_string(), "2.0.0".to_string()],
+            }],
+        },
+        PatchMeta {
+            name: "P2".to_string(),
+            description: "".to_string(),
+            compatible_packages: vec![PackageCompat {
+                name: "com.pkg".to_string(),
+                versions: vec!["2.0.0".to_string(), "3.0.0".to_string()],
+            }],
+        },
+        PatchMeta {
+            name: "P3".to_string(),
+            description: "".to_string(),
+            compatible_packages: vec![PackageCompat {
+                name: "com.pkg".to_string(),
+                versions: vec!["2.0.0".to_string()],
+            }],
+        },
+        PatchMeta {
+            name: "P4".to_string(),
+            description: "".to_string(),
+            compatible_packages: vec![PackageCompat {
+                name: "com.pkg".to_string(),
+                versions: vec!["4.0.0".to_string()],
+            }],
+        },
+    ];
+
+    let result = resolve_compatible_versions(&patches, "com.pkg", &[]);
+    assert_eq!(result, vec!["2.0.0".to_string()]);
+}
+
+#[test]
 fn test_uptodown_turnstile_blocked_detected() {
     let html = std::fs::read_to_string("tests/fixtures/uptodown/turnstile_blocked.html")
         .expect("fixture file missing");

@@ -152,7 +152,7 @@ pub fn resolve_compatible_versions(
     package: &str,
     enabled_patches: &[String],
 ) -> Vec<String> {
-    let mut version_sets: Vec<Vec<String>> = Vec::new();
+    let mut version_counts: HashMap<String, usize> = HashMap::new();
 
     for patch in patches {
         if !enabled_patches.is_empty()
@@ -163,20 +163,35 @@ pub fn resolve_compatible_versions(
             continue;
         }
         for compat in &patch.compatible_packages {
-            if compat.name == package && !compat.versions.is_empty() {
-                version_sets.push(compat.versions.clone());
+            if compat.name == package {
+                for v in &compat.versions {
+                    *version_counts.entry(v.clone()).or_insert(0) += 1;
+                }
             }
         }
     }
 
-    if version_sets.is_empty() {
+    if version_counts.is_empty() {
         return Vec::new();
     }
 
-    let mut result = version_sets[0].clone();
-    for set in &version_sets[1..] {
-        result.retain(|v| set.contains(v));
+    let max_count = version_counts.values().copied().max().unwrap_or(0);
+    if max_count == 0 {
+        return Vec::new();
     }
+
+    let mut result: Vec<String> = version_counts
+        .into_iter()
+        .filter(|(_, count)| *count == max_count)
+        .map(|(v, _)| v)
+        .collect();
+
+    result.sort_by(|a, b| {
+        let pa = crate::utils::semver::parse_version_numbers(a);
+        let pb = crate::utils::semver::parse_version_numbers(b);
+        crate::utils::semver::compare_version_parts(&pa, &pb)
+    });
+
     result
 }
 

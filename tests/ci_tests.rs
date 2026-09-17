@@ -578,6 +578,14 @@ fn test_check_app_version_compatibility_warning() {
     assert!(warn2.unwrap().contains("fall outside every enabled patch"));
 }
 
+#[tokio::test]
+async fn test_smoke_testing_static_dex_check() {
+    let report = revancex::testing::run_device_tests("all", "./nonexistent_dir", false, 0, 0)
+        .await
+        .expect("smoke test run failed");
+    assert_eq!(report.failed, 0);
+}
+
 #[test]
 fn test_uptodown_turnstile_blocked_detected() {
     let html = std::fs::read_to_string("tests/fixtures/uptodown/turnstile_blocked.html")

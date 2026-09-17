@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReVanceX — Custom Bundle Builder</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>ReVanceX</h1>
+    <p>Select apps, pick your architecture, trigger a custom build.</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <label>
+        Architecture
+        <select id="arch-select">
+          <option value="arm64-v8a" selected>arm64-v8a (most phones)</option>
+          <option value="x86_64">x86_64 (emulators)</option>
+          <option value="armeabi-v7a">armeabi-v7a (32-bit)</option>
+        </select>
+      </label>
+
+      <div class="select-actions">
+        <button id="select-all" class="btn-secondary">Select All</button>
+        <button id="deselect-all" class="btn-secondary">Deselect All</button>
+      </div>
+    </section>
+
+    <div id="token-section" class="token-section">
+      <label>
+        GitHub Token <span class="hint">(repo + workflow scopes — never stored)</span>
+        <input type="password" id="gh-token" placeholder="ghp_..." autocomplete="off">
+      </label>
+    </div>
+
+    <div id="app-grid" class="app-grid">
+      <div class="loading">Loading apps…</div>
+    </div>
+
+    <div class="build-bar">
+      <span id="selected-count">0 apps selected</span>
+      <button id="build-btn" class="btn-primary" disabled>Build Custom Bundle</button>
+    </div>
+
+    <div id="status" class="status hidden"></div>
+  </main>
+
+  <footer>
+    <a href="https://github.com/thunderkex/revancex" target="_blank">ReVanceX</a>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

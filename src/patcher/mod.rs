@@ -41,7 +41,23 @@ pub async fn patch(
     } else {
         None
     };
-    let plan = plan::resolve(app, is_root, meta.as_ref(), None, &cfg.build.patcher.rules);
+    let apk_version = crate::utils::apk::get_apk_version_name(apk_path).ok();
+    if let Some(ref ver) = apk_version {
+        info!("{id}: parsed actual APK version {ver} from {apk_path}");
+    }
+    let plan = plan::resolve(
+        app,
+        is_root,
+        meta.as_ref(),
+        apk_version.as_deref(),
+        &cfg.build.patcher.rules,
+    );
+    if !plan.auto_disabled.is_empty() {
+        info!(
+            "{id}: {} patch(es) auto-disabled due to version/rules",
+            plan.auto_disabled.len()
+        );
+    }
 
     let args = cli::build_args(
         &cfg.build.tools_dir,

@@ -431,6 +431,50 @@ fn test_build_args_uses_resolved_plan() {
 }
 
 #[test]
+fn test_plan_resolve_with_apk_version_auto_disables_incompatible() {
+    use revancex::patcher::metadata::{PackageCompat, PatchMeta};
+    use std::sync::Arc;
+
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let mut app = cfg.apps.values().next().unwrap().clone();
+    app.package = "com.test.pkg".to_string();
+    app.patches = vec!["PatchA".to_string(), "PatchB".to_string()];
+
+    let meta = Arc::new(vec![
+        PatchMeta {
+            name: "PatchA".to_string(),
+            description: "Patch A".to_string(),
+            compatible_packages: vec![PackageCompat {
+                name: "com.test.pkg".to_string(),
+                versions: vec!["1.0.0".to_string()],
+            }],
+        },
+        PatchMeta {
+            name: "PatchB".to_string(),
+            description: "Patch B".to_string(),
+            compatible_packages: vec![PackageCompat {
+                name: "com.test.pkg".to_string(),
+                versions: vec!["2.0.0".to_string()],
+            }],
+        },
+    ]);
+
+    let plan = revancex::patcher::plan::resolve(
+        &app,
+        false,
+        Some(&meta),
+        Some("1.0.0"),
+        &cfg.build.patcher.rules,
+    );
+
+    assert!(plan.included.contains(&"PatchA".to_string()));
+    assert!(!plan.included.contains(&"PatchB".to_string()));
+    assert!(plan.excluded.contains(&"PatchB".to_string()));
+    assert_eq!(plan.auto_disabled.len(), 1);
+    assert_eq!(plan.auto_disabled[0].name, "PatchB");
+}
+
+#[test]
 fn test_uptodown_turnstile_blocked_detected() {
     let html = std::fs::read_to_string("tests/fixtures/uptodown/turnstile_blocked.html")
         .expect("fixture file missing");

@@ -405,20 +405,35 @@ pub async fn build_custom_module(
         zip.start_file(&apk_entry, opts)?;
         std::io::copy(&mut apk_file, &mut zip)?;
 
-        let stock_candidates = [
+        let mut stock_file_path = None;
+        if let Ok(entries) = std::fs::read_dir(&cfg.build.temp_dir) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                if fname.starts_with(app_dir) && fname.ends_with("-input.apk") {
+                    stock_file_path = Some(p);
+                    break;
+                }
+            }
+        }
+        let fallback_candidates = [
+            format!("{}/{app_dir}-all-input.apk", cfg.build.temp_dir),
             format!("{}/{app_dir}-input.apk", cfg.build.temp_dir),
             format!("tmp/{app_dir}-input.apk"),
             format!("{}/{app_dir}.apk", cfg.build.temp_dir),
         ];
-        for stock_cand in &stock_candidates {
-            if Path::new(stock_cand).exists() {
-                if let Ok(mut sf) = std::fs::File::open(stock_cand) {
-                    let stock_entry = format!("stock/{app_dir}.apk");
-                    if zip.start_file(&stock_entry, opts).is_ok() {
-                        let _ = std::io::copy(&mut sf, &mut zip);
-                    }
+        let chosen_stock = stock_file_path.or_else(|| {
+            fallback_candidates
+                .into_iter()
+                .map(std::path::PathBuf::from)
+                .find(|p| p.exists())
+        });
+        if let Some(sp) = chosen_stock {
+            if let Ok(mut sf) = std::fs::File::open(sp) {
+                let stock_entry = format!("stock/{app_dir}.apk");
+                if zip.start_file(&stock_entry, opts).is_ok() {
+                    let _ = std::io::copy(&mut sf, &mut zip);
                 }
-                break;
             }
         }
     }

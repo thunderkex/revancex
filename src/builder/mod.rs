@@ -160,14 +160,36 @@ pub async fn fetch_apk(
     force: bool,
     uptodown_cb: Option<Arc<AtomicU32>>,
 ) -> Result<String> {
-    let dest = format!("{}/{id}-input.apk", cfg.build.temp_dir);
-    if !force && Path::new(&dest).exists() && std::fs::metadata(&dest)?.len() > 1_000_000 {
-        info!("{id}: cached input APK exists at {dest}");
-        return Ok(dest);
+    let arch_tag = if arch == "all" || arch.is_empty() {
+        "all"
+    } else {
+        arch
+    };
+    let dest = format!("{}/{id}-{arch_tag}-input.apk", cfg.build.temp_dir);
+    let all_dest = format!("{}/{id}-all-input.apk", cfg.build.temp_dir);
+    let legacy_dest = format!("{}/{id}-input.apk", cfg.build.temp_dir);
+
+    if !force {
+        if Path::new(&dest).exists() && std::fs::metadata(&dest)?.len() > 1_000_000 {
+            info!("{id}: cached input APK exists at {dest}");
+            return Ok(dest);
+        }
+        if Path::new(&all_dest).exists() && std::fs::metadata(&all_dest)?.len() > 1_000_000 {
+            info!("{id}: cached universal input APK exists at {all_dest}");
+            return Ok(all_dest);
+        }
+        if Path::new(&legacy_dest).exists() && std::fs::metadata(&legacy_dest)?.len() > 1_000_000 {
+            info!("{id}: cached legacy input APK exists at {legacy_dest}");
+            return Ok(legacy_dest);
+        }
     }
-    if force && Path::new(&dest).exists() {
-        info!("{id}: --force: removing cached input APK {dest}");
-        std::fs::remove_file(&dest)?;
+    if force {
+        for p in [&dest, &all_dest, &legacy_dest] {
+            if Path::new(p).exists() {
+                info!("{id}: --force: removing cached input APK {p}");
+                let _ = std::fs::remove_file(p);
+            }
+        }
     }
 
     let client = make_client()?;

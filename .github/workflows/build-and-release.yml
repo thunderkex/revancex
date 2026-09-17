@@ -116,7 +116,6 @@ jobs:
           echo "Build OK: $count output file(s) found."
 
       - name: Build bundle modules
-        continue-on-error: true
         run: |
           if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
             revancex module \
@@ -136,19 +135,28 @@ jobs:
 
       - name: Build single modules for enabled apps
         if: inputs.build_single_modules
-        continue-on-error: true
         run: |
+          FAILED_MODULES=""
           for apk in output/*.apk; do
             [ -f "$apk" ] || continue
             fname=$(basename "$apk")
             appid="${fname%.apk}"
             appid="${appid%-patched}"
+            appid="${appid%-root}"
             [ "$appid" = "microg" ] && continue
-            revancex module \
-              --single \
-              --apps "$appid" \
-              --output output
+            echo "Building single module for: $appid"
+            if ! revancex module --single --apps "$appid" --output output; then
+              echo "::error::Single module build failed for $appid"
+              FAILED_MODULES="$FAILED_MODULES $appid"
+            fi
           done
+
+          if [ -n "$FAILED_MODULES" ]; then
+            echo "### ❌ Single Module Build Failures" >> $GITHUB_STEP_SUMMARY
+            echo "Failed apps:$FAILED_MODULES" >> $GITHUB_STEP_SUMMARY
+            echo "::error::Failed single module builds for:$FAILED_MODULES"
+            exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -245,7 +253,6 @@ jobs:
           if-no-files-found: warn
 
       - name: Commit and push updated README & release registry
-        continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -257,14 +264,46 @@ jobs:
             COMMIT_MSG="docs: auto-update apps and modules registry for ${{ steps.meta.outputs.tag }} [skip ci]"
           fi
           git diff --quiet && git diff --staged --quiet || git commit -m "$COMMIT_MSG"
-          for i in 1 2 3; do
+          PUSH_OK=false
+          for i in 1 2 3 4 5; do
             git fetch origin ${{ github.ref_name }}
-            git rebase origin/${{ github.ref_name }}
+            git rebase origin/${{ github.ref_name }} || git rebase --abort
             if git push origin HEAD:${{ github.ref }}; then
+              PUSH_OK=true
               break
             fi
-            echo "Push failed, retrying in 3s (attempt $i of 3)..."
+            echo "Push failed, retrying in 3s (attempt $i of 5)..."
             sleep 3
           done
+          if [ "$PUSH_OK" != "true" ]; then
+            echo "::error::Failed to push updated README and releases registry after 5 attempts"
+            exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Build Summary
+        if: always()
+        run: |
+          echo "## 🚀 ReVanceX Pipeline Execution Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Apps** | \`${{ inputs.apps || 'all' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Arch** | \`${{ inputs.arch }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **CLI Source** | \`${{ env.CLI_SOURCE || 'unknown' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Job Status** | \`${{ job.status }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Output Artifacts" >> $GITHUB_STEP_SUMMARY
+          if [ -d output ] && [ "$(ls -A output 2>/dev/null)" ]; then
+            echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+            echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
+            for f in output/*; do
+              [ -f "$f" ] || continue
+              fname=$(basename "$f")
+              fsize=$(ls -lh "$f" | awk '{print $5}')
+              echo "| \`$fname\` | $fsize |" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "No output artifacts produced." >> $GITHUB_STEP_SUMMARY
+          fi

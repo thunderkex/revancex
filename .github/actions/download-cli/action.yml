@@ -10,10 +10,16 @@ inputs:
     required: false
     default: ''
 
+outputs:
+  cli_source:
+    description: 'Whether CLI was downloaded pre-built or built from source'
+    value: ${{ steps.download.outputs.cli_source }}
+
 runs:
   using: 'composite'
   steps:
     - name: Download and unpack revancex CLI
+      id: download
       shell: bash
       run: |
         mkdir -p bin
@@ -41,10 +47,15 @@ runs:
 
         if [ "$DOWNLOADED" = "false" ]; then
           echo "::warning::No pre-built CLI release found. Building from source (this will take a few minutes)..."
+          echo "cli_source=built from source" >> $GITHUB_OUTPUT
+          echo "CLI_SOURCE=built from source" >> $GITHUB_ENV
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
           source "$HOME/.cargo/env"
           cargo build --release
           cp target/release/revancex bin/revancex
+        else
+          echo "cli_source=pre-built binary" >> $GITHUB_OUTPUT
+          echo "CLI_SOURCE=pre-built binary" >> $GITHUB_ENV
         fi
 
         chmod +x bin/revancex*

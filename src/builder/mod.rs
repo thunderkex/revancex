@@ -6,7 +6,7 @@ use crate::patcher::metadata;
 use crate::utils::semver::{compare_version_parts, parse_version_numbers};
 use anyhow::{Context, Result};
 use regex::Regex;
-use reqwest::header::{HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, USER_AGENT};
+use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
 use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
@@ -74,59 +74,6 @@ pub fn is_turnstile_blocked(status: u16, headers: &reqwest::header::HeaderMap, b
         || body.contains("cf_chl_opt")
 }
 
-fn make_client() -> Result<Client> {
-    let mut headers = HeaderMap::new();
-    let ua = crate::utils::random_user_agent();
-    let val = HeaderValue::from_str(ua)
-        .unwrap_or_else(|_| HeaderValue::from_static(crate::utils::DEFAULT_UA));
-    headers.insert(USER_AGENT, val);
-    headers.insert(
-        ACCEPT,
-        HeaderValue::from_static(
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        ),
-    );
-    headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("en-US,en;q=0.9"));
-    headers.insert(
-        HeaderName::from_static("sec-ch-ua"),
-        HeaderValue::from_static(
-            "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\"",
-        ),
-    );
-    headers.insert(
-        HeaderName::from_static("sec-ch-ua-mobile"),
-        HeaderValue::from_static("?0"),
-    );
-    headers.insert(
-        HeaderName::from_static("sec-ch-ua-platform"),
-        HeaderValue::from_static("\"Windows\""),
-    );
-    headers.insert(
-        HeaderName::from_static("sec-fetch-dest"),
-        HeaderValue::from_static("document"),
-    );
-    headers.insert(
-        HeaderName::from_static("sec-fetch-mode"),
-        HeaderValue::from_static("navigate"),
-    );
-    headers.insert(
-        HeaderName::from_static("sec-fetch-site"),
-        HeaderValue::from_static("same-origin"),
-    );
-    headers.insert(
-        HeaderName::from_static("upgrade-insecure-requests"),
-        HeaderValue::from_static("1"),
-    );
-
-    Client::builder()
-        .cookie_store(true)
-        .default_headers(headers)
-        .redirect(reqwest::redirect::Policy::limited(10))
-        .timeout(std::time::Duration::from_secs(180))
-        .build()
-        .map_err(Into::into)
-}
-
 pub async fn resolve_all_patch_compatible_versions(cfg: &Config, app: &AppConfig) -> Vec<String> {
     let Some(mpp_path) = metadata::resolve_mpp_path(cfg, app) else {
         return Vec::new();
@@ -192,7 +139,7 @@ pub async fn fetch_apk(
         }
     }
 
-    let client = make_client()?;
+    let client = crate::utils::make_browser_client(cfg)?;
 
     if let Some(url) = &app.apk_url {
         let final_url = if url.contains("github.com") && url.contains("/releases/") {

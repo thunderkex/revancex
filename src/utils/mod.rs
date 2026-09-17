@@ -13,35 +13,121 @@ use reqwest::Client;
 use std::path::Path;
 use tracing::info;
 
-pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<()> {
+pub fn make_github_client(cfg: &Config) -> Result<Client> {
+    let timeout = std::time::Duration::from_secs(cfg.build.download_timeout_secs);
+    let ver = env!("CARGO_PKG_VERSION");
     let client = Client::builder()
-        .timeout(std::time::Duration::from_secs(
-            cfg.build.download_timeout_secs,
-        ))
-        .user_agent("revancex-builder/666")
+        .timeout(timeout)
+        .user_agent(format!("revancex/{ver}"))
         .build()?;
+    Ok(client)
+}
+
+pub fn make_browser_client(cfg: &Config) -> Result<Client> {
+    use reqwest::header::{
+        HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, USER_AGENT,
+    };
+    let mut headers = HeaderMap::new();
+    let ua = random_user_agent();
+    let val = HeaderValue::from_str(ua).unwrap_or_else(|_| HeaderValue::from_static(DEFAULT_UA));
+    headers.insert(USER_AGENT, val);
+    headers.insert(
+        ACCEPT,
+        HeaderValue::from_static(
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        ),
+    );
+    headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("en-US,en;q=0.9"));
+    headers.insert(
+        HeaderName::from_static("sec-ch-ua"),
+        HeaderValue::from_static(
+            "\"Chromium\";v=\"130\", \"Google Chrome\";v=\"130\", \"Not?A_Brand\";v=\"99\"",
+        ),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-ch-ua-mobile"),
+        HeaderValue::from_static("?0"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-ch-ua-platform"),
+        HeaderValue::from_static("\"Windows\""),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-dest"),
+        HeaderValue::from_static("document"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-mode"),
+        HeaderValue::from_static("navigate"),
+    );
+    headers.insert(
+        HeaderName::from_static("sec-fetch-site"),
+        HeaderValue::from_static("same-origin"),
+    );
+    headers.insert(
+        HeaderName::from_static("upgrade-insecure-requests"),
+        HeaderValue::from_static("1"),
+    );
+
+    let timeout = std::time::Duration::from_secs(cfg.build.download_timeout_secs);
+    Client::builder()
+        .cookie_store(true)
+        .default_headers(headers)
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .timeout(timeout)
+        .build()
+        .map_err(Into::into)
+}
+
+pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<()> {
+    let client = make_github_client(cfg)?;
+    let mut version_cache = cache::load_version_cache(&cfg.build.version_cache);
+    let mut cache_modified = false;
 
     let cli_dest = format!("{}/morphe-cli.jar", cfg.build.tools_dir);
-    if !Path::new(&cli_dest).exists() {
+    let cli_tag_res = github::get_latest_release(&client, &cfg.cli_repo, None).await;
+    let cli_upstream_tag = cli_tag_res.as_ref().map(|r| r.tag_name.clone()).ok();
+    let cached_cli_tag = version_cache.patch_source_tags.get("cli").cloned();
+
+    let cli_needs_download = if !Path::new(&cli_dest).exists() {
+        true
+    } else if let (Some(ref upstream), Some(ref cached)) = (&cli_upstream_tag, &cached_cli_tag) {
+        upstream != cached
+    } else {
+        false
+    };
+
+    if cli_needs_download {
         let url = github::resolve_asset_url(&client, &cfg.cli_repo, &cfg.cli_pattern, None)
             .await
             .with_context(|| format!("fetching CLI from {}", cfg.cli_repo))?;
         download_file_with_client(&client, &url, &cli_dest, cfg.build.download_retries, None)
             .await?;
+        if let Some(tag) = cli_upstream_tag {
+            version_cache
+                .patch_source_tags
+                .insert("cli".to_string(), tag);
+            cache_modified = true;
+        }
+    } else {
+        info!("CLI up to date, skipping: {cli_dest}");
     }
 
     let apkeditor_dest = format!("{}/APKEditor.jar", cfg.build.tools_dir);
     if !Path::new(&apkeditor_dest).exists() {
         let url =
             "https://github.com/REAndroid/APKEditor/releases/download/V1.4.9/APKEditor-1.4.9.jar";
-        let _ = download_file_with_client(
+        if let Err(e) = download_file_with_client(
             &client,
             url,
             &apkeditor_dest,
             cfg.build.download_retries,
             None,
         )
-        .await;
+        .await
+        {
+            tracing::warn!("APKEditor download failed, split-bundle merging unavailable: {e}");
+        }
     }
 
     let mut repo_branches: std::collections::HashMap<String, Option<String>> =
@@ -81,15 +167,24 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
         let versioned_dest = branch
             .as_ref()
             .map(|b| format!("{}/patches_{safe_name}_{b}.mpp", cfg.build.tools_dir));
+        let primary_dest = versioned_dest.as_ref().unwrap_or(&dest);
 
-        let needs_download = if let Some(ref vdest) = versioned_dest {
-            !Path::new(vdest).exists()
+        let upstream_rel = github::get_latest_release(&client, &repo, branch.as_deref())
+            .await
+            .ok();
+        let upstream_tag = upstream_rel.as_ref().map(|r| r.tag_name.clone());
+        let cached_tag = version_cache.patch_source_tags.get(&repo).cloned();
+
+        let needs_download = if !Path::new(primary_dest).exists() {
+            true
+        } else if let (Some(ref up_tag), Some(ref c_tag)) = (&upstream_tag, &cached_tag) {
+            up_tag != c_tag
         } else {
-            !Path::new(&dest).exists()
+            false
         };
 
         if !needs_download {
-            info!("Patches exist, skipping: {dest}");
+            info!("Patches up to date, skipping: {primary_dest}");
             continue;
         }
 
@@ -115,11 +210,19 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
                     )
                     .await?;
                 }
+                if let Some(tag) = upstream_tag {
+                    version_cache.patch_source_tags.insert(repo.clone(), tag);
+                    cache_modified = true;
+                }
             }
             Err(e) => {
                 tracing::warn!("Could not download patches from {repo}: {e}");
             }
         }
+    }
+
+    if cache_modified {
+        cache::save_version_cache(&cfg.build.version_cache, &version_cache);
     }
 
     Ok(())
@@ -279,13 +382,27 @@ async fn try_download(client: &Client, url: &str, dest: &str, referer: Option<&s
         );
     }
     let resp = resp.error_for_status()?;
+    let tmp_dest = format!("{dest}.download.tmp");
     let mut stream = resp.bytes_stream();
-    let mut file = std::fs::File::create(dest)?;
+    let mut file = std::fs::File::create(&tmp_dest)?;
     while let Some(chunk) = stream.next().await {
-        std::io::Write::write_all(&mut file, &chunk?)?;
+        if let Err(e) = std::io::Write::write_all(&mut file, &chunk?) {
+            let _ = std::fs::remove_file(&tmp_dest);
+            return Err(e.into());
+        }
+    }
+    drop(file);
+
+    if let Err(e) = verify_apk_integrity(&tmp_dest) {
+        let _ = std::fs::remove_file(&tmp_dest);
+        return Err(e);
     }
 
-    verify_apk_integrity(dest)?;
+    if let Err(e) = std::fs::rename(&tmp_dest, dest) {
+        let _ = std::fs::remove_file(&tmp_dest);
+        return Err(e.into());
+    }
+
     Ok(())
 }
 

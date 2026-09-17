@@ -21,7 +21,8 @@ jobs:
 
       - name: Pull latest changes
         run: |
-          git pull --rebase origin ${{ github.ref_name }} || true
+          git fetch origin ${{ github.ref_name }}
+          git reset --hard origin/${{ github.ref_name }}
 
       - name: Download docs artifact from build if present
         uses: actions/download-artifact@v4

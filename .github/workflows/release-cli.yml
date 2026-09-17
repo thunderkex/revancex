@@ -98,10 +98,11 @@ jobs:
             target: x86_64-unknown-linux-gnu
             artifact_name: revancex-linux-x86_64.tar.gz
             bin_name: revancex
-          - os: ubuntu-24.04-arm
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-gnu
             artifact_name: revancex-linux-aarch64.tar.gz
             bin_name: revancex
+            cross: true
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: revancex-windows-x86_64.zip
@@ -115,8 +116,18 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Install ARM64 cross-compiler
+        if: matrix.cross
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq gcc-aarch64-linux-gnu
+
       - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
 
       - name: Package binary (Linux)
         if: runner.os == 'Linux'

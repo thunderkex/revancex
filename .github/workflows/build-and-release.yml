@@ -94,7 +94,6 @@ jobs:
         run: revancex validate --strict
 
       - name: Build apps
-        continue-on-error: true
         run: |
           mkdir -p output
           revancex build \

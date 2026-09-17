@@ -8,7 +8,7 @@ function detectRepo() {
 }
 
 const { owner, repo } = detectRepo();
-const RAW_BASE = `https://raw.githubusercontent.com/${owner}/${repo}/main`;
+const RAW_BASE = `https://raw.githubusercontent.com/${owner}/${repo}/extended`;
 const API_BASE = `https://api.github.com/repos/${owner}/${repo}`;
 
 let appsData = [];

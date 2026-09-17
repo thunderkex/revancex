@@ -47,3 +47,18 @@ pub fn compare_version_parts(a: &[u64], b: &[u64]) -> Ordering {
     }
     Ordering::Equal
 }
+
+pub fn max_version<I, S>(versions: I) -> Option<String>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    versions
+        .into_iter()
+        .max_by(|a, b| {
+            let pa = parse_version_numbers(a.as_ref());
+            let pb = parse_version_numbers(b.as_ref());
+            compare_version_parts(&pa, &pb)
+        })
+        .map(|s| s.as_ref().to_string())
+}

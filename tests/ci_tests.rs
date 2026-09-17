@@ -523,6 +523,16 @@ fn test_resolve_compatible_versions_maximum_coverage() {
 }
 
 #[test]
+fn test_max_version_semver_ordering() {
+    use revancex::utils::semver::max_version;
+
+    // Unordered versions from patch listing
+    let versions = vec!["19.05.36", "19.16.39", "19.01.33", "19.11.43", "18.45.43"];
+    let max = max_version(versions);
+    assert_eq!(max, Some("19.16.39".to_string()));
+}
+
+#[test]
 fn test_uptodown_turnstile_blocked_detected() {
     let html = std::fs::read_to_string("tests/fixtures/uptodown/turnstile_blocked.html")
         .expect("fixture file missing");

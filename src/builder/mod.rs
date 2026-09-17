@@ -149,10 +149,7 @@ pub async fn resolve_all_patch_compatible_versions(cfg: &Config, app: &AppConfig
 }
 
 pub async fn resolve_patch_compatible_version(cfg: &Config, app: &AppConfig) -> Option<String> {
-    resolve_all_patch_compatible_versions(cfg, app)
-        .await
-        .into_iter()
-        .next_back()
+    crate::utils::semver::max_version(resolve_all_patch_compatible_versions(cfg, app).await)
 }
 
 pub async fn fetch_apk(
@@ -199,7 +196,7 @@ pub async fn fetch_apk(
     let patch_supported_versions = resolve_all_patch_compatible_versions(cfg, app).await;
 
     let target_ver = if configured_ver.is_none() || configured_ver == Some("auto") {
-        let detected = patch_supported_versions.last().cloned();
+        let detected = crate::utils::semver::max_version(&patch_supported_versions);
         if let Some(ref v) = detected {
             info!("{id}: resolved auto version from patch: {v}");
         }

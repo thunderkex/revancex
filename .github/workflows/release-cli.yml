@@ -37,7 +37,7 @@ jobs:
   check_release:
     name: Check Release Need
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       should_release: ${{ steps.check.outputs.should_release }}
       tag: ${{ steps.check.outputs.tag }}
@@ -94,7 +94,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             artifact_name: revancex-linux-x86_64.tar.gz
             bin_name: revancex
@@ -145,7 +145,7 @@ jobs:
     name: Publish GitHub Release
     needs: [check_release, build-release]
     if: needs.check_release.outputs.should_release == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 

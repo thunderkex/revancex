@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   resolve:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       apps: ${{ steps.inputs.outputs.apps }}
       arch: ${{ steps.inputs.outputs.arch }}

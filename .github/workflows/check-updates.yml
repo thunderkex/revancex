@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       has_updates: ${{ steps.poll.outputs.has_updates }}
       changed_apps: ${{ steps.poll.outputs.changed_apps }}

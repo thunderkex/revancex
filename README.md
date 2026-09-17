@@ -172,13 +172,17 @@ revancex-bundle-<category>.zip
 
 ##### Categorized Bundles Breakdown
 
-| Bundle Name | Module Zip File | Apps Count | Payload Files Inside (`apks/`) | Included Applications |
-| :--- | :--- | :--- | :--- | :--- |
-| **Core Essentials Bundle** | `revancex-bundle.zip` | 5 Apps | • `apks/youtube.apk`<br>• `apks/youtube_music.apk`<br>• `apks/reddit.apk`<br>• `apks/spotify.apk`<br>• `apks/x_piko.apk` | YouTube, YouTube Music, Reddit, Spotify, X (Twitter) |
-| **Multimedia Bundle** | `revancex-bundle-multimedia.zip` | 7 Apps | • `apks/youtube.apk`<br>• `apks/youtube_music.apk`<br>• `apks/youtube_morphed.apk`<br>• `apks/youtube_music_morphed.apk`<br>• `apks/spotify.apk`<br>• `apks/soundcloud.apk`<br>• `apks/prime_video.apk` | YouTube, YouTube Music, YouTube Morphed, YouTube Music Morphed, Spotify, SoundCloud, Prime Video |
-| **Social Media Bundle** | `revancex-bundle-social.zip` | 7 Apps | • `apks/reddit.apk`<br>• `apks/tiktok.apk`<br>• `apks/instagram.apk`<br>• `apks/facebook.apk`<br>• `apks/threads.apk`<br>• `apks/x_piko.apk`<br>• `apks/pixiv.apk` | Reddit, TikTok, Instagram, Facebook, Threads, X (Twitter), Pixiv |
-| **Productivity Bundle** | `revancex-bundle-productivity.zip` | 11 Apps | • `apks/wps_office.apk`<br>• `apks/camscanner.apk`<br>• `apks/solid_explorer.apk`<br>• `apks/fx_file_explorer.apk`<br>• `apks/rar.apk`<br>• `apks/google_photos.apk`<br>• `apks/lightroom.apk`<br>• `apks/google_recorder.apk`<br>• `apks/google_news.apk`<br>• `apks/terabox.apk`<br>• `apks/photomath.apk` | WPS Office, CamScanner, Solid Explorer, FX File Explorer, RAR, Google Photos, Lightroom, Google Recorder, Google News, TeraBox, Photomath |
-| **Tools & Utilities Bundle** | `revancex-bundle-tools.zip` | 14 Apps | • `apks/adguard.apk`<br>• `apks/brave_browser.apk`<br>• `apks/proton_vpn.apk`<br>• `apks/psiphon.apk`<br>• `apks/battery_guru.apk`<br>• `apks/smart_launcher.apk`<br>• `apks/nova_launcher.apk`<br>• `apks/tasker.apk`<br>• `apks/waze.apk`<br>• `apks/truecaller.apk`<br>• `apks/eyecon_caller.apk`<br>• `apks/zalo.apk`<br>• `apks/strava.apk`<br>• `apks/myfitnesspal.apk` | AdGuard, Brave Browser, Proton VPN, Psiphon, Battery Guru, Smart Launcher, Nova Launcher, Tasker, Waze, Truecaller, Eyecon, Zalo, Strava, MyFitnessPal |
+> Sourced dynamically from [`config/modules.yaml`](config/modules.yaml).
+
+<!-- AUTO-BUNDLE-BREAKDOWN-START -->
+| Bundle | Zip File | Apps | Included Applications |
+| :--- | :--- | :---: | :--- |
+| **Core Essentials** | `revancex-bundle.zip` | 5 | YouTube, YouTube Music, Reddit, Spotify, X (Twitter) |
+| **Multimedia** | `revancex-bundle-multimedia.zip` | 5 | YouTube, YouTube Music, Spotify, SoundCloud, Prime Video |
+| **Social Media** | `revancex-bundle-social.zip` | 7 | Reddit, TikTok, Instagram, Facebook, Threads, X (Twitter), Pixiv |
+| **Productivity** | `revancex-bundle-productivity.zip` | 3 | CamScanner, Lightroom, WPS Office |
+| **Tools & Utilities** | `revancex-bundle-tools.zip` | 3 | AdGuard, Proton VPN, Solid Explorer |
+<!-- AUTO-BUNDLE-BREAKDOWN-END -->
 
 #### Step 5: Validate Configuration & Setup
 
@@ -245,11 +249,31 @@ Add an entry to `config/apps.yaml` following the existing pattern. Run `validate
 
 ## Patch Sources
 
-| ID | Repo |
-| --- | --- |
-| `revanced` | ReVanced/revanced-patches |
-| `revanced_extended` | inotia00/revanced-patches |
-| `morphe` | crimera/piko |
+> Sourced dynamically from [`config/sources.yaml`](config/sources.yaml).
+
+<!-- AUTO-PATCH-SOURCES-START -->
+| ID | Repository | Asset Pattern |
+| :--- | :--- | :--- |
+| `anddea` | [anddea/revanced-patches](https://github.com/anddea/revanced-patches) | `*.mpp` |
+| `de_revanced` | [RookieEnough/De-Vanced](https://github.com/RookieEnough/De-Vanced) | `*.mpp` |
+| `piko` | [crimera/piko](https://github.com/crimera/piko) | `*.mpp` |
+| `morphe_patches` | [MorpheApp/morphe-patches](https://github.com/MorpheApp/morphe-patches) | `*.mpp` |
+| `icysymmetra` | [icysymmetra/tiktok-patches-for-morphe](https://github.com/icysymmetra/tiktok-patches-for-morphe) | `*.mpp` |
+| `hoodles` | [hoo-dles/morphe-patches](https://github.com/hoo-dles/morphe-patches) | `*.mpp` |
+| `rushiranpise` | [rushiranpise/morphe-patches](https://github.com/rushiranpise/morphe-patches) | `*.mpp` |
+| `durgesh` | [durgesh0505/chiggi_morphe_patches](https://github.com/durgesh0505/chiggi_morphe_patches) | `*.mpp` |
+| `arandomhooman` | [arandomhooman/hoomans-morphe-patches](https://github.com/arandomhooman/hoomans-morphe-patches) | `*.mpp` |
+| `hxreborn` | [hxreborn/morphe-patches](https://github.com/hxreborn/morphe-patches) | `*.mpp` |
+| `bholey` | [BholeyKaBhakt/android-patches-xtra](https://github.com/BholeyKaBhakt/android-patches-xtra) | `*.mpp` |
+| `jkennethcarino` | [jkennethcarino/adobo](https://github.com/jkennethcarino/adobo) | `*.mpp` |
+| `dhrubonai` | [dhrubonai/morphe-patches](https://github.com/dhrubonai/morphe-patches) | `*.mpp` |
+| `sapitosucio` | [SapitoSucio/FroggoMorphePatches](https://github.com/SapitoSucio/FroggoMorphePatches) | `*.mpp` |
+| `sysdmindoc` | [SysAdminDoc/hushfeed](https://github.com/SysAdminDoc/hushfeed) | `*.mpp` |
+| `browzomje` | [browzomje/browzomje-patches](https://github.com/browzomje/browzomje-patches) | `*.mpp` |
+| `blazeftl` | [BlazeFTL/FTL-Patches](https://github.com/BlazeFTL/FTL-Patches) | `*.mpp` |
+| `rikydev` | [riky-dev/morphe-patches](https://github.com/riky-dev/morphe-patches) | `*.mpp` |
+| `miguelninja` | [MiguelNinja19/miguel-morphe-patches](https://github.com/MiguelNinja19/miguel-morphe-patches) | `*.mpp` |
+<!-- AUTO-PATCH-SOURCES-END -->
 
 <!-- AUTO-APP-LIST-START -->
 

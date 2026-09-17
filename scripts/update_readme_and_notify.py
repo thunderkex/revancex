@@ -16,13 +16,76 @@ README_PATH = "README.md"
 RELEASES_REGISTRY_PATH = "config/releases_registry.json"
 START_MARKER = "<!-- AUTO-APP-LIST-START -->"
 END_MARKER = "<!-- AUTO-APP-LIST-END -->"
+PATCH_SOURCES_START = "<!-- AUTO-PATCH-SOURCES-START -->"
+PATCH_SOURCES_END = "<!-- AUTO-PATCH-SOURCES-END -->"
+BUNDLE_BREAKDOWN_START = "<!-- AUTO-BUNDLE-BREAKDOWN-START -->"
+BUNDLE_BREAKDOWN_END = "<!-- AUTO-BUNDLE-BREAKDOWN-END -->"
+
+def _replace_block(content, start_marker, end_marker, new_inner):
+    pattern = re.compile(
+        f"{re.escape(start_marker)}.*?{re.escape(end_marker)}", re.DOTALL
+    )
+    replacement = f"{start_marker}\n{new_inner}\n{end_marker}"
+    if pattern.search(content):
+        return pattern.sub(replacement, content)
+    return content
+
+
+def build_patch_sources_table(sources_yaml_path):
+    if not (_YAML_AVAILABLE and os.path.exists(sources_yaml_path)):
+        return None
+    try:
+        with open(sources_yaml_path, "r", encoding="utf-8") as f:
+            y = yaml.safe_load(f)
+    except Exception as e:
+        print(f"[sources.yaml] Failed to load: {e}")
+        return None
+    patch_sources = (y or {}).get("patch_sources", {})
+    if not patch_sources:
+        return None
+    rows = [
+        "| ID | Repository | Asset Pattern |",
+        "| :--- | :--- | :--- |",
+    ]
+    for sid, sdata in patch_sources.items():
+        repo = sdata.get("repo", "")
+        pattern = sdata.get("asset_pattern", "")
+        rows.append(f"| `{sid}` | [{repo}](https://github.com/{repo}) | `{pattern}` |")
+    return "\n".join(rows)
+
+
+def build_bundle_breakdown_table(modules_yaml_path):
+    if not (_YAML_AVAILABLE and os.path.exists(modules_yaml_path)):
+        return None
+    try:
+        with open(modules_yaml_path, "r", encoding="utf-8") as f:
+            y = yaml.safe_load(f)
+    except Exception as e:
+        print(f"[modules.yaml] Failed to load for breakdown: {e}")
+        return None
+    modules = (y or {}).get("modules", {})
+    if not modules:
+        return None
+    rows = [
+        "| Bundle | Zip File | Apps | Included Applications |",
+        "| :--- | :--- | :---: | :--- |",
+    ]
+    for key, data in modules.items():
+        apps = data.get("apps") or []
+        zip_name = data.get("zip_name") or (
+            "revancex-bundle.zip" if key == "core" else f"revancex-bundle-{key}.zip"
+        )
+        bundle_name = "Core Essentials" if key == "core" else key.replace("-", " ").title()
+        included = ", ".join(a.replace("_", " ").title() for a in apps)
+        rows.append(f"| **{bundle_name}** | `{zip_name}` | {len(apps)} | {included} |")
+    return "\n".join(rows)
+
 
 def send_telegram_message(token, chat_id, message, topic_id=None):
     if not token or not chat_id:
         print("[Telegram] Bot token or chat ID missing. Skipping notification.")
         return
     
-    # Allow composite chat_id formatted as "<chat_id>:<topic_id>" or "<chat_id>/<topic_id>" or "<chat_id>#<topic_id>"
     if not topic_id:
         for sep in [":", "/", "#"]:
             if sep in str(chat_id):
@@ -259,6 +322,25 @@ def main():
     with open(README_PATH, "w", encoding="utf-8") as f:
         f.write(updated_readme)
     print("[README] Updated successfully with persistent releases registry.")
+
+    sources_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "sources.yaml")
+    patch_sources_table = build_patch_sources_table(sources_yaml_path)
+    if patch_sources_table:
+        with open(README_PATH, "r", encoding="utf-8") as f:
+            readme_content = f.read()
+        updated = _replace_block(readme_content, PATCH_SOURCES_START, PATCH_SOURCES_END, patch_sources_table)
+        with open(README_PATH, "w", encoding="utf-8") as f:
+            f.write(updated)
+        print("[README] Patch sources block updated from sources.yaml.")
+
+    bundle_breakdown_table = build_bundle_breakdown_table(modules_yaml_path)
+    if bundle_breakdown_table:
+        with open(README_PATH, "r", encoding="utf-8") as f:
+            readme_content = f.read()
+        updated = _replace_block(readme_content, BUNDLE_BREAKDOWN_START, BUNDLE_BREAKDOWN_END, bundle_breakdown_table)
+        with open(README_PATH, "w", encoding="utf-8") as f:
+            f.write(updated)
+        print("[README] Bundle breakdown block updated from modules.yaml.")
 
     if new_files:
         built_list_str = "\n".join([f"• <code>{f}</code>" for f in new_files if not f.endswith(".idsig")])

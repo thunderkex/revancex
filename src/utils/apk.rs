@@ -35,6 +35,22 @@ pub fn get_apk_package_name<P: AsRef<Path>>(apk_path: P) -> Result<String> {
         .ok_or_else(|| anyhow::anyhow!("package name not found in AndroidManifest.xml"))
 }
 
+pub fn dex_entries_crc<P: AsRef<Path>>(
+    apk_path: P,
+) -> Result<std::collections::BTreeMap<String, u32>> {
+    let file = File::open(apk_path)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let mut dex_map = std::collections::BTreeMap::new();
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i)?;
+        let name = entry.name().to_string();
+        if name.ends_with(".dex") {
+            dex_map.insert(name, entry.crc32());
+        }
+    }
+    Ok(dex_map)
+}
+
 fn read_manifest<P: AsRef<Path>>(apk_path: P) -> Result<Vec<u8>> {
     let file = File::open(apk_path)?;
     let mut archive = zip::ZipArchive::new(file)?;

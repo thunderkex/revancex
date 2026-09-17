@@ -9,6 +9,37 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use tracing::info;
 
+pub fn parse_applied_patch_count(stdout: &str) -> Option<usize> {
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix("Applied ") {
+            if let Some(num_str) = rest.split_whitespace().next() {
+                if let Ok(n) = num_str.parse::<usize>() {
+                    if rest.contains("patch") {
+                        return Some(n);
+                    }
+                }
+            }
+        }
+    }
+    let mut count = 0;
+    let mut found_individual = false;
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if (trimmed.starts_with("Applied ") || trimmed.starts_with("Applying "))
+            && !trimmed.contains(" patches")
+            && !trimmed.contains(" patch")
+        {
+            count += 1;
+            found_individual = true;
+        }
+    }
+    if found_individual {
+        return Some(count);
+    }
+    None
+}
+
 pub async fn patch(
     cfg: &Config,
     id: &str,
@@ -104,12 +135,44 @@ pub async fn patch(
     cmd.arg(&args.input_apk);
 
     info!("{id}: patching with morphe-cli...");
-    let status = cmd
-        .status()
+    let output = cmd
+        .output()
         .await
         .context("java not found — install JDK 21+")?;
-    if !status.success() {
-        anyhow::bail!("{id}: morphe-cli exited with {status}");
+    if !output.status.success() {
+        anyhow::bail!("{id}: morphe-cli exited with {}", output.status);
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !stdout.is_empty() {
+        print!("{stdout}");
+    }
+    if !stderr.is_empty() {
+        eprint!("{stderr}");
+    }
+
+    let dex_changed = match (
+        crate::utils::apk::dex_entries_crc(apk_path),
+        crate::utils::apk::dex_entries_crc(&output_apk),
+    ) {
+        (Ok(in_crc), Ok(out_crc)) => in_crc != out_crc,
+        _ => true,
+    };
+
+    let zero_applied = if let Some(count) = parse_applied_patch_count(&stdout) {
+        count == 0
+    } else {
+        !dex_changed
+    };
+
+    if zero_applied {
+        let ver_info = apk_version
+            .as_deref()
+            .map(|v| format!(" — version {v} not covered by any enabled patch"))
+            .unwrap_or_default();
+        let plan_count = plan.included.len();
+        anyhow::bail!("{id}: 0/{plan_count} patches applied{ver_info}");
     }
 
     info!("{id}: patched → {output_apk}");

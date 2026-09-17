@@ -533,6 +533,23 @@ fn test_max_version_semver_ordering() {
 }
 
 #[test]
+fn test_parse_applied_patch_count() {
+    use revancex::patcher::parse_applied_patch_count;
+
+    let stdout_summary_zero = "Initializing...\nApplied 0 patches\nDone.";
+    assert_eq!(parse_applied_patch_count(stdout_summary_zero), Some(0));
+
+    let stdout_summary_many = "Initializing...\nApplied 47 patches\nDone.";
+    assert_eq!(parse_applied_patch_count(stdout_summary_many), Some(47));
+
+    let stdout_individual = "Initializing...\nApplied PatchA\nApplied PatchB\nDone.";
+    assert_eq!(parse_applied_patch_count(stdout_individual), Some(2));
+
+    let stdout_none = "Initializing...\nFinished without patch logs";
+    assert_eq!(parse_applied_patch_count(stdout_none), None);
+}
+
+#[test]
 fn test_uptodown_turnstile_blocked_detected() {
     let html = std::fs::read_to_string("tests/fixtures/uptodown/turnstile_blocked.html")
         .expect("fixture file missing");

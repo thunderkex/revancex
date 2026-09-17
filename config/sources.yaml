@@ -1,0 +1,89 @@
+cli:
+  repo: MorpheApp/morphe-desktop
+  asset_pattern: "morphe-*-all.jar"
+
+patch_sources:
+  anddea:
+    repo: anddea/revanced-patches
+    asset_pattern: "*.mpp"
+    branch: dev
+
+  de_revanced:
+    repo: RookieEnough/De-Vanced
+    asset_pattern: "*.mpp"
+
+  piko:
+    repo: crimera/piko
+    asset_pattern: "*.mpp"
+
+  morphe_patches:
+    repo: MorpheApp/morphe-patches
+    asset_pattern: "*.mpp"
+
+  icysymmetra:
+    repo: icysymmetra/tiktok-patches-for-morphe
+    asset_pattern: "*.mpp"
+
+  hoodles:
+    repo: hoo-dles/morphe-patches
+    asset_pattern: "*.mpp"
+
+  rushiranpise:
+    repo: rushiranpise/morphe-patches
+    asset_pattern: "*.mpp"
+
+  durgesh:
+    repo: durgesh0505/chiggi_morphe_patches
+    asset_pattern: "*.mpp"
+
+  arandomhooman:
+    repo: arandomhooman/hoomans-morphe-patches
+    asset_pattern: "*.mpp"
+
+  hxreborn:
+    repo: hxreborn/morphe-patches
+    asset_pattern: "*.mpp"
+
+  bholey:
+    repo: BholeyKaBhakt/android-patches-xtra
+    asset_pattern: "*.mpp"
+
+  jkennethcarino:
+    repo: jkennethcarino/adobo
+    asset_pattern: "*.mpp"
+
+  dhrubonai:
+    repo: dhrubonai/morphe-patches
+    asset_pattern: "*.mpp"
+
+  sapitosucio:
+    repo: SapitoSucio/FroggoMorphePatches
+    asset_pattern: "*.mpp"
+
+  sysdmindoc:
+    repo: SysAdminDoc/hushfeed
+    asset_pattern: "*.mpp"
+
+  browzomje:
+    repo: browzomje/browzomje-patches
+    asset_pattern: "*.mpp"
+
+  blazeftl:
+    repo: BlazeFTL/FTL-Patches
+    asset_pattern: "*.mpp"
+
+  rikydev:
+    repo: riky-dev/morphe-patches
+    asset_pattern: "*.mpp"
+
+  miguelninja:
+    repo: MiguelNinja19/miguel-morphe-patches
+    asset_pattern: "*.mpp"
+    
+apk_sources:
+  uptodown:
+    base_url: https://uptodown.com
+  apkmirror:
+    base_url: https://www.apkmirror.com
+  archive:
+    base_url: https://archive.org/download/geologically/apks

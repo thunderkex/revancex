@@ -1,0 +1,119 @@
+modules:
+  all:
+    apps:
+    - adguard
+    - camscanner
+    - duolingo
+    - facebook
+    - flightradar24
+    - gboard
+    - google_news
+    - google_photos
+    - instagram
+    - lightroom
+    - moviebox
+    - myfitnesspal
+    - nova_launcher
+    - pixiv
+    - prime_video
+    - proton_vpn
+    - reddit
+    - solid_explorer
+    - soundcloud
+    - spotify
+    - strava
+    - threads
+    - tiktok
+    - wps_office
+    - x_piko
+    - youtube
+    - youtube_music
+    name: null
+    module_id: null
+    zip_name: null
+  core:
+    apps:
+    - youtube
+    - youtube_music
+    - reddit
+    - spotify
+    - x_piko
+    name: null
+    module_id: null
+    zip_name: null
+  multimedia:
+    apps:
+    - youtube
+    - youtube_music
+    - spotify
+    - soundcloud
+    - prime_video
+    name: null
+    module_id: null
+    zip_name: null
+  productivity:
+    apps:
+    - camscanner
+    - lightroom
+    - wps_office
+    name: null
+    module_id: null
+    zip_name: null
+  social:
+    apps:
+    - reddit
+    - tiktok
+    - instagram
+    - facebook
+    - threads
+    - x_piko
+    - pixiv
+    name: null
+    module_id: null
+    zip_name: null
+  tools:
+    apps:
+    - adguard
+    - proton_vpn
+    - solid_explorer
+    name: null
+    module_id: null
+    zip_name: null
+single_modules:
+- adguard
+- camscanner
+- capcut
+- cloudflare_warp
+- drama_box
+- duolingo
+- facebook
+- flightradar24
+- gboard
+- google_news
+- google_photos
+- instagram
+- lightroom
+- moviebox
+- mx_player
+- myfitnesspal
+- nova_launcher
+- pinterest
+- pixiv
+- prime_video
+- proton_vpn
+- pvz_free
+- reddit
+- serverauditor
+- solid_explorer
+- soundcloud
+- spotify
+- stellarium
+- sticker_maker
+- strava
+- telegram
+- threads
+- tiktok
+- wps_office
+- x_piko
+- youtube
+- youtube_music

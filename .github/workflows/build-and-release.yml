@@ -65,6 +65,18 @@ jobs:
           java-version: '21'
           distribution: temurin
 
+      - name: Set up Cargo cache (used if CLI build-from-source fallback fires)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
       - name: Download CLI
         uses: ./.github/actions/download-cli
         with:

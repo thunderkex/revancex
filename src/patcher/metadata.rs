@@ -221,3 +221,75 @@ pub fn resolve_mpp_path(cfg: &Config, app: &crate::config::AppConfig) -> Option<
     }
     None
 }
+
+pub fn check_app_version_compatibility(
+    id: &str,
+    app: &crate::config::AppConfig,
+    patches: &[PatchMeta],
+) -> Option<String> {
+    let min_c = app.version.as_deref().or(app.min_version.as_deref());
+    let max_c = app.version.as_deref().or(app.max_version.as_deref());
+    if min_c.is_none() && max_c.is_none() {
+        return None;
+    }
+    if min_c == Some("auto") || max_c == Some("auto") {
+        return None;
+    }
+
+    let mut has_versioned_patch = false;
+    let mut any_compatible = false;
+
+    for patch in patches {
+        if !app.patches.is_empty()
+            && !app
+                .patches
+                .iter()
+                .any(|p| p.eq_ignore_ascii_case(&patch.name))
+        {
+            continue;
+        }
+        for compat in &patch.compatible_packages {
+            if compat.name == app.package {
+                if compat.versions.is_empty() {
+                    any_compatible = true;
+                    break;
+                }
+                has_versioned_patch = true;
+                for v in &compat.versions {
+                    if crate::utils::semver::check_compatibility(v, min_c, max_c) {
+                        any_compatible = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if any_compatible {
+            break;
+        }
+    }
+
+    if has_versioned_patch && !any_compatible {
+        Some(format!(
+            "App '{id}': pinned version constraints (min={min_c:?}, max={max_c:?}) fall outside every enabled patch's compatible range"
+        ))
+    } else {
+        None
+    }
+}
+
+pub async fn validate_patch_compatibilities(cfg: &Config) -> Vec<String> {
+    let mut warnings = Vec::new();
+    for (id, app) in &cfg.apps {
+        if !app.enabled {
+            continue;
+        }
+        if let Some(mpp_path) = resolve_mpp_path(cfg, app) {
+            if let Ok(meta) = load(cfg, &mpp_path).await {
+                if let Some(warn) = check_app_version_compatibility(id, app, &meta) {
+                    warnings.push(warn);
+                }
+            }
+        }
+    }
+    warnings
+}

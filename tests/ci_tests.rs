@@ -550,6 +550,35 @@ fn test_parse_applied_patch_count() {
 }
 
 #[test]
+fn test_check_app_version_compatibility_warning() {
+    use revancex::patcher::metadata::{check_app_version_compatibility, PackageCompat, PatchMeta};
+
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let mut app = cfg.apps.get("instagram").cloned().unwrap();
+    app.max_version = Some("439.0.0.37.89".to_string());
+
+    // Patches only support older versions up to 430.0.0.0
+    let patches = vec![PatchMeta {
+        name: "TestPatch".to_string(),
+        description: "".to_string(),
+        compatible_packages: vec![PackageCompat {
+            name: "com.instagram.android".to_string(),
+            versions: vec!["420.0.0.1".to_string(), "430.0.0.1".to_string()],
+        }],
+    }];
+
+    let warn = check_app_version_compatibility("instagram", &app, &patches);
+    // 420 and 430 satisfy max_version 439 (they are <= 439).
+    assert!(warn.is_none());
+
+    // But if max_version is pinned to a version lower than any supported version:
+    app.max_version = Some("400.0.0.0".to_string());
+    let warn2 = check_app_version_compatibility("instagram", &app, &patches);
+    assert!(warn2.is_some());
+    assert!(warn2.unwrap().contains("fall outside every enabled patch"));
+}
+
+#[test]
 fn test_uptodown_turnstile_blocked_detected() {
     let html = std::fs::read_to_string("tests/fixtures/uptodown/turnstile_blocked.html")
         .expect("fixture file missing");

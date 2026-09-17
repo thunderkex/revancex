@@ -229,6 +229,10 @@ async fn main() -> Result<()> {
             config::validate_yaml_duplicates(&cli.config_dir)?;
             let config = config::sync_and_reload_modules(&cli.config_dir, config)?;
             config::validate_config(&config, strict)?;
+            let warnings = patcher::metadata::validate_patch_compatibilities(&config).await;
+            for w in warnings {
+                eprintln!("Warning: {w}");
+            }
         }
 
         Commands::Clean { all } => {

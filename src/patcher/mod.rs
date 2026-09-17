@@ -72,6 +72,11 @@ pub async fn patch(
     } else {
         None
     };
+    if let Some(ref patches) = meta {
+        if let Some(warn) = metadata::check_app_version_compatibility(id, app, patches) {
+            tracing::warn!("{id}: {warn}");
+        }
+    }
     let apk_version = crate::utils::apk::get_apk_version_name(apk_path).ok();
     if let Some(ref ver) = apk_version {
         info!("{id}: parsed actual APK version {ver} from {apk_path}");

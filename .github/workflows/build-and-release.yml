@@ -87,7 +87,8 @@ jobs:
           mkdir -p output
           revancex build \
             --apps "${{ inputs.apps || 'all' }}" \
-            --arch "${{ inputs.arch }}"
+            --arch "${{ inputs.arch }}" \
+            --output output
           revancex module \
             --bundle \
             --apps "${{ inputs.apps || 'all' }}" \

@@ -63,5 +63,5 @@ jobs:
 
       - name: Hygiene checks (clean patterns, no dead code)
         run: |
-          ! grep -rnF '|| true' --exclude='ci.yml' .github/workflows/ || (echo "Found forbidden || true in workflows" && exit 1)
+          ! grep -rnF '|| true' --exclude-dir='.git' --exclude='ci.yml' .github/workflows/ || (echo "Found forbidden || true in workflows" && exit 1)
           ! grep -rn 'allow(dead_code)' src/ || (echo "Found dead code in src/" && exit 1)

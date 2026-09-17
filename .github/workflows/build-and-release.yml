@@ -233,12 +233,23 @@ jobs:
           TG_TOKEN: ${{ secrets.TG_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
           TG_TOPIC: ${{ secrets.TG_TOPIC || secrets.TG_THREAD_ID || secrets.TELEGRAM_TOPIC_ID }}
 
+      - name: Regenerate docs/apps.json with release registry
+        run: |
+          revancex gen-apps-json --registry config/releases_registry.json
+
+      - name: Upload updated docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-dist
+          path: docs/
+          if-no-files-found: warn
+
       - name: Commit and push updated README & release registry
         continue-on-error: true
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md config/releases_registry.json
+          git add README.md config/releases_registry.json docs/apps.json
           # [skip ci] is mandatory in commit messages to prevent triggering release-cli.yml via config/** path filters
           if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
             COMMIT_MSG="docs: update custom bundle registry for ${{ steps.meta.outputs.tag }} [skip ci]"

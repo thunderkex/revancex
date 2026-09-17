@@ -16,6 +16,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull latest changes
+        run: |
+          git pull --rebase origin ${{ github.ref_name }} || true
+
+      - name: Download docs artifact from build if present
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: docs-dist
+          path: docs/
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -33,7 +46,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-pages-
 
       - name: Regenerate docs/apps.json
-        run: cargo run --release -- gen-apps-json
+        run: cargo run --release -- gen-apps-json --registry config/releases_registry.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

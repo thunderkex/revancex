@@ -618,6 +618,23 @@ fn test_parse_applied_patch_count() {
 }
 
 #[test]
+fn test_generate_apps_json_is_bare_array() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let json_str = revancex::pages::generate_apps_json(&cfg).expect("generate_apps_json failed");
+    let parsed: serde_json::Value = serde_json::from_str(&json_str).expect("invalid json");
+    assert!(
+        parsed.is_array(),
+        "generate_apps_json must emit a top-level JSON array"
+    );
+    let arr = parsed.as_array().unwrap();
+    assert!(!arr.is_empty(), "apps array should not be empty");
+    assert!(
+        arr[0].get("id").is_some(),
+        "entry must have an 'id' property"
+    );
+}
+
+#[test]
 fn test_check_app_version_compatibility_warning() {
     use revancex::patcher::metadata::{check_app_version_compatibility, PackageCompat, PatchMeta};
 

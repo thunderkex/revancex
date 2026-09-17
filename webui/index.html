@@ -856,6 +856,7 @@
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) loadedApps = data;
+          else if (data && Array.isArray(data.apps)) loadedApps = data.apps;
         }
       } catch (e) { }
 

@@ -10,6 +10,7 @@ pub fn generate_apps_json(cfg: &Config) -> Result<String> {
         .map(|(id, app)| {
             json!({
                 "id": id,
+                "name": app.display_name.as_deref().unwrap_or(id),
                 "enabled": app.enabled,
                 "package": app.package,
                 "patch_source": app.patch_source,
@@ -25,5 +26,5 @@ pub fn generate_apps_json(cfg: &Config) -> Result<String> {
         })
         .collect();
 
-    Ok(serde_json::to_string_pretty(&json!({ "apps": apps }))?)
+    Ok(serde_json::to_string_pretty(&apps)?)
 }

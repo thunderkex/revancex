@@ -96,7 +96,10 @@ enum Commands {
 
     DownloadTools,
 
-    GenAppsJson,
+    GenAppsJson {
+        #[arg(long, default_value = "config/releases_registry.json")]
+        registry: String,
+    },
 
     FetchApk {
         app: String,
@@ -244,8 +247,8 @@ async fn main() -> Result<()> {
             utils::download_tools(&config, None).await?;
         }
 
-        Commands::GenAppsJson => {
-            let json = pages::generate_apps_json(&config)?;
+        Commands::GenAppsJson { registry } => {
+            let json = pages::generate_apps_json_with_registry(&config, Some(&registry))?;
             std::fs::create_dir_all("docs")?;
             std::fs::write("docs/apps.json", &json)?;
             println!("docs/apps.json written ({} bytes)", json.len());

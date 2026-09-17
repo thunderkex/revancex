@@ -980,9 +980,11 @@
             <div class="app-c-tags">
               <span class="badge ${badgeClass}">${statusText}</span>
               <span class="badge badge-mode">${modeText}</span>
+              ${app.tag ? `<span class="badge" style="opacity:0.75;" title="Updated: ${app.updated_at || ''}">${app.tag}</span>` : ''}
             </div>
           </div>
           <div class="card-actions">
+            ${app.download_url ? `<a class="card-btn btn-dl" href="${app.download_url}" target="_blank" download style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;background:var(--primary);color:#ffffff;border:none;">Download</a>` : ''}
             <button class="card-btn btn-open" ${!isInstalled ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="launchApp('${activePkg}')">Open</button>
             <button class="card-btn btn-stop" ${!isInstalled ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="stopApp('${activePkg}')">Stop</button>
           </div>

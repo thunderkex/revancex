@@ -635,6 +635,45 @@ fn test_generate_apps_json_is_bare_array() {
 }
 
 #[test]
+fn test_generate_apps_json_with_registry_integration() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let json_str = revancex::pages::generate_apps_json_with_registry(
+        &cfg,
+        Some("config/releases_registry.json"),
+    )
+    .expect("generate_apps_json_with_registry failed");
+
+    let parsed: serde_json::Value = serde_json::from_str(&json_str).expect("invalid json");
+    assert!(parsed.is_array(), "output must be a bare JSON array");
+
+    let arr = parsed.as_array().unwrap();
+    let adguard = arr
+        .iter()
+        .find(|item| item["id"] == "adguard")
+        .expect("adguard not found in apps.json");
+
+    assert!(
+        adguard["download_url"].is_string(),
+        "adguard must have a download_url string"
+    );
+    assert!(
+        adguard["download_url"]
+            .as_str()
+            .unwrap()
+            .starts_with("https://"),
+        "adguard download_url must be an https URL"
+    );
+    assert!(
+        adguard["updated_at"].is_string(),
+        "adguard must have an updated_at timestamp"
+    );
+    assert!(
+        adguard["releases"]["stock"].is_object(),
+        "adguard must have stock release details"
+    );
+}
+
+#[test]
 fn test_check_app_version_compatibility_warning() {
     use revancex::patcher::metadata::{check_app_version_compatibility, PackageCompat, PatchMeta};
 

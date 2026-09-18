@@ -25,10 +25,10 @@ jobs:
       has_updates: ${{ steps.poll.outputs.has_updates }}
       changed_apps: ${{ steps.poll.outputs.changed_apps }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Cargo cache (used if CLI build-from-source fallback fires)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/bin/

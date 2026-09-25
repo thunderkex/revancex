@@ -21,7 +21,7 @@ where
 
     for i in 0..zip_in.len() {
         let mut entry = zip_in.by_index(i)?;
-        let name = entry.name().to_string();
+        let name = entry.name()?.to_string();
 
         let action = transform(&name);
 

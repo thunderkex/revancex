@@ -40,6 +40,53 @@ pub fn parse_applied_patch_count(stdout: &str) -> Option<usize> {
     None
 }
 
+pub fn parse_applied_patches(stdout: &str) -> Vec<String> {
+    let mut patches = Vec::new();
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if (trimmed.starts_with("Applied ") || trimmed.starts_with("Applying "))
+            && !trimmed.contains(" patches")
+            && !trimmed.contains(" patch")
+        {
+            let name = if let Some(rest) = trimmed.strip_prefix("Applied ") {
+                rest.trim()
+            } else if let Some(rest) = trimmed.strip_prefix("Applying ") {
+                rest.trim().trim_end_matches("...")
+            } else {
+                ""
+            };
+            if !name.is_empty() && !patches.iter().any(|p: &String| p == name) {
+                patches.push(name.to_string());
+            }
+        }
+    }
+    patches
+}
+
+pub fn parse_filtered_version(stdout: &str, package: &str) -> Option<String> {
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        let marker = format!("Filtering patches for {package}");
+        if let Some(idx) = trimmed.find(&marker) {
+            let after = trimmed[idx + marker.len()..].trim().trim_end_matches('.');
+            let raw = after.strip_prefix('v').unwrap_or(after);
+            let norm = crate::utils::version::normalize_version(raw);
+            if !norm.is_empty() {
+                return Some(norm);
+            }
+        }
+    }
+    None
+}
+
+pub fn is_fingerprint_failure(stderr: &str, stdout: &str) -> bool {
+    let combined = format!("{stderr}\n{stdout}").to_lowercase();
+    combined.contains("failed to match the fingerprint")
+        || combined.contains("patch.patchexception")
+        || combined.contains("patching aborted")
+        || (combined.contains("fingerprint") && combined.contains("failed"))
+}
+
 pub async fn patch(
     cfg: &Config,
     id: &str,
@@ -47,7 +94,7 @@ pub async fn patch(
     apk_path: &str,
     output_dir: &str,
     is_root: bool,
-) -> Result<String> {
+) -> Result<(String, plan::PatchPlan)> {
     let ks = crate::utils::keystore::resolve(cfg, app).await?;
     if ks.generated {
         tracing::warn!("{id}: generated new keystore at {} (first run)", ks.file);
@@ -59,12 +106,30 @@ pub async fn patch(
         .map(|p| p.repo.clone())
         .unwrap_or_else(|| app.patch_source.clone());
 
-    let suffix = if is_root && app.mode == "both" {
-        "-root.apk"
+    let apk_version = crate::utils::apk::get_apk_version_name(apk_path).ok();
+    if let Some(ref ver) = apk_version {
+        info!("{id}: parsed actual APK version {ver} from {apk_path}");
+    }
+    let effective_version = apk_version
+        .as_deref()
+        .or(app.version.as_deref())
+        .unwrap_or("auto");
+
+    let (output_apk, staging_apk) = if is_root {
+        let payload = format!("{}/{id}-root-payload.apk", cfg.build.temp_dir);
+        let stage = format!("{}/{id}-root-stage.apk", cfg.build.temp_dir);
+        (payload, stage)
     } else {
-        "-patched.apk"
+        let app_name = app.display_name(id);
+        let filename = crate::patcher::name::output_filename(
+            &app_name,
+            effective_version,
+            crate::patcher::name::ArtifactKind::Apk,
+        );
+        let out = format!("{output_dir}/{filename}");
+        let stage = format!("{}/{filename}-stage.apk", cfg.build.temp_dir);
+        (out, stage)
     };
-    let output_apk = format!("{output_dir}/{id}{suffix}");
 
     let mpp_path = metadata::resolve_mpp_path(cfg, app);
     let meta = if let Some(ref p) = mpp_path {
@@ -77,16 +142,13 @@ pub async fn patch(
             tracing::warn!("{id}: {warn}");
         }
     }
-    let apk_version = crate::utils::apk::get_apk_version_name(apk_path).ok();
-    if let Some(ref ver) = apk_version {
-        info!("{id}: parsed actual APK version {ver} from {apk_path}");
-    }
     let plan = plan::resolve(
         app,
         is_root,
         meta.as_ref(),
         apk_version.as_deref(),
         &cfg.build.patcher.rules,
+        &cfg.build.patcher.auto_disable,
     );
     if !plan.auto_disabled.is_empty() {
         info!(
@@ -100,13 +162,14 @@ pub async fn patch(
         &repo,
         app,
         apk_path,
-        &output_apk,
+        &staging_apk,
         &plan,
     );
 
     let mut cmd = tokio::process::Command::new("java");
     cmd.args(["-jar", &args.cli_jar, "patch"])
         .arg(format!("--patches={}", args.patches_arg))
+        .arg("-f")
         .arg("--continue-on-error")
         .arg("-o")
         .arg(&args.output_apk);
@@ -145,6 +208,8 @@ pub async fn patch(
         .await
         .context("java not found — install JDK 21+")?;
     if !output.status.success() {
+        let _ = std::fs::remove_file(&staging_apk);
+        let _ = std::fs::remove_file(&output_apk);
         anyhow::bail!("{id}: morphe-cli exited with {}", output.status);
     }
 
@@ -159,7 +224,7 @@ pub async fn patch(
 
     let dex_changed = match (
         crate::utils::apk::dex_entries_crc(apk_path),
-        crate::utils::apk::dex_entries_crc(&output_apk),
+        crate::utils::apk::dex_entries_crc(&staging_apk),
     ) {
         (Ok(in_crc), Ok(out_crc)) => in_crc != out_crc,
         _ => true,
@@ -172,6 +237,8 @@ pub async fn patch(
     };
 
     if zero_applied {
+        let _ = std::fs::remove_file(&staging_apk);
+        let _ = std::fs::remove_file(&output_apk);
         let ver_info = apk_version
             .as_deref()
             .map(|v| format!(" — version {v} not covered by any enabled patch"))
@@ -180,7 +247,18 @@ pub async fn patch(
         anyhow::bail!("{id}: 0/{plan_count} patches applied{ver_info}");
     }
 
-    info!("{id}: patched → {output_apk}");
+    if let (Some(actual), Some(reported)) = (
+        apk_version.as_deref(),
+        parse_filtered_version(&stdout, &app.package),
+    ) {
+        if !crate::utils::version::versions_match(actual, &reported) {
+            let _ = std::fs::remove_file(&staging_apk);
+            let _ = std::fs::remove_file(&output_apk);
+            anyhow::bail!(
+                "{id}: version mismatch — downloaded APK is v{actual}, but patcher targeted v{reported}"
+            );
+        }
+    }
 
     for hook in &app.post_patch_hooks {
         let should_run = match hook.when {
@@ -196,13 +274,15 @@ pub async fn patch(
                 tracing::warn!("{id}: optional hook script not found: {}", hook.script);
                 continue;
             } else {
+                let _ = std::fs::remove_file(&staging_apk);
+                let _ = std::fs::remove_file(&output_apk);
                 anyhow::bail!("{id}: declared hook script not found: {}", hook.script);
             }
         }
         info!("{id}: running post-patch hook: {}", hook.script);
         let status = tokio::process::Command::new("python")
             .arg(&hook.script)
-            .arg(&output_apk)
+            .arg(&staging_apk)
             .arg(&ks.file)
             .arg(&ks.alias)
             .arg(&ks.password)
@@ -216,6 +296,8 @@ pub async fn patch(
                 if hook.optional {
                     tracing::warn!("{id}: optional hook {} exited with {st}", hook.script);
                 } else {
+                    let _ = std::fs::remove_file(&staging_apk);
+                    let _ = std::fs::remove_file(&output_apk);
                     anyhow::bail!("{id}: hook {} exited with {st}", hook.script);
                 }
             }
@@ -223,11 +305,101 @@ pub async fn patch(
                 if hook.optional {
                     tracing::warn!("{id}: optional hook {} failed to launch: {e}", hook.script);
                 } else {
+                    let _ = std::fs::remove_file(&staging_apk);
+                    let _ = std::fs::remove_file(&output_apk);
                     anyhow::bail!("{id}: hook {} failed to launch: {e}", hook.script);
                 }
             }
         }
     }
 
-    Ok(output_apk)
+    if !crate::utils::apk::check_apk_integrity(&staging_apk) {
+        let _ = std::fs::remove_file(&staging_apk);
+        let _ = std::fs::remove_file(&output_apk);
+        anyhow::bail!("{id}: patched APK failed integrity check");
+    }
+
+    let zipalign_bin = if cfg!(windows) {
+        "zipalign.exe"
+    } else {
+        "zipalign"
+    };
+    let apksigner_bin = if cfg!(windows) {
+        "apksigner.bat"
+    } else {
+        "apksigner"
+    };
+    let is_aligned = std::process::Command::new(zipalign_bin)
+        .args(["-c", "-p", "4", &staging_apk])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if !is_aligned {
+        let aligned_stage = format!("{staging_apk}.aligned.apk");
+        if let Ok(align_out) = std::process::Command::new(zipalign_bin)
+            .args(["-p", "-f", "4", &staging_apk, &aligned_stage])
+            .output()
+        {
+            if align_out.status.success() {
+                let _ = std::fs::rename(&aligned_stage, &staging_apk);
+                let _ = std::process::Command::new(apksigner_bin)
+                    .args([
+                        "sign",
+                        "--ks",
+                        &ks.file,
+                        "--ks-key-alias",
+                        &ks.alias,
+                        "--ks-pass",
+                        &format!("pass:{}", ks.password),
+                        "--key-pass",
+                        &format!("pass:{}", ks.password),
+                        &staging_apk,
+                    ])
+                    .output();
+            } else {
+                let _ = std::fs::remove_file(&aligned_stage);
+            }
+        }
+    }
+
+    std::fs::rename(&staging_apk, &output_apk)
+        .or_else(|_| {
+            std::fs::copy(&staging_apk, &output_apk)
+                .map(|_| ())
+                .and_then(|_| std::fs::remove_file(&staging_apk))
+        })
+        .with_context(|| format!("failed to move patched APK to {output_apk}"))?;
+
+    let staging_idsig = format!("{staging_apk}.idsig");
+    let output_idsig = format!("{output_apk}.idsig");
+    if Path::new(&staging_idsig).exists() {
+        let _ = std::fs::rename(&staging_idsig, &output_idsig);
+    }
+
+    let mut final_plan = plan;
+    let parsed_patches = parse_applied_patches(&stdout);
+    if !parsed_patches.is_empty() {
+        final_plan.included = parsed_patches;
+    } else if final_plan.included.is_empty() {
+        if let Some(ref patches) = meta {
+            let active: Vec<String> = patches
+                .iter()
+                .filter(|p| {
+                    p.compatible_packages.iter().any(|c| c.name == app.package)
+                        && !final_plan
+                            .excluded
+                            .iter()
+                            .any(|e| e.eq_ignore_ascii_case(&p.name))
+                })
+                .map(|p| p.name.clone())
+                .collect();
+            if !active.is_empty() {
+                final_plan.included = active;
+            }
+        }
+    }
+
+    info!("{id}: patched → {output_apk}");
+    Ok((output_apk, final_plan))
 }

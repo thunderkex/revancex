@@ -26,7 +26,9 @@ fn bundle_display_name(cfg: &Config, key: &str) -> String {
 }
 
 pub(crate) fn parse_apk_stem(stem: &str) -> (&str, u8) {
-    if let Some(base) = stem.strip_suffix("-root") {
+    if let Some(base) = stem.strip_suffix("-root-payload") {
+        (base, 2)
+    } else if let Some(base) = stem.strip_suffix("-root") {
         (base, 2)
     } else if let Some(base) = stem.strip_suffix("-patched") {
         (base, 1)
@@ -51,7 +53,11 @@ pub async fn build_bundle_module(
                 let filtered_apps: Vec<String> = module_def
                     .apps
                     .iter()
-                    .filter(|id| cfg.apps.get(*id).is_some_and(|a| a.enabled))
+                    .filter(|id| {
+                        cfg.apps.get(*id).is_some_and(|a| {
+                            a.enabled && a.module.as_ref().is_none_or(|m| m.bundle)
+                        })
+                    })
                     .cloned()
                     .collect();
                 if filtered_apps.is_empty() {
@@ -86,7 +92,11 @@ pub async fn build_bundle_module(
         let filtered_apps: Vec<String> = module_def
             .apps
             .iter()
-            .filter(|id| cfg.apps.get(*id).is_some_and(|a| a.enabled))
+            .filter(|id| {
+                cfg.apps
+                    .get(*id)
+                    .is_some_and(|a| a.enabled && a.module.as_ref().is_none_or(|m| m.bundle))
+            })
             .cloned()
             .collect();
         let module_apps = filtered_apps.join(",");
@@ -156,9 +166,12 @@ pub async fn build_custom_module(
             if let Some(name) = p.file_name().and_then(|n| n.to_str()) {
                 if name.ends_with(".apk") && !name.to_lowercase().contains("microg") {
                     let stem = name.trim_end_matches(".apk");
-                    let (app_id, prio) = parse_apk_stem(stem);
+                    let (_, prio) = parse_apk_stem(stem);
+                    let app_id = cfg
+                        .resolve_app_id(stem)
+                        .unwrap_or_else(|| parse_apk_stem(stem).0);
                     if let Some(app_cfg) = cfg.apps.get(app_id) {
-                        if !app_cfg.enabled {
+                        if !app_cfg.enabled || !app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
                             continue;
                         }
                     }
@@ -176,6 +189,15 @@ pub async fn build_custom_module(
                 }
             }
         } else if token == "all" || token == "all-enabled" {
+            for (app_id, app_cfg) in &cfg.apps {
+                if !app_cfg.enabled || !app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
+                    continue;
+                }
+                let temp_root = format!("{}/{app_id}-root-payload.apk", cfg.build.temp_dir);
+                if Path::new(&temp_root).exists() {
+                    apk_map.insert(app_id.clone(), (temp_root, 2));
+                }
+            }
             if let Ok(entries) = std::fs::read_dir(&resolved_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
@@ -183,22 +205,26 @@ pub async fn build_custom_module(
                         if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                             if !name.to_lowercase().contains("microg") {
                                 let stem = name.trim_end_matches(".apk");
-                                let (app_id, prio) = parse_apk_stem(stem);
-                                if let Some(app_cfg) = cfg.apps.get(app_id) {
-                                    if !app_cfg.enabled {
-                                        continue;
-                                    }
-                                }
-                                let path_str = path.to_string_lossy().to_string();
-                                match apk_map.get_mut(app_id) {
-                                    Some((existing_path, prev_prio)) => {
-                                        if prio > *prev_prio {
-                                            *existing_path = path_str;
-                                            *prev_prio = prio;
+                                let (_, prio) = parse_apk_stem(stem);
+                                if let Some(app_id) = cfg.resolve_app_id(stem) {
+                                    if let Some(app_cfg) = cfg.apps.get(app_id) {
+                                        if !app_cfg.enabled
+                                            || !app_cfg.module.as_ref().is_none_or(|m| m.bundle)
+                                        {
+                                            continue;
                                         }
                                     }
-                                    None => {
-                                        apk_map.insert(app_id.to_string(), (path_str, prio));
+                                    let path_str = path.to_string_lossy().to_string();
+                                    match apk_map.get_mut(app_id) {
+                                        Some((existing_path, prev_prio)) => {
+                                            if prio > *prev_prio {
+                                                *existing_path = path_str;
+                                                *prev_prio = prio;
+                                            }
+                                        }
+                                        None => {
+                                            apk_map.insert(app_id.to_string(), (path_str, prio));
+                                        }
                                     }
                                 }
                             }
@@ -207,29 +233,41 @@ pub async fn build_custom_module(
                 }
             }
         } else {
+            let temp_root = format!("{}/{token}-root-payload.apk", cfg.build.temp_dir);
+            if Path::new(&temp_root).exists() {
+                if let Some(app_cfg) = cfg.apps.get(token) {
+                    if app_cfg.enabled && app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
+                        apk_map.insert(token.to_string(), (temp_root, 2));
+                    }
+                }
+            }
             if let Ok(entries) = std::fs::read_dir(&resolved_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                         if name.ends_with(".apk") && !name.to_lowercase().contains("microg") {
                             let stem = name.trim_end_matches(".apk");
-                            let (app_id, prio) = parse_apk_stem(stem);
-                            if app_id == token {
-                                if let Some(app_cfg) = cfg.apps.get(app_id) {
-                                    if !app_cfg.enabled {
-                                        continue;
-                                    }
-                                }
-                                let path_str = path.to_string_lossy().to_string();
-                                match apk_map.get_mut(app_id) {
-                                    Some((existing_path, prev_prio)) => {
-                                        if prio > *prev_prio {
-                                            *existing_path = path_str;
-                                            *prev_prio = prio;
+                            let (_, prio) = parse_apk_stem(stem);
+                            if let Some(app_id) = cfg.resolve_app_id(stem) {
+                                if app_id == token {
+                                    if let Some(app_cfg) = cfg.apps.get(app_id) {
+                                        if !app_cfg.enabled
+                                            || !app_cfg.module.as_ref().is_none_or(|m| m.bundle)
+                                        {
+                                            continue;
                                         }
                                     }
-                                    None => {
-                                        apk_map.insert(app_id.to_string(), (path_str, prio));
+                                    let path_str = path.to_string_lossy().to_string();
+                                    match apk_map.get_mut(app_id) {
+                                        Some((existing_path, prev_prio)) => {
+                                            if prio > *prev_prio {
+                                                *existing_path = path_str;
+                                                *prev_prio = prio;
+                                            }
+                                        }
+                                        None => {
+                                            apk_map.insert(app_id.to_string(), (path_str, prio));
+                                        }
                                     }
                                 }
                             }
@@ -252,7 +290,8 @@ pub async fn build_custom_module(
                 .file_stem()
                 .and_then(|s| s.to_str())
                 .unwrap_or(p);
-            let (app_id, _) = parse_apk_stem(stem);
+            let fallback = parse_apk_stem(stem).0;
+            let app_id = cfg.resolve_app_id(stem).unwrap_or(fallback);
             cfg.apps
                 .get(app_id)
                 .map(|a| a.bundle_priority)
@@ -355,7 +394,8 @@ pub async fn build_custom_module(
             .file_stem()
             .and_then(|n| n.to_str())
             .unwrap_or("app");
-        let (app_id, _) = parse_apk_stem(file_stem);
+        let fallback = parse_apk_stem(file_stem).0;
+        let app_id = cfg.resolve_app_id(file_stem).unwrap_or(fallback);
 
         let (default_pkg, mode, desc) = if let Some(app_cfg) = cfg.apps.get(app_id) {
             (
@@ -367,7 +407,17 @@ pub async fn build_custom_module(
             (app_id.to_string(), "patch".to_string(), None)
         };
 
-        let pkg = crate::utils::apk::get_apk_package_name(apk).unwrap_or(default_pkg);
+        let apk_pkg = crate::utils::apk::get_apk_package_name(apk).ok();
+        let pkg = match &apk_pkg {
+            Some(p) if p == &default_pkg => default_pkg,
+            Some(p) => {
+                tracing::warn!(
+                    "{app_id}: module APK package '{p}' differs from original '{default_pkg}'. Enforcing original package '{default_pkg}' for root module."
+                );
+                default_pkg
+            }
+            None => default_pkg,
+        };
 
         apps_list_content.push_str(&format!("{app_id}:{pkg}:{mode}\n"));
 
@@ -455,7 +505,8 @@ pub fn resolve_conflicts_for_bundle(cfg: &Config, apks: Vec<String>) -> Result<V
             .file_stem()
             .and_then(|n| n.to_str())
             .unwrap_or("app");
-        let (app_id, _) = parse_apk_stem(file_stem);
+        let fallback = parse_apk_stem(file_stem).0;
+        let app_id = cfg.resolve_app_id(file_stem).unwrap_or(fallback);
 
         let pkg = if let Some(app_cfg) = cfg.apps.get(app_id) {
             if !app_cfg.package.is_empty() {

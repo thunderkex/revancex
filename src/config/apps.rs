@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -73,11 +74,37 @@ impl AppDependencies {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct AppSourceConfig {
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub repo: Option<String>,
+    #[serde(default)]
+    pub project: Option<String>,
+    #[serde(default)]
+    pub domain: Option<String>,
+    #[serde(default)]
+    pub keyword: Option<String>,
+    #[serde(default)]
+    pub slug: Option<String>,
+    #[serde(default)]
+    pub tag: Option<String>,
+    #[serde(default)]
+    pub asset_pattern: Option<String>,
+    #[serde(default)]
+    pub version_regex: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct AppConfig {
     pub enabled: bool,
     #[serde(default)]
     pub package: String,
+    #[serde(default)]
+    pub sources: HashMap<String, AppSourceConfig>,
     #[serde(alias = "patches-source", default)]
     pub patch_source: String,
     #[serde(
@@ -97,8 +124,18 @@ pub struct AppConfig {
     pub archive_url: Option<String>,
     #[serde(alias = "apkpure-dlurl", default)]
     pub apkpure_url: Option<String>,
+    #[serde(alias = "aptoide-dlurl", default)]
+    pub aptoide_url: Option<String>,
     #[serde(default)]
     pub source_priority: Vec<String>,
+    #[serde(default)]
+    pub strict_sources: bool,
+    #[serde(default)]
+    pub allow_build_failure: bool,
+    #[serde(default)]
+    pub expected_cert_sha256: Option<String>,
+    #[serde(default)]
+    pub on_unknown_compat: Option<String>,
     #[serde(alias = "apk_source", default)]
     pub apk_source: String,
     #[serde(alias = "apk_url", default)]
@@ -124,6 +161,8 @@ pub struct AppConfig {
     #[serde(default)]
     pub version: Option<String>,
     #[serde(default)]
+    pub version_pin_strict: bool,
+    #[serde(default)]
     pub patches: Vec<String>,
     #[serde(default)]
     pub keystore: Option<KeystoreRef>,
@@ -139,6 +178,8 @@ pub struct AppConfig {
     pub max_version: Option<String>,
     #[serde(default)]
     pub post_patch_hooks: Vec<PostPatchHook>,
+    #[serde(alias = "name", default)]
+    pub name: Option<String>,
     #[serde(default)]
     pub display_name: Option<String>,
     #[serde(default = "default_bundle_priority")]
@@ -151,8 +192,15 @@ fn default_bundle_priority() -> u32 {
 
 impl AppConfig {
     pub fn display_name(&self, id: &str) -> String {
+        if let Some(ref n) = self.name {
+            if !n.is_empty() {
+                return n.clone();
+            }
+        }
         if let Some(ref n) = self.display_name {
-            return n.clone();
+            if !n.is_empty() {
+                return n.clone();
+            }
         }
         id.split(['_', '-'])
             .map(|s| {
@@ -177,7 +225,7 @@ fn default_mode() -> String {
     "full".to_string()
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct KeystoreRef {
     #[serde(default = "default_alias")]
     pub alias: String,
@@ -192,7 +240,7 @@ fn default_keystore_file() -> String {
     "keys/default.jks".to_string()
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct ModuleFlags {
     #[serde(default = "default_true")]
     pub single: bool,

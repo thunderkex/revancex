@@ -11,6 +11,12 @@ pub struct PatchSourceEntry {
     pub version: Option<String>,
     #[serde(default)]
     pub description: Option<String>,
+    #[serde(default = "default_provider")]
+    pub provider: String,
+}
+
+fn default_provider() -> String {
+    "github".to_string()
 }
 
 fn default_mpp_pattern() -> String {

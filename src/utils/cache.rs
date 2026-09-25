@@ -7,13 +7,41 @@ use tracing::info;
 pub struct VersionCache {
     #[serde(default)]
     pub patch_source_tags: HashMap<String, String>,
+    #[serde(default)]
+    pub app_versions: HashMap<String, String>,
+}
+
+pub fn prune_stale_cache_keys(cache: &mut VersionCache, cfg: &crate::config::Config) {
+    let mut pruned = Vec::new();
+    cache.patch_source_tags.retain(|key, _| {
+        if key == "cli" {
+            return true;
+        }
+        let alias = key.split('@').next().unwrap_or(key);
+        let valid = cfg.patch_sources.contains_key(alias);
+        if !valid {
+            pruned.push(key.clone());
+        }
+        valid
+    });
+    for k in pruned {
+        tracing::info!("Pruned stale cache key from patch_source_tags: {k}");
+    }
 }
 
 pub fn load_version_cache(path: &str) -> VersionCache {
-    std::fs::read_to_string(path)
+    let mut cache: VersionCache = std::fs::read_to_string(path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
+        .unwrap_or_default();
+
+    let config_dir =
+        std::env::var("REVANCEX_CONFIG_DIR").unwrap_or_else(|_| "./config".to_string());
+    if let Ok(cfg) = crate::config::load_config(&config_dir) {
+        prune_stale_cache_keys(&mut cache, &cfg);
+    }
+
+    cache
 }
 
 pub fn save_version_cache(path: &str, cache: &VersionCache) {

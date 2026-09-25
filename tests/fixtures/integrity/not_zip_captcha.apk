@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Just a moment...</title>
+</head>
+<body>
+    <div id="cf-turnstile" class="cf-turnstile" data-sitekey="0x4AAAAAA">
+        <span>Verify you are human</span>
+    </div>
+</body>
+</html>

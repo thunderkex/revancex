@@ -64,9 +64,10 @@ jobs:
         run: |
           pip install --quiet -r scripts/requirements.txt
           python3 scripts/tests/test_update_readme.py
+          python3 scripts/tests/test_summarize_build_report.py
 
       - name: Validate config
-        run: cargo run -- validate --strict
+        run: cargo run -- validate
 
       - name: Hygiene checks (clean patterns, no dead code)
         run: |

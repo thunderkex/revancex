@@ -35,8 +35,8 @@ pub fn strip_unsupported_archs_to(src_apk: &str, dst_apk: &str, target_arch: &st
         let mut zip_in = zip::ZipArchive::new(src)?;
         for i in 0..zip_in.len() {
             let entry = zip_in.by_index(i)?;
-            let name = entry.name();
-            if should_strip(name, target_arch) {
+            let name = entry.name()?;
+            if should_strip(&name, target_arch) {
                 stripped_files += 1;
                 stripped_bytes += entry.size();
             }
@@ -68,26 +68,25 @@ pub fn strip_unsupported_archs_to(src_apk: &str, dst_apk: &str, target_arch: &st
     Ok(saved)
 }
 
+pub fn apk_has_any_native_libs(apk: &str) -> Result<bool> {
+    let file = std::fs::File::open(apk)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i)?;
+        let name = entry.name()?;
+        if name.starts_with("lib/") && name.ends_with(".so") {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 pub fn verify_arch_native_libs(
     original_apk: &str,
     stripped_apk: &str,
     target_arch: &str,
 ) -> Result<()> {
-    let original_has_native_libs = {
-        let file = std::fs::File::open(original_apk)?;
-        let mut archive = zip::ZipArchive::new(file)?;
-        let mut has_lib = false;
-        for i in 0..archive.len() {
-            let entry = archive.by_index(i)?;
-            if entry.name().starts_with("lib/") && entry.name().ends_with(".so") {
-                has_lib = true;
-                break;
-            }
-        }
-        has_lib
-    };
-
-    if !original_has_native_libs {
+    if !apk_has_any_native_libs(original_apk)? {
         return Ok(());
     }
 
@@ -98,7 +97,8 @@ pub fn verify_arch_native_libs(
 
     for i in 0..archive.len() {
         let entry = archive.by_index(i)?;
-        if entry.name().starts_with(&target_prefix) && entry.name().ends_with(".so") {
+        let name = entry.name()?;
+        if name.starts_with(&target_prefix) && name.ends_with(".so") {
             has_target_lib = true;
             break;
         }
@@ -111,6 +111,20 @@ pub fn verify_arch_native_libs(
     }
 
     Ok(())
+}
+
+pub fn apk_has_arch(apk: &str, target_arch: &str) -> Result<bool> {
+    let file = std::fs::File::open(apk)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let target_prefix = format!("lib/{target_arch}/");
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i)?;
+        let name = entry.name()?;
+        if name.starts_with(&target_prefix) && name.ends_with(".so") {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn should_strip(name: &str, target_arch: &str) -> bool {

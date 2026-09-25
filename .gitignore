@@ -4,7 +4,6 @@ tools/
 tmp/
 .env
 target/
-Cargo.lock
 __pycache__/
 *.pyc
 modules/
@@ -17,3 +16,4 @@ GEMINI.md
 EXECUTION*
 logs*
 PHASE*
+BUILD_REPORT.json

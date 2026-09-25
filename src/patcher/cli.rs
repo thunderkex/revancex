@@ -46,19 +46,6 @@ pub fn build_args(
 
     let patches_arg = if !patches_arg.is_empty() {
         patches_arg
-    } else if let Ok(entries) = std::fs::read_dir(tools_dir) {
-        entries
-            .filter_map(|e| e.ok())
-            .map(|e| e.path())
-            .find(|p| p.extension().is_some_and(|ext| ext == "mpp"))
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|| {
-                if repo_or_alias.contains('/') {
-                    format!("https://github.com/{repo_or_alias}")
-                } else {
-                    "https://github.com/MorpheApp/morphe-patches".to_string()
-                }
-            })
     } else if repo_or_alias.contains('/') {
         format!("https://github.com/{repo_or_alias}")
     } else {

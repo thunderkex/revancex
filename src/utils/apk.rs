@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use tracing::warn;
 
 pub fn get_apk_version_name<P: AsRef<Path>>(apk_path: P) -> Result<String> {
     let data = read_manifest(apk_path)?;
@@ -43,7 +44,7 @@ pub fn dex_entries_crc<P: AsRef<Path>>(
     let mut dex_map = std::collections::BTreeMap::new();
     for i in 0..archive.len() {
         let entry = archive.by_index(i)?;
-        let name = entry.name().to_string();
+        let name = entry.name()?.to_string();
         if name.ends_with(".dex") {
             dex_map.insert(name, entry.crc32());
         }
@@ -161,7 +162,8 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
         let chunk_type = u16::from_le_bytes([data[cur], data[cur + 1]]);
         let chunk_hdr_sz = u16::from_le_bytes([data[cur + 2], data[cur + 3]]) as usize;
         let node_chunk_sz =
-            u32::from_le_bytes([data[cur + 4], data[cur + 5], data[cur + 6], data[cur + 7]]) as usize;
+            u32::from_le_bytes([data[cur + 4], data[cur + 5], data[cur + 6], data[cur + 7]])
+                as usize;
         if node_chunk_sz < 8 || cur + node_chunk_sz > data.len() {
             break;
         }
@@ -221,8 +223,7 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
 
     let mut i = chunks_start;
     while i + 20 <= data.len() {
-        let name_ref =
-            u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]);
+        let name_ref = u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]);
         if name_ref == target_idx {
             let raw_ref =
                 u32::from_le_bytes([data[i + 8], data[i + 9], data[i + 10], data[i + 11]]);
@@ -233,12 +234,8 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
                 }
             }
             let val_type = data[i + 15];
-            let val_data = u32::from_le_bytes([
-                data[i + 16],
-                data[i + 17],
-                data[i + 18],
-                data[i + 19],
-            ]);
+            let val_data =
+                u32::from_le_bytes([data[i + 16], data[i + 17], data[i + 18], data[i + 19]]);
             if val_type == 0x03 && (val_data as usize) < strings.len() {
                 let val = strings[val_data as usize].trim().to_string();
                 if !val.is_empty() {
@@ -250,4 +247,181 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
     }
 
     None
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ApkIntegrityError {
+    NotZip {
+        first_bytes_preview: String,
+        is_html: bool,
+    },
+    CorruptedZip {
+        reason: String,
+        first_bytes_preview: String,
+    },
+    NotApk {
+        missing: Vec<String>,
+        first_bytes_preview: String,
+    },
+    Io(String),
+}
+
+impl std::fmt::Display for ApkIntegrityError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotZip {
+                first_bytes_preview,
+                is_html,
+            } => {
+                if *is_html {
+                    write!(
+                        f,
+                        "bukan ZIP (halaman HTML/captcha tersimpan sebagai .apk); 200 byte pertama: \"{first_bytes_preview}\""
+                    )
+                } else {
+                    write!(
+                        f,
+                        "bukan ZIP (file header bukan format ZIP); 200 byte pertama: \"{first_bytes_preview}\""
+                    )
+                }
+            }
+            Self::CorruptedZip {
+                reason,
+                first_bytes_preview,
+            } => {
+                write!(
+                    f,
+                    "ZIP rusak/terpotong: {reason}; 200 byte pertama: \"{first_bytes_preview}\""
+                )
+            }
+            Self::NotApk {
+                missing,
+                first_bytes_preview,
+            } => {
+                write!(
+                    f,
+                    "bukan APK (entry wajib tidak ditemukan: {}); 200 byte pertama: \"{first_bytes_preview}\"",
+                    missing.join(", ")
+                )
+            }
+            Self::Io(e) => write!(f, "IO error: {e}"),
+        }
+    }
+}
+
+impl std::error::Error for ApkIntegrityError {}
+
+pub fn format_bytes_preview(bytes: &[u8]) -> String {
+    let mut s = String::with_capacity(bytes.len() * 2);
+    for &b in bytes {
+        if b.is_ascii_graphic() || b == b' ' {
+            s.push(b as char);
+        } else {
+            use std::fmt::Write;
+            let _ = write!(s, "\\x{:02x}", b);
+        }
+    }
+    s
+}
+
+pub fn verify_apk_integrity<P: AsRef<Path>>(apk_path: P) -> Result<(), ApkIntegrityError> {
+    let path = apk_path.as_ref();
+
+    let mut file = match File::open(path) {
+        Ok(f) => f,
+        Err(e) => return Err(ApkIntegrityError::Io(e.to_string())),
+    };
+
+    let mut preview_buf = [0u8; 200];
+    let n = file
+        .read(&mut preview_buf)
+        .map_err(|e| ApkIntegrityError::Io(e.to_string()))?;
+    let preview_bytes = &preview_buf[..n];
+    let preview_str = format_bytes_preview(preview_bytes);
+
+    if n < 4 || (preview_bytes[0] != b'P' || preview_bytes[1] != b'K') {
+        let text_lower = String::from_utf8_lossy(preview_bytes).to_lowercase();
+        let is_html = text_lower.contains("<!doctype")
+            || text_lower.contains("<html")
+            || text_lower.contains("<head")
+            || text_lower.contains("<body")
+            || text_lower.contains("cf-")
+            || text_lower.contains("turnstile")
+            || text_lower.contains("challenge");
+        warn!(
+            "verify_apk_integrity: file {} is not a ZIP (is_html={is_html}); first 200 bytes: {preview_str}",
+            path.display()
+        );
+        return Err(ApkIntegrityError::NotZip {
+            first_bytes_preview: preview_str,
+            is_html,
+        });
+    }
+
+    use std::io::Seek;
+    if let Err(e) = file.seek(std::io::SeekFrom::Start(0)) {
+        return Err(ApkIntegrityError::Io(e.to_string()));
+    }
+
+    let mut archive = match zip::ZipArchive::new(file) {
+        Ok(a) => a,
+        Err(e) => {
+            warn!(
+                "verify_apk_integrity: failed to open {} as ZIP: {e}; first 200 bytes: {preview_str}",
+                path.display()
+            );
+            return Err(ApkIntegrityError::CorruptedZip {
+                reason: e.to_string(),
+                first_bytes_preview: preview_str,
+            });
+        }
+    };
+
+    let required = ["AndroidManifest.xml", "classes.dex"];
+    let mut missing = Vec::new();
+    for name in required {
+        if archive.by_name(name).is_err() {
+            missing.push(name.to_string());
+        }
+    }
+    if !missing.is_empty() {
+        warn!(
+            "verify_apk_integrity: {} is not an APK (missing: {:?}); first 200 bytes: {preview_str}",
+            path.display(),
+            missing
+        );
+        return Err(ApkIntegrityError::NotApk {
+            missing,
+            first_bytes_preview: preview_str,
+        });
+    }
+
+    let mut sink = [0u8; 8192];
+    for i in 0..archive.len() {
+        match archive.by_index(i) {
+            Ok(mut entry) => {
+                while let Ok(read_bytes) = entry.read(&mut sink) {
+                    if read_bytes == 0 {
+                        break;
+                    }
+                }
+            }
+            Err(e) => {
+                warn!(
+                    "verify_apk_integrity: entry {i} corrupted in {}: {e}; first 200 bytes: {preview_str}",
+                    path.display()
+                );
+                return Err(ApkIntegrityError::CorruptedZip {
+                    reason: format!("entry {i} corrupted: {e}"),
+                    first_bytes_preview: preview_str,
+                });
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub fn check_apk_integrity<P: AsRef<Path>>(apk_path: P) -> bool {
+    verify_apk_integrity(apk_path).is_ok()
 }

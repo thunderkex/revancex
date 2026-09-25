@@ -82,6 +82,7 @@ pub fn resolve(
     patch_meta: Option<&Arc<Vec<PatchMeta>>>,
     apk_version: Option<&str>,
     rules: &PatcherRules,
+    auto_disable: &str,
 ) -> PatchPlan {
     let mut plan = PatchPlan::default();
 
@@ -139,36 +140,39 @@ pub fn resolve(
         }
     }
 
-    if let (Some(patches), Some(apk_ver)) = (patch_meta, apk_version) {
-        for patch in patches.iter() {
-            let is_included = plan
-                .included
-                .iter()
-                .any(|i| i.eq_ignore_ascii_case(&patch.name));
-            if !is_included && !plan.included.is_empty() {
-                continue;
-            }
-            for compat in &patch.compatible_packages {
-                if compat.name == app.package
-                    && !compat.versions.is_empty()
-                    && !compat.versions.iter().any(|v| v == apk_ver)
-                {
-                    plan.auto_disabled.push(DisabledPatch {
-                        name: patch.name.clone(),
-                        reason: DisableReason::Incompatible {
-                            supported: compat.versions.clone(),
-                            actual: apk_ver.to_string(),
-                        },
-                    });
-                    if !plan
-                        .excluded
-                        .iter()
-                        .any(|e| e.eq_ignore_ascii_case(&patch.name))
+    if auto_disable.eq_ignore_ascii_case("off") {
+    } else {
+        if let (Some(patches), Some(apk_ver)) = (patch_meta, apk_version) {
+            for patch in patches.iter() {
+                let is_included = plan
+                    .included
+                    .iter()
+                    .any(|i| i.eq_ignore_ascii_case(&patch.name));
+                if !is_included && !plan.included.is_empty() {
+                    continue;
+                }
+                for compat in &patch.compatible_packages {
+                    if compat.name == app.package
+                        && !compat.versions.is_empty()
+                        && !compat.versions.iter().any(|v| v == apk_ver)
                     {
-                        plan.excluded.push(patch.name.clone());
+                        plan.auto_disabled.push(DisabledPatch {
+                            name: patch.name.clone(),
+                            reason: DisableReason::Incompatible {
+                                supported: compat.versions.clone(),
+                                actual: apk_ver.to_string(),
+                            },
+                        });
+                        if !plan
+                            .excluded
+                            .iter()
+                            .any(|e| e.eq_ignore_ascii_case(&patch.name))
+                        {
+                            plan.excluded.push(patch.name.clone());
+                        }
+                        plan.included
+                            .retain(|i| !i.eq_ignore_ascii_case(&patch.name));
                     }
-                    plan.included
-                        .retain(|i| !i.eq_ignore_ascii_case(&patch.name));
                 }
             }
         }

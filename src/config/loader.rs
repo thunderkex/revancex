@@ -62,6 +62,12 @@ pub struct BuildConfig {
     pub testing: TestingConfig,
     #[serde(default = "default_asset_exclude_patterns")]
     pub asset_exclude_patterns: Vec<String>,
+    #[serde(default = "default_version_fallback_attempts")]
+    pub version_fallback_attempts: usize,
+}
+
+fn default_version_fallback_attempts() -> usize {
+    3
 }
 
 fn default_asset_exclude_patterns() -> Vec<String> {
@@ -375,7 +381,7 @@ pub fn sync_modules_file(config_dir: &str, cfg: &Config) -> Result<ModulesFile> 
         .filter(|(id, a)| {
             a.enabled
                 && !id.eq_ignore_ascii_case("microg")
-                && a.module.as_ref().map_or(true, |m| m.single)
+                && a.module.as_ref().is_none_or(|m| m.single)
         })
         .map(|(id, _)| id.clone())
         .collect();

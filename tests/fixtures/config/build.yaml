@@ -1,0 +1,33 @@
+build:
+  java_min_version: 17
+  tools_dir: ./tools
+  output_dir: ./output
+  keys_dir: ./keys
+  temp_dir: ./tmp
+
+  keystore:
+    validity_days: 10000
+    key_algorithm: RSA
+    key_size: 4096
+    sig_algorithm: SHA256withRSA
+    distinguished_name: "CN=Revancex, OU=Ministry of Silly Builds, O=Thunderkex, L=CyberSpace, ST=Somewhere Over The Galaxy, C=XX"
+
+  workers: 1
+  download_retries: 1
+  download_timeout_secs: 30
+  version_fallback_attempts: 3
+  version_cache: ./tmp/version_cache.json
+  asset_exclude_patterns:
+    - "hw-"
+
+  patcher:
+    max_patch_retries: 1
+    auto_disable: incompatible
+
+  testing:
+    enabled: auto
+    startup_grace_secs: 1
+    install_timeout_secs: 10
+    logcat_lines: 10
+    crash_patterns:
+      - "FATAL EXCEPTION"

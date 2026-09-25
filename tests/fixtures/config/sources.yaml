@@ -1,0 +1,8 @@
+cli:
+  repo: ""
+  asset_pattern: "morphe-*-all.jar"
+
+patch_sources:
+  fixture_patches:
+    repo: ""
+    asset_pattern: "*.mpp"

@@ -85,36 +85,39 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
     let mut cache_modified = false;
 
     let cli_dest = format!("{}/morphe-cli.jar", cfg.build.tools_dir);
-    let cli_tag_res = github::get_latest_release(&client, &cfg.cli_repo, None).await;
-    let cli_upstream_tag = cli_tag_res.as_ref().map(|r| r.tag_name.clone()).ok();
-    let cached_cli_tag = version_cache.patch_source_tags.get("cli").cloned();
+    if !cfg.cli_repo.is_empty() {
+        let cli_tag_res = github::get_latest_release(&client, &cfg.cli_repo, None).await;
+        let cli_upstream_tag = cli_tag_res.as_ref().map(|r| r.tag_name.clone()).ok();
+        let cached_cli_tag = version_cache.patch_source_tags.get("cli").cloned();
 
-    let cli_needs_download = if !is_valid_jar_or_bundle(&cli_dest) {
-        true
-    } else if let (Some(ref upstream), Some(ref cached)) = (&cli_upstream_tag, &cached_cli_tag) {
-        upstream != cached
-    } else {
-        false
-    };
+        let cli_needs_download = if !is_valid_jar_or_bundle(&cli_dest) {
+            true
+        } else if let (Some(ref upstream), Some(ref cached)) = (&cli_upstream_tag, &cached_cli_tag)
+        {
+            upstream != cached
+        } else {
+            false
+        };
 
-    if cli_needs_download {
-        let url = github::resolve_asset_url(&client, &cfg.cli_repo, &cfg.cli_pattern, None)
-            .await
-            .with_context(|| format!("fetching CLI from {}", cfg.cli_repo))?;
-        download_file_with_client(&client, &url, &cli_dest, cfg.build.download_retries, None)
-            .await?;
-        if let Some(tag) = cli_upstream_tag {
-            version_cache
-                .patch_source_tags
-                .insert("cli".to_string(), tag);
-            cache_modified = true;
+        if cli_needs_download {
+            let url = github::resolve_asset_url(&client, &cfg.cli_repo, &cfg.cli_pattern, None)
+                .await
+                .with_context(|| format!("fetching CLI from {}", cfg.cli_repo))?;
+            download_file_with_client(&client, &url, &cli_dest, cfg.build.download_retries, None)
+                .await?;
+            if let Some(tag) = cli_upstream_tag {
+                version_cache
+                    .patch_source_tags
+                    .insert("cli".to_string(), tag);
+                cache_modified = true;
+            }
+        } else {
+            info!("CLI up to date, skipping: {cli_dest}");
         }
-    } else {
-        info!("CLI up to date, skipping: {cli_dest}");
     }
 
     let apkeditor_dest = format!("{}/APKEditor.jar", cfg.build.tools_dir);
-    if !is_valid_jar_or_bundle(&apkeditor_dest) {
+    if !cfg.cli_repo.is_empty() && !is_valid_jar_or_bundle(&apkeditor_dest) {
         let url =
             "https://github.com/REAndroid/APKEditor/releases/download/V1.4.9/APKEditor-1.4.9.jar";
         if let Err(e) = download_file_with_client(
@@ -145,6 +148,10 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
                 .get(&app.patch_source)
                 .map(|p| (p.repo.clone(), p.branch.clone()))
                 .unwrap_or_else(|| (app.patch_source.clone(), None));
+
+            if repo.is_empty() {
+                continue;
+            }
 
             let branch = app
                 .patches_version
@@ -286,6 +293,22 @@ async fn is_aria2_available() -> bool {
 }
 
 async fn try_download(client: &Client, url: &str, dest: &str, referer: Option<&str>) -> Result<()> {
+    if let Some(file_path) = url.strip_prefix("file://") {
+        let clean = file_path.trim_start_matches('/');
+        let local_path = if (clean.len() >= 2 && clean.chars().nth(1) == Some(':'))
+            || std::path::Path::new(clean).exists()
+        {
+            clean
+        } else {
+            file_path
+        };
+        if let Some(parent) = std::path::Path::new(dest).parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::copy(local_path, dest)?;
+        return Ok(());
+    }
+
     let path = Path::new(dest);
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     let filename = path

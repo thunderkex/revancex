@@ -23,34 +23,31 @@ runs:
       shell: bash
       run: |
         mkdir -p bin
+        CARGO_VER=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
         TARGET_TAG="${{ inputs.tag }}"
-        if [ -n "$TARGET_TAG" ]; then
-          CLI_URL="https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/revancex-linux-x86_64.tar.gz"
-        else
-          CLI_URL="https://github.com/${{ github.repository }}/releases/latest/download/revancex-linux-x86_64.tar.gz"
+        if [ -z "$TARGET_TAG" ]; then
+          TARGET_TAG="v${CARGO_VER}"
         fi
 
+        CLI_URL="https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/revancex-linux-x86_64.tar.gz"
+
         DOWNLOADED=false
+        echo "Attempting to download pre-built CLI for ${TARGET_TAG} from ${CLI_URL}..."
         if curl -sSLf "$CLI_URL" | tar -xz -C bin/; then
+          echo "Successfully downloaded pre-built CLI binary (${TARGET_TAG})."
           DOWNLOADED=true
         else
-          echo "Direct fetch failed, resolving release tag via GitHub API..."
-          RELEASES_JSON=$(curl -sSL -H "Authorization: token ${{ inputs.github_token }}" "https://api.github.com/repos/${{ github.repository }}/releases")
-          CLI_TAG=$(echo "$RELEASES_JSON" | jq -r '[.[] | select(.assets[]?.name == "revancex-linux-x86_64.tar.gz")][0].tag_name // empty')
-          if [ -n "$CLI_TAG" ] && [ "$CLI_TAG" != "null" ]; then
-            echo "Resolved fallback CLI tag: $CLI_TAG"
-            if curl -sSLf "https://github.com/${{ github.repository }}/releases/download/${CLI_TAG}/revancex-linux-x86_64.tar.gz" | tar -xz -C bin/; then
-              DOWNLOADED=true
-            fi
-          fi
+          echo "Pre-built binary not found for ${TARGET_TAG}."
         fi
 
         if [ "$DOWNLOADED" = "false" ]; then
-          echo "::warning::No pre-built CLI release found. Building from source (this will take a few minutes)..."
+          echo "::warning::No pre-built CLI release found for ${TARGET_TAG}. Building from source..."
           echo "cli_source=built from source" >> $GITHUB_OUTPUT
           echo "CLI_SOURCE=built from source" >> $GITHUB_ENV
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
-          source "$HOME/.cargo/env"
+          if ! command -v cargo >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+            source "$HOME/.cargo/env"
+          fi
           cargo build --release
           cp target/release/revancex bin/revancex
         else

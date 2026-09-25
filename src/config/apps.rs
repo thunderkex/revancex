@@ -124,6 +124,8 @@ pub struct AppConfig {
     #[serde(default)]
     pub version: Option<String>,
     #[serde(default)]
+    pub version_pin_strict: bool,
+    #[serde(default)]
     pub patches: Vec<String>,
     #[serde(default)]
     pub keystore: Option<KeystoreRef>,

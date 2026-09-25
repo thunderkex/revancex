@@ -4,7 +4,6 @@ tools/
 tmp/
 .env
 target/
-Cargo.lock
 __pycache__/
 *.pyc
 modules/

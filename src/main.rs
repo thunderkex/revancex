@@ -17,7 +17,13 @@ struct Cli {
     #[arg(short, long, global = true)]
     verbose: bool,
 
-    #[arg(short, long, global = true, default_value = "./config")]
+    #[arg(
+        short,
+        long,
+        alias = "config",
+        global = true,
+        default_value = "./config"
+    )]
     config_dir: String,
 }
 
@@ -128,6 +134,14 @@ enum Commands {
         json: bool,
     },
 
+    /// Smoke test built APKs.
+    ///
+    /// Precedence for exit codes:
+    /// 1. `--continue`: Always exits 0, allowing callers / release pipelines to inspect the
+    ///    report and continue with releasing passing apps without aborting.
+    /// 2. `--fail-threshold <percent>`: When `--continue` is NOT passed, exits non-zero only
+    ///    if the failure percentage strictly exceeds `<percent>`.
+    /// 3. Default: Exits non-zero if any single app fails (strict developer mode).
     Test {
         #[arg(short, long, default_value = "all")]
         apps: String,
@@ -141,6 +155,10 @@ enum Commands {
         install_timeout_secs: u64,
         #[arg(short, long)]
         json: bool,
+        #[arg(long = "continue")]
+        continue_on_error: bool,
+        #[arg(long)]
+        fail_threshold: Option<u32>,
     },
 
     Doctor,
@@ -160,6 +178,8 @@ async fn main() -> Result<()> {
         .init();
 
     let config = config::load_config(&cli.config_dir)?;
+    std::env::set_var("REVANCEX_CONFIG_DIR", &cli.config_dir);
+    std::env::set_var("REVANCEX_TEMP_DIR", &config.build.temp_dir);
 
     match cli.command {
         Commands::Apps { json } => {
@@ -312,6 +332,7 @@ async fn main() -> Result<()> {
                 meta.as_ref(),
                 None,
                 &config.build.patcher.rules,
+                &config.build.patcher.auto_disable,
             );
             if json {
                 println!("{}", serde_json::to_string_pretty(&plan)?);
@@ -333,6 +354,8 @@ async fn main() -> Result<()> {
             startup_grace_secs,
             install_timeout_secs,
             json,
+            continue_on_error,
+            fail_threshold,
         } => {
             let report = testing::run_device_tests(
                 &apps,
@@ -342,6 +365,8 @@ async fn main() -> Result<()> {
                 install_timeout_secs,
             )
             .await?;
+
+            let filter_report = testing::filter_release_artifacts(&output, &report)?;
 
             if json {
                 println!("{}", serde_json::to_string_pretty(&report)?);
@@ -356,11 +381,25 @@ async fn main() -> Result<()> {
                         .as_deref()
                         .map(|r| format!(" ({r})"))
                         .unwrap_or_default();
-                    println!("  [{}] {}{}", item.status, item.app, reason);
+                    let strat = item
+                        .version_strategy
+                        .as_deref()
+                        .map(|s| format!(" [strategy: {s}]"))
+                        .unwrap_or_default();
+                    println!("  [{}] {}{}{}", item.status, item.app, reason, strat);
+                }
+
+                if !filter_report.excluded_apps.is_empty() {
+                    println!("\nExcluded from release:");
+                    for excl in &filter_report.excluded_apps {
+                        println!("  - {}: {}", excl.app, excl.reason);
+                    }
                 }
             }
 
-            if report.failed > 0 {
+            let total = report.passed + report.failed + report.skipped;
+            if testing::should_exit_failure(report.failed, total, continue_on_error, fail_threshold)
+            {
                 std::process::exit(1);
             }
         }

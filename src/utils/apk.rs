@@ -161,7 +161,8 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
         let chunk_type = u16::from_le_bytes([data[cur], data[cur + 1]]);
         let chunk_hdr_sz = u16::from_le_bytes([data[cur + 2], data[cur + 3]]) as usize;
         let node_chunk_sz =
-            u32::from_le_bytes([data[cur + 4], data[cur + 5], data[cur + 6], data[cur + 7]]) as usize;
+            u32::from_le_bytes([data[cur + 4], data[cur + 5], data[cur + 6], data[cur + 7]])
+                as usize;
         if node_chunk_sz < 8 || cur + node_chunk_sz > data.len() {
             break;
         }
@@ -221,8 +222,7 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
 
     let mut i = chunks_start;
     while i + 20 <= data.len() {
-        let name_ref =
-            u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]);
+        let name_ref = u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]);
         if name_ref == target_idx {
             let raw_ref =
                 u32::from_le_bytes([data[i + 8], data[i + 9], data[i + 10], data[i + 11]]);
@@ -233,12 +233,8 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
                 }
             }
             let val_type = data[i + 15];
-            let val_data = u32::from_le_bytes([
-                data[i + 16],
-                data[i + 17],
-                data[i + 18],
-                data[i + 19],
-            ]);
+            let val_data =
+                u32::from_le_bytes([data[i + 16], data[i + 17], data[i + 18], data[i + 19]]);
             if val_type == 0x03 && (val_data as usize) < strings.len() {
                 let val = strings[val_data as usize].trim().to_string();
                 if !val.is_empty() {

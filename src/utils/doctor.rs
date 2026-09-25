@@ -38,6 +38,14 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
     check_tool("python", "optional, post-patch hooks");
     check_tool("keytool", "required for keystore generation/info");
 
+    println!("\n--- Dependency Graph ---");
+    let lock_path = Path::new("Cargo.lock");
+    if lock_path.exists() {
+        println!("Cargo.lock:     PRESENT and tracked (reproducible dependency graph)");
+    } else {
+        println!("Cargo.lock:     MISSING (builds may not be reproducible)");
+    }
+
     println!("\n--- Keystore ---");
     let dummy_app = crate::config::apps::AppConfig {
         enabled: true,
@@ -59,6 +67,7 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
         patcher_args: None,
         patches_version: None,
         version: None,
+        version_pin_strict: false,
         patches: vec![],
         keystore: None,
         module: None,

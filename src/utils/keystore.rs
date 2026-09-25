@@ -147,6 +147,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         patcher_args: None,
         patches_version: None,
         version: None,
+        version_pin_strict: false,
         patches: vec![],
         keystore: None,
         module: None,

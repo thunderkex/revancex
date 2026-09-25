@@ -87,6 +87,7 @@ pub async fn patch(
         meta.as_ref(),
         apk_version.as_deref(),
         &cfg.build.patcher.rules,
+        &cfg.build.patcher.auto_disable,
     );
     if !plan.auto_disabled.is_empty() {
         info!(

@@ -480,8 +480,14 @@ fn test_patcher_name_normalization_idempotent() {
 fn test_patch_plan_invariants() {
     let cfg = config::load_config("./config").expect("Failed to load config");
     for (id, app) in &cfg.apps {
-        let plan =
-            revancex::patcher::plan::resolve(app, false, None, None, &cfg.build.patcher.rules);
+        let plan = revancex::patcher::plan::resolve(
+            app,
+            false,
+            None,
+            None,
+            &cfg.build.patcher.rules,
+            &cfg.build.patcher.auto_disable,
+        );
         for inc in &plan.included {
             assert!(
                 !plan.excluded.contains(inc),
@@ -502,6 +508,7 @@ fn test_build_args_uses_resolved_plan() {
                 None,
                 None,
                 &cfg.build.patcher.rules,
+                &cfg.build.patcher.auto_disable,
             );
             let args = revancex::patcher::cli::build_args(
                 &cfg.build.tools_dir,
@@ -558,6 +565,7 @@ fn test_plan_resolve_with_apk_version_auto_disables_incompatible() {
         Some(&meta),
         Some("1.0.0"),
         &cfg.build.patcher.rules,
+        "incompatible",
     );
 
     assert!(plan.included.contains(&"PatchA".to_string()));
@@ -767,6 +775,9 @@ fn test_check_app_version_compatibility_warning() {
 
 #[tokio::test]
 async fn test_smoke_testing_static_dex_check() {
+    unsafe {
+        std::env::set_var("REVANCEX_STATIC_TEST", "1");
+    }
     let report = revancex::testing::run_device_tests("all", "./nonexistent_dir", false, 0, 0)
         .await
         .expect("smoke test run failed");
@@ -788,21 +799,28 @@ async fn test_smoke_testing_static_dex_check() {
         zip.finish().unwrap();
     }
 
-    let report_microg = revancex::testing::run_device_tests(
-        "microg",
-        out_dir.path().to_str().unwrap(),
-        false,
-        0,
-        0,
-    )
-    .await
-    .expect("smoke test run for microg failed");
+    let drama_apk = out_dir.path().join("drama_box-patched.apk");
+    {
+        let file = std::fs::File::create(&drama_apk).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("AndroidManifest.xml", opts).unwrap();
+        zip.write_all(&manifest_bytes).unwrap();
+        zip.start_file("classes.dex", opts).unwrap();
+        zip.write_all(b"sample dex bytecode drama").unwrap();
+        zip.finish().unwrap();
+    }
 
-    assert_eq!(report_microg.failed, 0);
-    assert_eq!(report_microg.passed, 1);
-    assert_eq!(report_microg.items[0].app, "microg");
-    assert_eq!(report_microg.items[0].package, "app.revanced.android.gms");
-    assert_eq!(report_microg.items[0].status, "passed");
+    let report_all =
+        revancex::testing::run_device_tests("all", out_dir.path().to_str().unwrap(), false, 0, 0)
+            .await
+            .expect("smoke test run for all failed");
+
+    assert_eq!(report_all.failed, 0);
+    assert_eq!(report_all.passed, 2);
+    let apps: Vec<&str> = report_all.items.iter().map(|i| i.app.as_str()).collect();
+    assert!(apps.contains(&"microg"));
+    assert!(apps.contains(&"drama_box"));
 }
 
 #[test]
@@ -1059,4 +1077,357 @@ fn test_apkpure_referer_rotation_candidates() {
     assert_eq!(referer_candidates[1], Some("https://apkpure.com/"));
     assert_eq!(referer_candidates[2], Some("https://apkpure.net/"));
     assert_eq!(referer_candidates[3], None);
+}
+
+#[test]
+fn test_cache_validation_stale_triggers_refetch() {
+    let tmp = tempfile::tempdir().unwrap();
+    let apk_path = tmp.path().join("testapp-arm64-v8a-input.apk");
+    let version_sidecar = tmp.path().join("testapp-arm64-v8a-input.apk.version");
+
+    // Create cached file > 1MB
+    let data = vec![0u8; 1_000_001];
+    std::fs::write(&apk_path, &data).unwrap();
+    std::fs::write(&version_sidecar, "1.0.0").unwrap();
+
+    let apk_str = apk_path.to_str().unwrap();
+    let result =
+        revancex::builder::check_cached_input_apk("testapp", &[apk_str], Some("2.0.0"), false);
+
+    assert_eq!(
+        result,
+        revancex::builder::CacheCheckResult::Stale {
+            cached: "1.0.0".to_string(),
+            target: "2.0.0".to_string(),
+        }
+    );
+    assert!(
+        !apk_path.exists(),
+        "Stale cached APK must be removed to trigger refetch"
+    );
+    assert!(!version_sidecar.exists(), "Stale sidecar must be removed");
+}
+
+#[test]
+fn test_cache_validation_matching_reuses_cache() {
+    let tmp = tempfile::tempdir().unwrap();
+    let apk_path = tmp.path().join("testapp-arm64-v8a-input.apk");
+    let version_sidecar = tmp.path().join("testapp-arm64-v8a-input.apk.version");
+
+    let data = vec![0u8; 1_000_001];
+    std::fs::write(&apk_path, &data).unwrap();
+    std::fs::write(&version_sidecar, "2.0.0").unwrap();
+
+    let apk_str = apk_path.to_str().unwrap();
+    let result =
+        revancex::builder::check_cached_input_apk("testapp", &[apk_str], Some("2.0.0"), false);
+
+    assert_eq!(
+        result,
+        revancex::builder::CacheCheckResult::Hit(apk_str.to_string())
+    );
+    assert!(
+        apk_path.exists(),
+        "Matching cached APK must be retained and reused"
+    );
+}
+
+#[tokio::test]
+async fn test_candidate_version_fallback_succeeds_on_second() {
+    let candidates = vec![Some("2.0.0".to_string()), Some("1.9.0".to_string())];
+    let result = revancex::builder::download_with_fallback(
+        "testapp",
+        "com.example.test",
+        &candidates,
+        3,
+        |v| async move {
+            if v.as_deref() == Some("2.0.0") {
+                Err(anyhow::anyhow!("404 on all sources"))
+            } else if v.as_deref() == Some("1.9.0") {
+                Ok("output/testapp-1.9.0.apk".to_string())
+            } else {
+                Err(anyhow::anyhow!("unexpected candidate"))
+            }
+        },
+    )
+    .await;
+
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), "output/testapp-1.9.0.apk");
+}
+
+#[tokio::test]
+async fn test_candidate_version_exhausted_returns_clear_error() {
+    let candidates = vec![Some("2.0.0".to_string()), Some("1.9.0".to_string())];
+    let result = revancex::builder::download_with_fallback(
+        "testapp",
+        "com.example.test",
+        &candidates,
+        3,
+        |_| async move { Err(anyhow::anyhow!("source unavailable")) },
+    )
+    .await;
+
+    assert!(result.is_err());
+    let err_str = result.unwrap_err().to_string();
+    assert!(
+        err_str.contains("all download sources exhausted for package 'com.example.test' across 2 candidate version(s)"),
+        "Error message must clearly state that all sources were exhausted: {err_str}"
+    );
+}
+
+#[test]
+fn test_stale_pin_auto_corrects_when_not_strict() {
+    use revancex::patcher::metadata::{PackageCompat, PatchMeta};
+
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let mut app = cfg.apps.values().next().unwrap().clone();
+    app.package = "com.test.app".to_string();
+    app.version = Some("1.0.0".to_string());
+    app.version_pin_strict = false;
+    app.patches = vec!["PatchA".to_string()];
+
+    let patch_meta = vec![PatchMeta {
+        name: "PatchA".to_string(),
+        description: "Patch A".to_string(),
+        compatible_packages: vec![PackageCompat {
+            name: "com.test.app".to_string(),
+            versions: vec!["2.0.0".to_string(), "2.1.0".to_string()],
+        }],
+    }];
+    let patch_supported = vec!["2.0.0".to_string(), "2.1.0".to_string()];
+
+    let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
+        "test_app",
+        &app,
+        Some(&patch_meta),
+        &patch_supported,
+    );
+
+    assert_eq!(target_ver, Some("2.1.0".to_string()));
+    assert_eq!(strategy, "auto-corrected-from-stale-pin");
+    assert_eq!(candidates, vec!["2.1.0".to_string(), "2.0.0".to_string()]);
+}
+
+#[test]
+fn test_stale_pin_honored_when_strict() {
+    use revancex::patcher::metadata::{PackageCompat, PatchMeta};
+
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let mut app = cfg.apps.values().next().unwrap().clone();
+    app.package = "com.test.app".to_string();
+    app.version = Some("1.0.0".to_string());
+    app.version_pin_strict = true;
+    app.patches = vec!["PatchA".to_string()];
+
+    let patch_meta = vec![PatchMeta {
+        name: "PatchA".to_string(),
+        description: "Patch A".to_string(),
+        compatible_packages: vec![PackageCompat {
+            name: "com.test.app".to_string(),
+            versions: vec!["2.0.0".to_string()],
+        }],
+    }];
+    let patch_supported = vec!["2.0.0".to_string()];
+
+    let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
+        "test_app",
+        &app,
+        Some(&patch_meta),
+        &patch_supported,
+    );
+
+    assert_eq!(target_ver, Some("1.0.0".to_string()));
+    assert_eq!(strategy, "strict-honored-despite-stale");
+    assert_eq!(candidates, vec!["1.0.0".to_string()]);
+}
+
+#[test]
+fn test_plan_resolve_all_three_auto_disable_modes() {
+    use revancex::patcher::metadata::{PackageCompat, PatchMeta};
+    use std::sync::Arc;
+
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let mut app = cfg.apps.values().next().unwrap().clone();
+    app.package = "com.test.app".to_string();
+    app.patches = vec!["PatchExclusive".to_string()];
+
+    let meta = Arc::new(vec![PatchMeta {
+        name: "PatchExclusive".to_string(),
+        description: "Exclusive patch".to_string(),
+        compatible_packages: vec![PackageCompat {
+            name: "com.test.app".to_string(),
+            versions: vec!["1.0.0".to_string()],
+        }],
+    }]);
+
+    // Mode "off": never auto-disable for version mismatch
+    let plan_off = revancex::patcher::plan::resolve(
+        &app,
+        false,
+        Some(&meta),
+        Some("2.0.0"),
+        &cfg.build.patcher.rules,
+        "off",
+    );
+    assert!(
+        plan_off.included.contains(&"PatchExclusive".to_string()),
+        "Mode 'off' must not auto-disable mismatched patch"
+    );
+    assert!(plan_off.auto_disabled.is_empty());
+
+    // Mode "incompatible": auto-disables mismatched patch
+    let plan_incomp = revancex::patcher::plan::resolve(
+        &app,
+        false,
+        Some(&meta),
+        Some("2.0.0"),
+        &cfg.build.patcher.rules,
+        "incompatible",
+    );
+    assert!(
+        !plan_incomp.included.contains(&"PatchExclusive".to_string()),
+        "Mode 'incompatible' must remove patch from included"
+    );
+    assert_eq!(plan_incomp.auto_disabled.len(), 1);
+    assert!(plan_incomp.excluded.contains(&"PatchExclusive".to_string()));
+
+    // Mode "aggressive": acts as incompatible (disables mismatched patch)
+    let plan_aggr = revancex::patcher::plan::resolve(
+        &app,
+        false,
+        Some(&meta),
+        Some("2.0.0"),
+        &cfg.build.patcher.rules,
+        "aggressive",
+    );
+    assert!(
+        !plan_aggr.included.contains(&"PatchExclusive".to_string()),
+        "Mode 'aggressive' must remove patch from included"
+    );
+    assert_eq!(plan_aggr.auto_disabled.len(), 1);
+    assert!(plan_aggr.excluded.contains(&"PatchExclusive".to_string()));
+}
+
+#[test]
+fn test_smoke_test_batch_exclusion_with_continue() {
+    let tmp = tempfile::tempdir().unwrap();
+    let out_dir = tmp.path().to_str().unwrap();
+
+    let apk_a = tmp.path().join("app_a-patched.apk");
+    let apk_b = tmp.path().join("app_b-patched.apk");
+    let apk_c = tmp.path().join("app_c-patched.apk");
+    std::fs::write(&apk_a, b"apk_a content").unwrap();
+    std::fs::write(&apk_b, b"apk_b content").unwrap();
+    std::fs::write(&apk_c, b"apk_c content").unwrap();
+
+    let report = revancex::testing::TestReport {
+        items: vec![
+            revancex::testing::TestReportItem {
+                app: "app_a".to_string(),
+                package: "com.example.a".to_string(),
+                status: "passed".to_string(),
+                install_ms: None,
+                launch_ms: None,
+                reason: Some("static APK & dex verification passed".to_string()),
+                version_strategy: Some("auto".to_string()),
+            },
+            revancex::testing::TestReportItem {
+                app: "app_b".to_string(),
+                package: "com.example.b".to_string(),
+                status: "passed".to_string(),
+                install_ms: None,
+                launch_ms: None,
+                reason: Some("static APK & dex verification passed".to_string()),
+                version_strategy: Some("pinned".to_string()),
+            },
+            revancex::testing::TestReportItem {
+                app: "app_c".to_string(),
+                package: "com.example.c".to_string(),
+                status: "failed".to_string(),
+                install_ms: None,
+                launch_ms: None,
+                reason: Some("corrupt APK or missing classes.dex".to_string()),
+                version_strategy: Some("strict-honored-despite-stale".to_string()),
+            },
+        ],
+        passed: 2,
+        failed: 1,
+        skipped: 0,
+    };
+
+    let filter_report = revancex::testing::filter_release_artifacts(out_dir, &report)
+        .expect("filter_release_artifacts should succeed");
+
+    // Assert failing app excluded, other N-1 still marked for release
+    assert_eq!(filter_report.included_apps, vec!["app_a", "app_b"]);
+    assert_eq!(filter_report.excluded_apps.len(), 1);
+    assert_eq!(filter_report.excluded_apps[0].app, "app_c");
+    assert_eq!(
+        filter_report.excluded_apps[0].reason,
+        "corrupt APK or missing classes.dex"
+    );
+
+    // Assert failing app artifact removed, other N-1 still exist
+    assert!(
+        apk_a.exists(),
+        "Passing app_a artifact must remain in release directory"
+    );
+    assert!(
+        apk_b.exists(),
+        "Passing app_b artifact must remain in release directory"
+    );
+    assert!(
+        !apk_c.exists(),
+        "Failing app_c artifact must be excluded/removed from release directory"
+    );
+
+    // Assert release_exclusions.json exists and captures reason
+    let json_file = tmp.path().join("release_exclusions.json");
+    assert!(
+        json_file.exists(),
+        "release_exclusions.json must be written"
+    );
+    let json_content = std::fs::read_to_string(&json_file).unwrap();
+    assert!(json_content.contains("corrupt APK or missing classes.dex"));
+
+    // Assert process exits 0 with --continue
+    assert!(!revancex::testing::should_exit_failure(
+        report.failed,
+        3,
+        true,
+        None
+    ));
+}
+
+#[test]
+fn test_smoke_test_fail_threshold_and_precedence() {
+    // 1. --continue always exits 0 (returns false for should_exit_failure)
+    assert!(!revancex::testing::should_exit_failure(1, 4, true, None));
+    assert!(!revancex::testing::should_exit_failure(4, 4, true, None));
+    assert!(!revancex::testing::should_exit_failure(
+        4,
+        4,
+        true,
+        Some(10)
+    ));
+
+    // 2. Without --continue and without fail_threshold (plain local dev run): any failure exits 1
+    assert!(!revancex::testing::should_exit_failure(0, 4, false, None));
+    assert!(revancex::testing::should_exit_failure(1, 4, false, None));
+
+    // 3. Without --continue and with fail_threshold: exits 1 only if failure rate strictly exceeds threshold
+    // 1 out of 4 = 25% failure
+    assert!(
+        !revancex::testing::should_exit_failure(1, 4, false, Some(50)),
+        "25% <= 50% must not fail"
+    );
+    assert!(
+        !revancex::testing::should_exit_failure(2, 4, false, Some(50)),
+        "50% <= 50% must not fail"
+    );
+    assert!(
+        revancex::testing::should_exit_failure(3, 4, false, Some(50)),
+        "75% > 50% must fail"
+    );
 }

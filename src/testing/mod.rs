@@ -13,6 +13,8 @@ pub struct TestReportItem {
     pub install_ms: Option<u64>,
     pub launch_ms: Option<u64>,
     pub reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version_strategy: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -21,6 +23,154 @@ pub struct TestReport {
     pub passed: usize,
     pub failed: usize,
     pub skipped: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseExclusion {
+    pub app: String,
+    pub package: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ReleaseFilterReport {
+    pub included_apps: Vec<String>,
+    pub excluded_apps: Vec<ReleaseExclusion>,
+}
+
+pub fn resolve_test_item_strategy(
+    app_id: &str,
+    app_cfg: Option<&crate::config::apps::AppConfig>,
+) -> Option<String> {
+    let tmp_dir = std::env::var("REVANCEX_TEMP_DIR").unwrap_or_else(|_| "./tmp".to_string());
+    if let Ok(entries) = std::fs::read_dir(&tmp_dir) {
+        for entry in entries.flatten() {
+            let p = entry.path();
+            let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if fname == format!("{app_id}.strategy")
+                || (fname.starts_with(&format!("{app_id}-")) && fname.ends_with(".strategy"))
+            {
+                if let Ok(s) = std::fs::read_to_string(&p) {
+                    let trimmed = s.trim().to_string();
+                    if !trimmed.is_empty() {
+                        return Some(trimmed);
+                    }
+                }
+            }
+        }
+    }
+
+    if let Some(cfg) = app_cfg {
+        if let Some(_pin) = cfg
+            .version
+            .as_deref()
+            .filter(|v| !v.eq_ignore_ascii_case("auto"))
+        {
+            if cfg.version_pin_strict {
+                return Some("strict-honored-despite-stale".to_string());
+            } else {
+                return Some("pinned".to_string());
+            }
+        } else {
+            return Some("auto".to_string());
+        }
+    }
+
+    None
+}
+
+pub fn should_exit_failure(
+    failed: usize,
+    total: usize,
+    continue_on_error: bool,
+    fail_threshold: Option<u32>,
+) -> bool {
+    if continue_on_error {
+        return false;
+    }
+    if failed == 0 {
+        return false;
+    }
+    if let Some(threshold) = fail_threshold {
+        if total == 0 {
+            return false;
+        }
+        let fail_pct = (failed as f64 / total as f64) * 100.0;
+        fail_pct > (threshold as f64)
+    } else {
+        true
+    }
+}
+
+pub fn filter_release_artifacts(
+    output_dir: &str,
+    report: &TestReport,
+) -> Result<ReleaseFilterReport> {
+    let mut included_apps = Vec::new();
+    let mut excluded_apps = Vec::new();
+
+    let out_p = Path::new(output_dir);
+
+    for item in &report.items {
+        if item.status == "failed" {
+            let reason = item
+                .reason
+                .clone()
+                .unwrap_or_else(|| "smoke test failed".to_string());
+            warn!("{}: excluded from release ({reason})", item.app);
+
+            if out_p.exists() {
+                if let Ok(entries) = std::fs::read_dir(out_p) {
+                    for entry in entries.flatten() {
+                        let path = entry.path();
+                        if path.extension().and_then(|e| e.to_str()) == Some("apk") {
+                            let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+                            let app_id = name
+                                .strip_suffix("-root")
+                                .or_else(|| name.strip_suffix("-patched"))
+                                .unwrap_or(name);
+                            if app_id == item.app {
+                                info!(
+                                    "Removing failed artifact from release output: {}",
+                                    path.display()
+                                );
+                                let _ = std::fs::remove_file(&path);
+                            }
+                        }
+                    }
+                }
+            }
+
+            excluded_apps.push(ReleaseExclusion {
+                app: item.app.clone(),
+                package: item.package.clone(),
+                reason,
+            });
+        } else {
+            if !included_apps.contains(&item.app) {
+                included_apps.push(item.app.clone());
+            }
+        }
+    }
+
+    let filter_report = ReleaseFilterReport {
+        included_apps,
+        excluded_apps,
+    };
+
+    if out_p.exists() {
+        let json_path = format!("{output_dir}/release_exclusions.json");
+        let json = serde_json::to_string_pretty(&filter_report)?;
+        let _ = std::fs::write(&json_path, json);
+    }
+
+    info!(
+        "Release filter summary: {} app(s) marked for release, {} app(s) excluded",
+        filter_report.included_apps.len(),
+        filter_report.excluded_apps.len()
+    );
+
+    Ok(filter_report)
 }
 
 pub async fn run_device_tests(
@@ -32,7 +182,12 @@ pub async fn run_device_tests(
 ) -> Result<TestReport> {
     let mut report = TestReport::default();
 
-    let devices = device::devices().await.unwrap_or_default();
+    let static_mode = std::env::var("REVANCEX_STATIC_TEST").is_ok();
+    let devices = if static_mode {
+        Vec::new()
+    } else {
+        device::devices().await.unwrap_or_default()
+    };
 
     let active_device = devices.into_iter().find(|d| d.state == "device");
 
@@ -45,14 +200,23 @@ pub async fn run_device_tests(
             info!("No connected adb device detected — falling back to static APK smoke tests");
             let out_p = Path::new(output_dir);
             if out_p.exists() {
-                let cfg = crate::config::load_config("./config").ok();
+                let config_dir =
+                    std::env::var("REVANCEX_CONFIG_DIR").unwrap_or_else(|_| "./config".to_string());
+                let cfg = crate::config::load_config(&config_dir).ok();
+                let tmp_dir = cfg
+                    .as_ref()
+                    .map(|c| c.build.temp_dir.clone())
+                    .or_else(|| std::env::var("REVANCEX_TEMP_DIR").ok())
+                    .unwrap_or_else(|| "./tmp".to_string());
                 if let Ok(entries) = std::fs::read_dir(out_p) {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if path.extension().and_then(|e| e.to_str()) == Some("apk") {
                             let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-                            let app_id =
-                                name.trim_end_matches("-root").trim_end_matches("-patched");
+                            let app_id = name
+                                .strip_suffix("-root")
+                                .or_else(|| name.strip_suffix("-patched"))
+                                .unwrap_or(name);
                             if apps_input != "all"
                                 && !apps_input.split(',').any(|a| {
                                     let clean = a.trim();
@@ -65,6 +229,7 @@ pub async fn run_device_tests(
                             let app_cfg = cfg.as_ref().and_then(|c| c.apps.get(app_id));
                             let pkg = crate::utils::apk::get_apk_package_name(&path)
                                 .ok()
+                                .filter(|s| !s.is_empty())
                                 .or_else(|| app_cfg.map(|a| a.package.clone()))
                                 .unwrap_or_default();
 
@@ -78,6 +243,7 @@ pub async fn run_device_tests(
                                     reason: Some(
                                         "could not resolve package name from manifest".to_string(),
                                     ),
+                                    version_strategy: resolve_test_item_strategy(app_id, app_cfg),
                                 });
                                 report.failed += 1;
                                 continue;
@@ -95,6 +261,9 @@ pub async fn run_device_tests(
                                         reason: Some(
                                             "corrupt APK or missing classes.dex".to_string(),
                                         ),
+                                        version_strategy: resolve_test_item_strategy(
+                                            app_id, app_cfg,
+                                        ),
                                     });
                                     report.failed += 1;
                                     continue;
@@ -111,14 +280,16 @@ pub async fn run_device_tests(
 
                             if !is_unpatched_app {
                                 let mut input_found = None;
-                                if let Ok(tmp_entries) = std::fs::read_dir("./tmp") {
+                                if let Ok(tmp_entries) = std::fs::read_dir(&tmp_dir) {
                                     for tmp_entry in tmp_entries.flatten() {
                                         let p = tmp_entry.path();
                                         let fname =
                                             p.file_name().and_then(|n| n.to_str()).unwrap_or("");
                                         if fname == format!("{app_id}-input.apk")
+                                            || fname == format!("{app_id}.apk")
                                             || (fname.starts_with(&format!("{app_id}-"))
-                                                && fname.ends_with("-input.apk"))
+                                                && (fname.ends_with("-input.apk")
+                                                    || fname.ends_with(".apk")))
                                         {
                                             input_found = Some(p);
                                             break;
@@ -127,7 +298,8 @@ pub async fn run_device_tests(
                                 }
 
                                 if let Some(input_p) = input_found {
-                                    if let Ok(in_dex) = crate::utils::apk::dex_entries_crc(&input_p) {
+                                    if let Ok(in_dex) = crate::utils::apk::dex_entries_crc(&input_p)
+                                    {
                                         if in_dex == out_dex {
                                             report.items.push(TestReportItem {
                                                 app: app_id.to_string(),
@@ -138,6 +310,7 @@ pub async fn run_device_tests(
                                                 reason: Some(
                                                     "output APK dex is identical to unpatched input APK — 0 patches applied".to_string(),
                                                 ),
+                                                version_strategy: resolve_test_item_strategy(app_id, app_cfg),
                                             });
                                             report.failed += 1;
                                             continue;
@@ -153,6 +326,7 @@ pub async fn run_device_tests(
                                 install_ms: None,
                                 launch_ms: None,
                                 reason: Some("static APK & dex verification passed".to_string()),
+                                version_strategy: resolve_test_item_strategy(app_id, app_cfg),
                             });
                             report.passed += 1;
                         }
@@ -181,7 +355,10 @@ pub async fn run_device_tests(
                     .and_then(|s| s.to_str())
                     .unwrap_or("")
                     .to_string();
-                let app_id = name.trim_end_matches("-root").trim_end_matches("-patched");
+                let app_id = name
+                    .strip_suffix("-root")
+                    .or_else(|| name.strip_suffix("-patched"))
+                    .unwrap_or(&name);
                 if apps_input == "all"
                     || apps_input.split(',').any(|a| {
                         let clean = a.trim();
@@ -198,6 +375,7 @@ pub async fn run_device_tests(
         let app_cfg = cfg.as_ref().and_then(|c| c.apps.get(&app_id));
         let pkg = crate::utils::apk::get_apk_package_name(&apk_path)
             .ok()
+            .filter(|s| !s.is_empty())
             .or_else(|| app_cfg.map(|a| a.package.clone()))
             .unwrap_or_default();
         if pkg.is_empty() {
@@ -208,6 +386,7 @@ pub async fn run_device_tests(
                 install_ms: None,
                 launch_ms: None,
                 reason: Some("could not resolve package name from manifest".to_string()),
+                version_strategy: resolve_test_item_strategy(&app_id, app_cfg),
             });
             report.skipped += 1;
             continue;
@@ -226,6 +405,7 @@ pub async fn run_device_tests(
                 install_ms: Some(install_ms),
                 launch_ms: None,
                 reason: Some(e.to_string()),
+                version_strategy: resolve_test_item_strategy(&app_id, app_cfg),
             });
             report.failed += 1;
             continue;
@@ -256,6 +436,7 @@ pub async fn run_device_tests(
                 install_ms: Some(install_ms),
                 launch_ms: Some(launch_ms),
                 reason: None,
+                version_strategy: resolve_test_item_strategy(&app_id, app_cfg),
             });
             report.passed += 1;
         } else {
@@ -272,6 +453,7 @@ pub async fn run_device_tests(
                 install_ms: Some(install_ms),
                 launch_ms: Some(launch_ms),
                 reason: Some(reason.to_string()),
+                version_strategy: resolve_test_item_strategy(&app_id, app_cfg),
             });
             report.failed += 1;
         }

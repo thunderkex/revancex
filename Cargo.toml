@@ -1,8 +1,10 @@
 [package]
 name = "revancex"
-version = "1.0.4"
+version = "1.0.5"
 edition = "2021"
-rust-version = "1.75"
+# MSRV is 1.85+ due to transitive dependencies (idna_adapter, clap_lex, rand_pcg)
+# requiring Cargo edition 2024 features supported in modern stable toolchains.
+rust-version = "1.85"
 license = "GPL-3.0"
 description = "Modern, high-performance Rust patcher & orchestrator for ReVanced, Morphe, Magisk, and KernelSU modules"
 

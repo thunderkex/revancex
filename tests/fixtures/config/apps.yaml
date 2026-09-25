@@ -1,0 +1,9 @@
+apps:
+  fixture_app:
+    enabled: true
+    package: app.revanced.android.gms
+    version: "7.1.1"
+    version_pin_strict: false
+    apk_url: "file://tests/fixtures/fixture.apk"
+    patch_source: "fixture_patches"
+    mode: "patch"

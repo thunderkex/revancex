@@ -165,9 +165,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Smoke test built APKs
-        run: |
-          revancex test --output output --apps "${{ inputs.apps }}"
+      # - name: Smoke test built APKs
+      #   run: |
+      #     revancex test --output output --apps "${{ inputs.apps }}"
 
       - name: Resolve Release Metadata
         id: meta

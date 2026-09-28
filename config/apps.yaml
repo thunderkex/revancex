@@ -13,7 +13,7 @@ apps:
       alias: revanced
       file: keys/adguard.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -33,7 +33,7 @@ apps:
       alias: revanced
       file: keys/camscanner.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -54,7 +54,7 @@ apps:
       alias: revanced
       file: keys/duolingo.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -73,7 +73,7 @@ apps:
       alias: revanced
       file: keys/facebook.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -91,7 +91,7 @@ apps:
       alias: revanced
       file: keys/flightradar24.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -113,7 +113,7 @@ apps:
       alias: revanced
       file: keys/gboard.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -130,7 +130,7 @@ apps:
       alias: revanced
       file: keys/google_news.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -153,7 +153,7 @@ apps:
       alias: revanced
       file: keys/google_photos.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies:
     - microg
@@ -178,7 +178,7 @@ apps:
       alias: revanced
       file: keys/instagram.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -197,7 +197,7 @@ apps:
       alias: revanced
       file: keys/lightroom.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -217,7 +217,7 @@ apps:
       alias: revanced
       file: keys/microg.jks
     module:
-      single: true
+      single: false
       bundle: false
     dependencies: []
 
@@ -235,7 +235,7 @@ apps:
       alias: revanced
       file: keys/moviebox.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -255,7 +255,7 @@ apps:
       alias: revanced
       file: keys/myfitnesspal.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -275,7 +275,7 @@ apps:
       alias: revanced
       file: keys/nova_launcher.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -299,7 +299,7 @@ apps:
       alias: revanced
       file: keys/pixiv.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -317,7 +317,7 @@ apps:
       alias: revanced
       file: keys/prime_video.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -337,7 +337,7 @@ apps:
       alias: revanced
       file: keys/proton_vpn.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -360,7 +360,7 @@ apps:
       alias: revanced
       file: keys/reddit.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -377,7 +377,7 @@ apps:
       alias: revanced
       file: keys/solid_explorer.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -396,7 +396,7 @@ apps:
       alias: revanced
       file: keys/soundcloud.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -415,7 +415,7 @@ apps:
       alias: revanced
       file: keys/spotify.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -440,7 +440,7 @@ apps:
       alias: revanced
       file: keys/strava.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -460,7 +460,7 @@ apps:
       alias: revanced
       file: keys/threads.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -480,7 +480,7 @@ apps:
       alias: revanced
       file: keys/tiktok.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -498,7 +498,7 @@ apps:
       alias: revanced
       file: keys/wps_office.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
     uptodown_url: https://wps-office.en.uptodown.com/android
@@ -524,7 +524,7 @@ apps:
       alias: revanced
       file: keys/x_piko.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -588,7 +588,7 @@ apps:
       alias: revanced
       file: keys/telegram.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -606,7 +606,7 @@ apps:
       alias: revanced
       file: keys/mx_player.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -624,7 +624,7 @@ apps:
       alias: revanced
       file: keys/capcut.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -642,7 +642,7 @@ apps:
       alias: revanced
       file: keys/pvz_free.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -660,7 +660,7 @@ apps:
       alias: revanced
       file: keys/cloudflare_warp.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -678,7 +678,7 @@ apps:
       alias: revanced
       file: keys/sticker_maker.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -696,7 +696,7 @@ apps:
       alias: revanced
       file: keys/drama_box.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -714,7 +714,7 @@ apps:
       alias: revanced
       file: keys/stellarium.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 
@@ -732,7 +732,7 @@ apps:
       alias: revanced
       file: keys/serverauditor.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 

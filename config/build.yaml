@@ -18,7 +18,7 @@ build:
   download_timeout_secs: 120
   version_fallback_attempts: 3
 
-  version_cache: ./tmp/version_cache.json
+  version_cache: ./config/version_cache.json
   asset_exclude_patterns:
     - "hw-"
 

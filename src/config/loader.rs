@@ -140,7 +140,7 @@ fn default_timeout() -> u64 {
     180
 }
 fn default_cache() -> String {
-    "./tmp/version_cache.json".to_string()
+    "./config/version_cache.json".to_string()
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

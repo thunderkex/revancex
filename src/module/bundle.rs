@@ -367,7 +367,17 @@ pub async fn build_custom_module(
             (app_id.to_string(), "patch".to_string(), None)
         };
 
-        let pkg = crate::utils::apk::get_apk_package_name(apk).unwrap_or(default_pkg);
+        let apk_pkg = crate::utils::apk::get_apk_package_name(apk).ok();
+        let pkg = match &apk_pkg {
+            Some(p) if p == &default_pkg => default_pkg,
+            Some(p) => {
+                tracing::warn!(
+                    "{app_id}: module APK package '{p}' differs from original '{default_pkg}'. Enforcing original package '{default_pkg}' for root module."
+                );
+                default_pkg
+            }
+            None => default_pkg,
+        };
 
         apps_list_content.push_str(&format!("{app_id}:{pkg}:{mode}\n"));
 

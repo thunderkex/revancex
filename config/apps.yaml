@@ -554,7 +554,9 @@ apps:
       single: true
       bundle: true
     dependencies:
-    - microg
+      non_root:
+      - microg
+      root: []
 
   pinterest:
     enabled: true
@@ -762,4 +764,6 @@ apps:
       single: true
       bundle: true
     dependencies:
-    - microg
+      non_root:
+      - microg
+      root: []

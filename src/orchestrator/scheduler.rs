@@ -128,9 +128,7 @@ async fn build_single(
 
     if effective_mode == "both" {
         let non_root = patcher::patch(cfg, id, app, &apk_path, output_dir, false).await?;
-        if let Err(e) = patcher::patch(cfg, id, app, &apk_path, output_dir, true).await {
-            warn!("{id}: failed building root variant: {e}");
-        }
+        patcher::patch(cfg, id, app, &apk_path, output_dir, true).await?;
         Ok(non_root)
     } else {
         let is_root = effective_mode == "module" || effective_mode == "root";

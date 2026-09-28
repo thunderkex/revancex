@@ -110,7 +110,8 @@ pub fn resolve(
     }
 
     for (dep_name, inc_rules) in &mode_rules.include_if_dependency {
-        if app.dependencies.contains(dep_name) {
+        let deps = app.dependencies.for_mode(is_root);
+        if deps.iter().any(|d| d == dep_name) {
             if let Some(patches) = patch_meta {
                 for patch in patches.iter() {
                     for rule in inc_rules {
@@ -137,6 +138,39 @@ pub fn resolve(
                 }
             }
             MatchRule::Regex { .. } => {}
+        }
+    }
+
+    if let Some(patches) = patch_meta {
+        for patch in patches.iter() {
+            for rule in &mode_rules.exclude {
+                if matches(rule, &patch.name) {
+                    if !plan.excluded.iter().any(|e| e.eq_ignore_ascii_case(&patch.name)) {
+                        plan.excluded.push(patch.name.clone());
+                    }
+                    plan.included.retain(|i| !i.eq_ignore_ascii_case(&patch.name));
+                }
+            }
+        }
+    }
+
+    if is_root {
+        let root_must_exclude = [
+            "GmsCore support",
+            "Change package name",
+            "MicroG support",
+            "Change app icon",
+            "Custom branding",
+            "Custom branding icon for YouTube",
+            "Custom branding name for YouTube",
+            "Custom branding icon for YouTube Music",
+            "Custom branding name for YouTube Music",
+        ];
+        for p in root_must_exclude {
+            if !plan.excluded.iter().any(|e| e.eq_ignore_ascii_case(p)) {
+                plan.excluded.push(p.to_string());
+            }
+            plan.included.retain(|i| !i.eq_ignore_ascii_case(p));
         }
     }
 

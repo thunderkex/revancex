@@ -33,6 +33,11 @@ build:
           - contains: "change app icon"
           - contains: "gmscore"
           - contains: "microg"
+          - equals: "GmsCore support"
+          - equals: "Change package name"
+          - equals: "MicroG support"
+          - contains: "gmscore support"
+          - contains: "microg support"
       nonroot:
         exclude:
           - contains: "custom branding"

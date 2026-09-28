@@ -1431,3 +1431,49 @@ fn test_smoke_test_fail_threshold_and_precedence() {
         "75% > 50% must fail"
     );
 }
+
+#[test]
+fn test_root_youtube_preserves_original_package_name() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+
+    for app_id in ["youtube", "youtube_music"] {
+        let app = cfg.apps.get(app_id).expect("app missing");
+        let plan_root = revancex::patcher::plan::resolve(
+            app,
+            true,
+            None,
+            None,
+            &cfg.build.patcher.rules,
+            &cfg.build.patcher.auto_disable,
+        );
+
+        assert!(
+            plan_root
+                .excluded
+                .iter()
+                .any(|e| e.eq_ignore_ascii_case("GmsCore support")),
+            "{app_id} root must exclude 'GmsCore support'"
+        );
+        assert!(
+            plan_root
+                .excluded
+                .iter()
+                .any(|e| e.eq_ignore_ascii_case("Change package name")),
+            "{app_id} root must exclude 'Change package name'"
+        );
+        assert!(
+            !plan_root
+                .included
+                .iter()
+                .any(|i| i.eq_ignore_ascii_case("GmsCore support")),
+            "{app_id} root must NOT include 'GmsCore support'"
+        );
+        assert!(
+            !plan_root
+                .included
+                .iter()
+                .any(|i| i.eq_ignore_ascii_case("Change package name")),
+            "{app_id} root must NOT include 'Change package name'"
+        );
+    }
+}

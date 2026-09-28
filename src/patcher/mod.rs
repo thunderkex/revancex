@@ -59,11 +59,7 @@ pub async fn patch(
         .map(|p| p.repo.clone())
         .unwrap_or_else(|| app.patch_source.clone());
 
-    let suffix = if is_root {
-        "-root.apk"
-    } else {
-        "-patched.apk"
-    };
+    let suffix = if is_root { "-root.apk" } else { "-patched.apk" };
     let output_apk = format!("{output_dir}/{id}{suffix}");
 
     let mpp_path = metadata::resolve_mpp_path(cfg, app);

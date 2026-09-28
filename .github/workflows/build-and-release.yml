@@ -260,7 +260,7 @@ jobs:
 
       - name: Update version cache
         run: |
-          revancex check-updates --json || true
+          revancex check-updates --json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

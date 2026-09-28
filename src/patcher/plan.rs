@@ -145,10 +145,15 @@ pub fn resolve(
         for patch in patches.iter() {
             for rule in &mode_rules.exclude {
                 if matches(rule, &patch.name) {
-                    if !plan.excluded.iter().any(|e| e.eq_ignore_ascii_case(&patch.name)) {
+                    if !plan
+                        .excluded
+                        .iter()
+                        .any(|e| e.eq_ignore_ascii_case(&patch.name))
+                    {
                         plan.excluded.push(patch.name.clone());
                     }
-                    plan.included.retain(|i| !i.eq_ignore_ascii_case(&patch.name));
+                    plan.included
+                        .retain(|i| !i.eq_ignore_ascii_case(&patch.name));
                 }
             }
         }

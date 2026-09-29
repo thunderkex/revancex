@@ -51,7 +51,11 @@ pub async fn build_bundle_module(
                 let filtered_apps: Vec<String> = module_def
                     .apps
                     .iter()
-                    .filter(|id| cfg.apps.get(*id).is_some_and(|a| a.enabled))
+                    .filter(|id| {
+                        cfg.apps
+                            .get(*id)
+                            .is_some_and(|a| a.enabled && a.module.as_ref().is_none_or(|m| m.bundle))
+                    })
                     .cloned()
                     .collect();
                 if filtered_apps.is_empty() {
@@ -86,7 +90,11 @@ pub async fn build_bundle_module(
         let filtered_apps: Vec<String> = module_def
             .apps
             .iter()
-            .filter(|id| cfg.apps.get(*id).is_some_and(|a| a.enabled))
+            .filter(|id| {
+                cfg.apps
+                    .get(*id)
+                    .is_some_and(|a| a.enabled && a.module.as_ref().is_none_or(|m| m.bundle))
+            })
             .cloned()
             .collect();
         let module_apps = filtered_apps.join(",");
@@ -158,7 +166,7 @@ pub async fn build_custom_module(
                     let stem = name.trim_end_matches(".apk");
                     let (app_id, prio) = parse_apk_stem(stem);
                     if let Some(app_cfg) = cfg.apps.get(app_id) {
-                        if !app_cfg.enabled {
+                        if !app_cfg.enabled || !app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
                             continue;
                         }
                     }
@@ -185,7 +193,9 @@ pub async fn build_custom_module(
                                 let stem = name.trim_end_matches(".apk");
                                 let (app_id, prio) = parse_apk_stem(stem);
                                 if let Some(app_cfg) = cfg.apps.get(app_id) {
-                                    if !app_cfg.enabled {
+                                    if !app_cfg.enabled
+                                        || !app_cfg.module.as_ref().is_none_or(|m| m.bundle)
+                                    {
                                         continue;
                                     }
                                 }
@@ -216,7 +226,9 @@ pub async fn build_custom_module(
                             let (app_id, prio) = parse_apk_stem(stem);
                             if app_id == token {
                                 if let Some(app_cfg) = cfg.apps.get(app_id) {
-                                    if !app_cfg.enabled {
+                                    if !app_cfg.enabled
+                                        || !app_cfg.module.as_ref().is_none_or(|m| m.bundle)
+                                    {
                                         continue;
                                     }
                                 }

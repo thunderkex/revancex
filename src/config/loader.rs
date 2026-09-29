@@ -364,7 +364,7 @@ pub fn sync_modules_file(config_dir: &str, cfg: &Config) -> Result<ModulesFile> 
         let mut disabled = Vec::new();
         for a in all_apps {
             if let Some(app_cfg) = cfg.apps.get(&a) {
-                if app_cfg.enabled {
+                if app_cfg.enabled && app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
                     active.push(a);
                 } else {
                     disabled.push(a);

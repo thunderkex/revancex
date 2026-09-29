@@ -1477,3 +1477,47 @@ fn test_root_youtube_preserves_original_package_name() {
         );
     }
 }
+
+#[tokio::test]
+async fn test_single_module_skips_when_module_single_is_false() {
+    let tmp_dir = tempfile::tempdir().expect("Failed to create tempdir");
+    let out_dir = tmp_dir.path().to_str().unwrap();
+
+    let dummy_adguard = tmp_dir.path().join("adguard-patched.apk");
+    {
+        let file = std::fs::File::create(&dummy_adguard).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("AndroidManifest.xml", opts).unwrap();
+        zip.write_all(&[0x7F; 500]).unwrap();
+        zip.finish().unwrap();
+    }
+
+    let cfg = revancex::config::load_config("./config").expect("Failed to load config");
+    assert!(
+        cfg.apps.get("adguard").is_some_and(|a| a.module.as_ref().is_some_and(|m| !m.single)),
+        "adguard in config/apps.yaml must have module.single = false"
+    );
+
+    // Call with specific app id
+    revancex::module::single::build_single_module(&cfg, "adguard", out_dir)
+        .await
+        .expect("build_single_module should succeed");
+
+    let module_zip = tmp_dir.path().join("revancex-module-adguard.zip");
+    assert!(
+        !module_zip.exists(),
+        "revancex-module-adguard.zip must NOT be created when module.single is false"
+    );
+
+    // Call with 'all-enabled'
+    revancex::module::single::build_single_module(&cfg, "all-enabled", out_dir)
+        .await
+        .expect("build_single_module all-enabled should succeed");
+
+    assert!(
+        !module_zip.exists(),
+        "revancex-module-adguard.zip must NOT be created even with all-enabled"
+    );
+}
+

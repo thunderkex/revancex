@@ -7,6 +7,19 @@ async fn build_single_app(cfg: &Config, id: &str, output_dir: &str) -> Result<()
         return Ok(());
     }
 
+    if let Some(app) = cfg.apps.get(id) {
+        if !app.enabled {
+            info!("Skipping single module for {id}: app is disabled");
+            return Ok(());
+        }
+        if let Some(m) = &app.module {
+            if !m.single {
+                info!("Skipping single module for {id}: module.single is disabled");
+                return Ok(());
+            }
+        }
+    }
+
     let resolved_dir = if std::path::Path::new(output_dir).exists() {
         output_dir.to_string()
     } else {
@@ -104,6 +117,18 @@ pub async fn build_single_module(cfg: &Config, apps_input: &str, output_dir: &st
         {
             if id.eq_ignore_ascii_case("microg") {
                 continue;
+            }
+            if let Some(app) = cfg.apps.get(id) {
+                if !app.enabled {
+                    info!("Skipping single module for {id}: app is disabled");
+                    continue;
+                }
+                if let Some(m) = &app.module {
+                    if !m.single {
+                        info!("Skipping single module for {id}: module.single is disabled");
+                        continue;
+                    }
+                }
             }
             info!("Building single module for {id} in {output_dir}...");
             build_single_app(cfg, id, output_dir).await?;

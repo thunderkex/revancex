@@ -2,12 +2,14 @@ apps:
   adguard:
     enabled: true
     package: com.adguard.android
-    patch_source: hoodles
+    patch_source: rushiranpise
     apk_source: direct
+    version: 4.14.68
     apk_url: https://static.adguard.com/android/release/adguard.apk
+    uptodown_url: https://adguard-for-android.en.uptodown.com/android
+    apkmirror_url: https://www.apkmirror.com/apk/adguard-software-limited/adguard/
     architectures:
     - arm64-v8a
-    - armeabi-v7a
     mode: patch
     keystore:
       alias: revanced
@@ -48,8 +50,6 @@ apps:
     architectures:
     - arm64-v8a
     mode: patch
-    excluded_patches:
-    - Change package name
     keystore:
       alias: revanced
       file: keys/duolingo.jks
@@ -61,7 +61,7 @@ apps:
   facebook:
     enabled: true
     package: com.facebook.katana
-    patch_source: sapitosucio
+    patch_source: hushfacebook
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://facebook.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/facebook-2/facebook
@@ -112,23 +112,6 @@ apps:
     keystore:
       alias: revanced
       file: keys/gboard.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
-  google_news:
-    enabled: true
-    package: com.google.android.apps.magazines
-    patch_source: hoodles
-    apkmirror_url: https://www.apkmirror.com/apk/google-inc/google-news/
-    uptodown_url: https://google-play-newsstand.en.uptodown.com/android
-    architectures:
-    - arm64-v8a
-    mode: patch
-    keystore:
-      alias: revanced
-      file: keys/google_news.jks
     module:
       single: false
       bundle: true
@@ -187,6 +170,7 @@ apps:
     package: com.adobe.lrmobile
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
+    version: 11.5.31
     uptodown_url: https://adobe-lightroom-mobile.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/adobe/lightroom
     archive_url: https://archive.org/download/geologically/apks/com.adobe.lrmobile
@@ -249,8 +233,6 @@ apps:
     architectures:
     - arm64-v8a
     mode: patch
-    patches:
-    - unlock-premium
     keystore:
       alias: revanced
       file: keys/myfitnesspal.jks
@@ -324,15 +306,13 @@ apps:
   proton_vpn:
     enabled: true
     package: ch.protonvpn.android
-    patch_source: hoodles
+    patch_source: DmoniakPatches
     uptodown_url: https://protonvpn.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn/
     archive_url: https://archive.org/download/geologically/apks/ch.protonvpn.android
     architectures:
     - arm64-v8a
     mode: patch
-    patches:
-    - unlock-plus
     keystore:
       alias: revanced
       file: keys/proton_vpn.jks
@@ -359,23 +339,6 @@ apps:
     keystore:
       alias: revanced
       file: keys/reddit.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
-  solid_explorer:
-    enabled: true
-    package: pl.solidexplorer2
-    patch_source: hoodles
-    uptodown_url: https://solid-explorer-file-manager.en.uptodown.com/android
-    apkmirror_url: https://www.apkmirror.com/apk/hermit/solid-explorer-file-manager/
-    architectures:
-    - arm64-v8a
-    mode: patch
-    keystore:
-      alias: revanced
-      file: keys/solid_explorer.jks
     module:
       single: false
       bundle: true
@@ -467,8 +430,9 @@ apps:
   tiktok:
     enabled: true
     package: com.zhiliaoapp.musically
-    patch_source: sysdmindoc
+    patch_source: hushfeed
     cli_source: MorpheApp/morphe-cli
+    version: 47.1.3
     uptodown_url: https://tiktok.en.uptodown.com/android
     apkmirror_url: https://apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly
     archive_url: https://archive.org/download/geologically/apks/com.zhiliaoapp.musically/
@@ -491,9 +455,6 @@ apps:
     architectures:
     - arm64-v8a
     mode: patch
-    patches:
-    - remove-ads
-    - unlock-premium
     keystore:
       alias: revanced
       file: keys/wps_office.jks
@@ -733,6 +694,24 @@ apps:
     keystore:
       alias: revanced
       file: keys/serverauditor.jks
+    module:
+      single: false
+      bundle: true
+    dependencies: []
+
+  hungry_shark_world:
+    enabled: true
+    package: com.ubisoft.hungrysharkworld
+    patch_source: DmoniakPatches
+    cli_source: MorpheApp/morphe-cli
+    uptodown_url: https://ubisoft-entertainment-hungry-shark.en.uptodown.com/android
+    apkmirror_url: https://www.apkmirror.com/apk/ubisoft-entertainment/hungry-shark-world/
+    architectures:
+    - arm64-v8a
+    mode: patch
+    keystore:
+      alias: revanced
+      file: keys/hungry_shark_world.jks
     module:
       single: false
       bundle: true

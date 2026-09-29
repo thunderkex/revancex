@@ -60,10 +60,6 @@ patch_sources:
     repo: SapitoSucio/FroggoMorphePatches
     asset_pattern: "*.mpp"
 
-  sysdmindoc:
-    repo: SysAdminDoc/hushfeed
-    asset_pattern: "*.mpp"
-
   browzomje:
     repo: browzomje/browzomje-patches
     asset_pattern: "*.mpp"
@@ -78,6 +74,18 @@ patch_sources:
 
   miguelninja:
     repo: MiguelNinja19/miguel-morphe-patches
+    asset_pattern: "*.mpp"
+
+  hushfeed:
+    repo: SysAdminDoc/HushFeed
+    asset_pattern: "*.mpp"
+
+  hushfacebook:
+    repo: SysAdminDoc/Hushfacebook
+    asset_pattern: "*.mpp"
+
+  DmoniakPatches:
+    repo: SatanMerde/D-moniakPatches
     asset_pattern: "*.mpp"
     
 apk_sources:

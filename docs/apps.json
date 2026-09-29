@@ -1,8 +1,7 @@
 [
   {
     "architectures": [
-      "arm64-v8a",
-      "armeabi-v7a"
+      "arm64-v8a"
     ],
     "dependencies": [],
     "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/adguard-patched.apk",
@@ -15,15 +14,10 @@
     },
     "name": "adguard",
     "package": "com.adguard.android",
-    "patch_source": "hoodles",
+    "patch_source": "rushiranpise",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-adguard.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-adguard.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "adguard-patched.apk",
@@ -55,12 +49,7 @@
       "unlock-premium"
     ],
     "releases": {
-      "module": {
-        "filename": "revancex-module-camscanner.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-camscanner.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "camscanner-patched.apk",
@@ -90,12 +79,7 @@
     "patch_source": "rikydev",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-capcut.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-capcut.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "capcut-patched.apk",
@@ -150,12 +134,7 @@
     "patch_source": "rushiranpise",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-drama_box.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-drama_box.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "drama_box-patched.apk",
@@ -185,12 +164,7 @@
     "patch_source": "hoodles",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-duolingo.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-duolingo.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "duolingo-patched.apk",
@@ -207,7 +181,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/facebook-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/facebook-patched.apk",
     "enabled": true,
     "id": "facebook",
     "mode": "patch",
@@ -217,25 +191,20 @@
     },
     "name": "facebook",
     "package": "com.facebook.katana",
-    "patch_source": "sapitosucio",
+    "patch_source": "hushfacebook",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-facebook.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-facebook.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "facebook-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/facebook-patched.apk"
+        "tag": "auto-v1.0.5-2026.09.29-b89",
+        "updated_at": "2026-09-29 17:30:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/facebook-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.28-b84",
-    "updated_at": "2026-09-28 08:40:43 UTC"
+    "tag": "auto-v1.0.5-2026.09.29-b89",
+    "updated_at": "2026-09-29 17:30:17 UTC"
   },
   {
     "architectures": [
@@ -255,12 +224,7 @@
     "patch_source": "rushiranpise",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-flightradar24.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-flightradar24.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "flightradar24-patched.apk",
@@ -290,12 +254,7 @@
     "patch_source": "jkennethcarino",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-gboard.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-gboard.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "gboard-patched.apk",
@@ -306,41 +265,6 @@
     },
     "tag": "auto-v1.0.5-2026.09.28-b84",
     "updated_at": "2026-09-28 08:40:43 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/google_news-patched.apk",
-    "enabled": true,
-    "id": "google_news",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "google_news",
-    "package": "com.google.android.apps.magazines",
-    "patch_source": "hoodles",
-    "patches": [],
-    "releases": {
-      "module": {
-        "filename": "revancex-module-google_news.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-google_news.zip"
-      },
-      "root": null,
-      "stock": {
-        "filename": "google_news-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/google_news-patched.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.09.28-b86",
-    "updated_at": "2026-09-28 19:13:02 UTC"
   },
   {
     "architectures": [
@@ -362,12 +286,7 @@
     "patch_source": "de_revanced",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-google_photos.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-google_photos.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "google_photos-patched.apk",
@@ -384,7 +303,37 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/instagram-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/hungry_shark_world-patched.apk",
+    "enabled": true,
+    "id": "hungry_shark_world",
+    "mode": "patch",
+    "module": {
+      "bundle": true,
+      "single": false
+    },
+    "name": "hungry_shark_world",
+    "package": "com.ubisoft.hungrysharkworld",
+    "patch_source": "DmoniakPatches",
+    "patches": [],
+    "releases": {
+      "module": null,
+      "root": null,
+      "stock": {
+        "filename": "hungry_shark_world-patched.apk",
+        "tag": "auto-v1.0.5-2026.09.29-b89",
+        "updated_at": "2026-09-29 17:30:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/hungry_shark_world-patched.apk"
+      }
+    },
+    "tag": "auto-v1.0.5-2026.09.29-b89",
+    "updated_at": "2026-09-29 17:30:17 UTC"
+  },
+  {
+    "architectures": [
+      "arm64-v8a"
+    ],
+    "dependencies": [],
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/instagram-patched.apk",
     "enabled": true,
     "id": "instagram",
     "mode": "patch",
@@ -397,22 +346,17 @@
     "patch_source": "piko",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-instagram.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-instagram.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "instagram-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/instagram-patched.apk"
+        "tag": "auto-v1.0.5-2026.09.29-b89",
+        "updated_at": "2026-09-29 17:30:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/instagram-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.28-b84",
-    "updated_at": "2026-09-28 08:40:43 UTC"
+    "tag": "auto-v1.0.5-2026.09.29-b89",
+    "updated_at": "2026-09-29 17:30:17 UTC"
   },
   {
     "architectures": [
@@ -432,12 +376,7 @@
     "patch_source": "hoodles",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-lightroom.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-lightroom.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "lightroom-patched.apk",
@@ -525,12 +464,7 @@
     "patch_source": "blazeftl",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-mx_player.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-mx_player.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "mx_player-patched.apk",
@@ -558,16 +492,9 @@
     "name": "myfitnesspal",
     "package": "com.myfitnesspal.android",
     "patch_source": "hoodles",
-    "patches": [
-      "unlock-premium"
-    ],
+    "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-myfitnesspal.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-myfitnesspal.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "myfitnesspal-patched.apk",
@@ -599,12 +526,7 @@
       "unlock-prime"
     ],
     "releases": {
-      "module": {
-        "filename": "revancex-module-nova_launcher.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-nova_launcher.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "nova_launcher-patched.apk",
@@ -659,12 +581,7 @@
     "patch_source": "de_revanced",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-pixiv.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-pixiv.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "pixiv-patched.apk",
@@ -694,12 +611,7 @@
     "patch_source": "de_revanced",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-prime_video.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-prime_video.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "prime_video-patched.apk",
@@ -716,7 +628,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/proton_vpn-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/proton_vpn-patched.apk",
     "enabled": true,
     "id": "proton_vpn",
     "mode": "patch",
@@ -726,27 +638,20 @@
     },
     "name": "proton_vpn",
     "package": "ch.protonvpn.android",
-    "patch_source": "hoodles",
-    "patches": [
-      "unlock-plus"
-    ],
+    "patch_source": "DmoniakPatches",
+    "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-proton_vpn.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-proton_vpn.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "proton_vpn-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/proton_vpn-patched.apk"
+        "tag": "auto-v1.0.5-2026.09.29-b89",
+        "updated_at": "2026-09-29 17:30:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/proton_vpn-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.28-b86",
-    "updated_at": "2026-09-28 19:13:02 UTC"
+    "tag": "auto-v1.0.5-2026.09.29-b89",
+    "updated_at": "2026-09-29 17:30:17 UTC"
   },
   {
     "architectures": [
@@ -766,12 +671,7 @@
     "patch_source": "miguelninja",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-pvz_free.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-pvz_free.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "pvz_free-patched.apk",
@@ -801,12 +701,7 @@
     "patch_source": "jkennethcarino",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-reddit.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-reddit.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "reddit-patched.apk",
@@ -836,12 +731,7 @@
     "patch_source": "rushiranpise",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-serverauditor.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-serverauditor.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "serverauditor-patched.apk",
@@ -852,41 +742,6 @@
     },
     "tag": "auto-v1.0.5-2026.09.28-b84",
     "updated_at": "2026-09-28 08:40:43 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.27-b28/solid_explorer-patched.apk",
-    "enabled": true,
-    "id": "solid_explorer",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "solid_explorer",
-    "package": "pl.solidexplorer2",
-    "patch_source": "hoodles",
-    "patches": [],
-    "releases": {
-      "module": {
-        "filename": "revancex-module-solid_explorer.zip",
-        "tag": "auto-v1.0.5-2026.09.27-b28",
-        "updated_at": "2026-09-27 09:56:46 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.27-b28/revancex-module-solid_explorer.zip"
-      },
-      "root": null,
-      "stock": {
-        "filename": "solid_explorer-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.27-b28",
-        "updated_at": "2026-09-27 09:56:46 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.27-b28/solid_explorer-patched.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.09.27-b28",
-    "updated_at": "2026-09-27 09:56:46 UTC"
   },
   {
     "architectures": [
@@ -906,12 +761,7 @@
     "patch_source": "de_revanced",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-soundcloud.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-soundcloud.zip"
-      },
+      "module": null,
       "root": {
         "filename": "soundcloud-root.apk",
         "tag": "auto-v1.0.4-2026.09.17-b26",
@@ -946,12 +796,7 @@
     "patch_source": "hoodles",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-spotify.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-spotify.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "spotify-patched.apk",
@@ -981,12 +826,7 @@
     "patch_source": "bholey",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-stellarium.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-stellarium.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "stellarium-patched.apk",
@@ -1016,12 +856,7 @@
     "patch_source": "rushiranpise",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-sticker_maker.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-sticker_maker.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "sticker_maker-patched.apk",
@@ -1081,12 +916,7 @@
     "patch_source": "rushiranpise",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-telegram.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-telegram.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "telegram-patched.apk",
@@ -1116,12 +946,7 @@
     "patch_source": "de_revanced",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-threads.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-threads.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "threads-patched.apk",
@@ -1138,7 +963,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/tiktok-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/tiktok-patched.apk",
     "enabled": true,
     "id": "tiktok",
     "mode": "patch",
@@ -1148,25 +973,20 @@
     },
     "name": "tiktok",
     "package": "com.zhiliaoapp.musically",
-    "patch_source": "sysdmindoc",
+    "patch_source": "hushfeed",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-tiktok.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-tiktok.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "tiktok-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/tiktok-patched.apk"
+        "tag": "auto-v1.0.5-2026.09.29-b89",
+        "updated_at": "2026-09-29 17:30:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/tiktok-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.28-b86",
-    "updated_at": "2026-09-28 19:13:02 UTC"
+    "tag": "auto-v1.0.5-2026.09.29-b89",
+    "updated_at": "2026-09-29 17:30:17 UTC"
   },
   {
     "architectures": [
@@ -1184,17 +1004,9 @@
     "name": "wps_office",
     "package": "cn.wps.moffice_eng",
     "patch_source": "hoodles",
-    "patches": [
-      "remove-ads",
-      "unlock-premium"
-    ],
+    "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-wps_office.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b86",
-        "updated_at": "2026-09-28 19:13:02 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-wps_office.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "wps_office-patched.apk",
@@ -1224,12 +1036,7 @@
     "patch_source": "piko",
     "patches": [],
     "releases": {
-      "module": {
-        "filename": "revancex-module-x_piko.zip",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/revancex-module-x_piko.zip"
-      },
+      "module": null,
       "root": null,
       "stock": {
         "filename": "x_piko-patched.apk",

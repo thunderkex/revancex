@@ -3,12 +3,10 @@ pub mod lite;
 
 use crate::config::{AppConfig, Config};
 use crate::patcher::metadata;
-use crate::utils::semver::{compare_version_parts, parse_version_numbers};
 use anyhow::{Context, Result};
 use regex::Regex;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
-use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering as AtomicOrdering};
 use std::sync::Arc;
@@ -542,24 +540,6 @@ fn is_beta_or_alpha(s: &str) -> bool {
     lower.contains("beta") || lower.contains("alpha")
 }
 
-fn extract_version_from_filename(filename: &str) -> String {
-    let stem = filename.trim_end_matches(".apkm").trim_end_matches(".apk");
-    let mut parts = stem.split('-');
-    let _ = parts.next();
-    for part in parts {
-        if part.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-            let ver: String = part
-                .split('-')
-                .take_while(|s| s.chars().next().is_some_and(|c| c.is_ascii_digit()))
-                .collect::<Vec<_>>()
-                .join(".");
-            if !ver.is_empty() {
-                return ver;
-            }
-        }
-    }
-    String::new()
-}
 
 async fn fetch_archive_org(
     client: &Client,
@@ -648,50 +628,10 @@ async fn fetch_archive_org(
             if let Some(sm) = supported_match {
                 info!("archive.org: exact version {ver} not found, matched supported version in archive: {sm}");
                 sm
-            } else if supported_versions.is_empty() {
-                let target_parts = parse_version_numbers(ver);
-                let mut best: Option<&String> = None;
-                let mut best_parts: Vec<u64> = Vec::new();
-                for f in &clean_candidates {
-                    let file_ver = extract_version_from_filename(f);
-                    if file_ver.is_empty() {
-                        continue;
-                    }
-                    let fparts = parse_version_numbers(&file_ver);
-                    if compare_version_parts(&fparts, &target_parts) != Ordering::Greater {
-                        if compare_version_parts(&fparts, &best_parts) == Ordering::Greater
-                            || best.is_none()
-                        {
-                            best = Some(f);
-                            best_parts = fparts;
-                        } else if compare_version_parts(&fparts, &best_parts) == Ordering::Equal
-                            && (f.contains(arch) || f.contains("-all.") || f.contains("_all."))
-                        {
-                            best = Some(f);
-                        }
-                    }
-                }
-                best.ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "archive.org: version {ver} not found and no older version available"
-                    )
-                })?
             } else {
-                let fallback = clean_candidates
-                    .iter()
-                    .rfind(|f| {
-                        f.contains(arch)
-                            || f.contains("-all.")
-                            || f.contains("_all.")
-                            || f.contains("universal")
-                    })
-                    .or_else(|| clean_candidates.last());
-                if let Some(fb) = fallback {
-                    warn!("archive.org: exact version {ver} and supported versions not found, falling back to newest available candidate in archive: {fb}");
-                    fb
-                } else {
-                    anyhow::bail!("archive.org: version {ver} and supported versions not found in archive candidates");
-                }
+                anyhow::bail!(
+                    "archive.org: exact version {ver} and supported versions not found in archive candidates"
+                );
             }
         }
     } else {
@@ -751,8 +691,9 @@ async fn fetch_apkmirror(
         releases
             .iter()
             .find(|r| r.contains(&hyphen_ver) || r.contains(&base_hyphen) || r.contains(ver))
-            .or_else(|| releases.first())
-            .unwrap()
+            .ok_or_else(|| {
+                anyhow::anyhow!("apkmirror: version {ver} not found in recent releases on {app_url}")
+            })?
     } else {
         releases.first().unwrap()
     };
@@ -897,17 +838,10 @@ async fn fetch_uptodown(
 
     let chosen_item = if let Some(ver) = target_version {
         let base_ver = ver.split('-').next().unwrap_or(ver);
-        data.iter()
-            .find(|item| {
-                let v = item["version"].as_str().unwrap_or("");
-                (allow_beta || !is_beta_or_alpha(v)) && (v.contains(ver) || v.contains(base_ver))
-            })
-            .or_else(|| {
-                data.iter().find(|item| {
-                    let v = item["version"].as_str().unwrap_or("");
-                    allow_beta || !is_beta_or_alpha(v)
-                })
-            })
+        data.iter().find(|item| {
+            let v = item["version"].as_str().unwrap_or("");
+            (allow_beta || !is_beta_or_alpha(v)) && (v.contains(ver) || v.contains(base_ver))
+        })
     } else {
         data.iter().find(|item| {
             let v = item["version"].as_str().unwrap_or("");

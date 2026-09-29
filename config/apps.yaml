@@ -435,7 +435,6 @@ apps:
     version: 47.1.3
     uptodown_url: https://tiktok.en.uptodown.com/android
     apkmirror_url: https://apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly
-    archive_url: https://archive.org/download/geologically/apks/com.zhiliaoapp.musically/
     architectures:
     - arm64-v8a
     mode: patch

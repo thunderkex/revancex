@@ -16,11 +16,11 @@ fn test_config_loader_and_validation() {
     let microg = cfg.apps.get("microg").expect("microg app missing");
     assert_eq!(microg.package, "app.revanced.android.gms");
 
-    let news = cfg
+    let tiktok = cfg
         .apps
-        .get("google_news")
-        .expect("google_news app missing");
-    assert_eq!(news.package, "com.google.android.apps.magazines");
+        .get("tiktok")
+        .expect("tiktok app missing");
+    assert_eq!(tiktok.package, "com.zhiliaoapp.musically");
 
     config::validate_config(&cfg, true).expect("Strict validation failed");
 }

@@ -963,7 +963,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/tiktok-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b92/tiktok-patched.apk",
     "enabled": true,
     "id": "tiktok",
     "mode": "patch",
@@ -980,13 +980,13 @@
       "root": null,
       "stock": {
         "filename": "tiktok-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.29-b89",
-        "updated_at": "2026-09-29 17:30:17 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/tiktok-patched.apk"
+        "tag": "auto-v1.0.5-2026.09.30-b92",
+        "updated_at": "2026-09-30 11:44:50 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b92/tiktok-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.29-b89",
-    "updated_at": "2026-09-29 17:30:17 UTC"
+    "tag": "auto-v1.0.5-2026.09.30-b92",
+    "updated_at": "2026-09-30 11:44:50 UTC"
   },
   {
     "architectures": [

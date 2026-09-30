@@ -181,7 +181,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/facebook-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b91/facebook-patched.apk",
     "enabled": true,
     "id": "facebook",
     "mode": "patch",
@@ -198,13 +198,13 @@
       "root": null,
       "stock": {
         "filename": "facebook-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.29-b89",
-        "updated_at": "2026-09-29 17:30:17 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/facebook-patched.apk"
+        "tag": "auto-v1.0.5-2026.09.30-b91",
+        "updated_at": "2026-09-30 03:13:27 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b91/facebook-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.29-b89",
-    "updated_at": "2026-09-29 17:30:17 UTC"
+    "tag": "auto-v1.0.5-2026.09.30-b91",
+    "updated_at": "2026-09-30 03:13:27 UTC"
   },
   {
     "architectures": [

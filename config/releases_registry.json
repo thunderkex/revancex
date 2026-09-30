@@ -146,9 +146,9 @@
     },
     "facebook": {
       "filename": "facebook-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/facebook-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.29-b89",
-      "updated_at": "2026-09-29 17:30:17 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b91/facebook-patched.apk",
+      "tag": "auto-v1.0.5-2026.09.30-b91",
+      "updated_at": "2026-09-30 03:13:27 UTC"
     },
     "nova_launcher": {
       "filename": "nova_launcher-patched.apk",
@@ -278,15 +278,15 @@
     },
     "revancex-bundle-social.zip": {
       "filename": "revancex-bundle-social.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/revancex-bundle-social.zip",
-      "tag": "auto-v1.0.5-2026.09.29-b89",
-      "updated_at": "2026-09-29 17:30:17 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b91/revancex-bundle-social.zip",
+      "tag": "auto-v1.0.5-2026.09.30-b91",
+      "updated_at": "2026-09-30 03:13:27 UTC"
     },
     "revancex-bundle-all.zip": {
       "filename": "revancex-bundle-all.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/revancex-bundle-all.zip",
-      "tag": "auto-v1.0.5-2026.09.29-b89",
-      "updated_at": "2026-09-29 17:30:17 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b91/revancex-bundle-all.zip",
+      "tag": "auto-v1.0.5-2026.09.30-b91",
+      "updated_at": "2026-09-30 03:13:27 UTC"
     }
   },
   "custom_bundles": {}

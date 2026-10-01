@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 <p align="center">
   <img src="assets/logo.png" alt="ReVanceX" width="600" style="background: #ffffff; border-radius: 16px; padding: 16px;">
 </p>
@@ -17,13 +19,13 @@ Automated patch orchestration ecosystem written in Rust. It streamlines patching
 
 ---
 
-## 󰀲 Supported Applications & Releases
+## <i class="fa-solid fa-mobile-screen"></i> Supported Applications & Releases
 
 Browse apps visually on our [Web Catalogue](https://thunderkex.github.io/revancex/) or download latest builds below. App configurations are defined in [`config/apps.yaml`](config/apps.yaml).
 
 <!-- AUTO-APP-LIST-START -->
 
-### 󰀲 Stock Apps & Single Root Modules
+### <i class="fa-solid fa-mobile-screen"></i> Stock Apps & Single Root Modules
 
 | App | Stock APK | Root APK | Single Root Module | Last Updated |
 | :--- | :--- | :--- | :--- | :--- |
@@ -66,7 +68,7 @@ Browse apps visually on our [Web Catalogue](https://thunderkex.github.io/revance
 
 
 
-###  Bundle Modules (Multi-App)
+### <i class="fa-solid fa-box-archive"></i> Bundle Modules (Multi-App)
 
 | Bundle Name | Included Apps & Payload Files | Download Link | Release Tag | Updated At |
 | :--- | :--- | :--- | :--- | :--- |
@@ -79,7 +81,7 @@ Browse apps visually on our [Web Catalogue](https://thunderkex.github.io/revance
 
 
 
-###  Custom Bundle Modules
+### <i class="fa-solid fa-screwdriver-wrench"></i> Custom Bundle Modules
 
 | Custom Bundle | Download Link | Release Tag | Updated At |
 | :--- | :--- | :--- | :--- |
@@ -89,10 +91,10 @@ Browse apps visually on our [Web Catalogue](https://thunderkex.github.io/revance
 
 ---
 
-## 󰂺 Guides & Reference
+## <i class="fa-solid fa-book"></i> Guides & Reference
 
 <details>
-<summary><b> Download & Installation (Prebuilt CLI)</b></summary>
+<summary><b><i class="fa-solid fa-download"></i> Download & Installation (Prebuilt CLI)</b></summary>
 
 You do not need to install Rust or compile anything to build your patched APKs or root modules. Simply download the precompiled binary for your system.
 
@@ -121,7 +123,7 @@ Expand-Archive revancex-windows-x86_64.zip -DestinationPath .
 </details>
 
 <details>
-<summary><b> Step-by-Step Build Workflow</b></summary>
+<summary><b><i class="fa-solid fa-rocket"></i> Step-by-Step Build Workflow</b></summary>
 
 #### Step 1: Download Required Tools & Patches
 
@@ -207,7 +209,7 @@ Verify configuration syntax, app schemas, and patch integrity:
 </details>
 
 <details>
-<summary><b> Module Bundle Architecture & Specifications</b></summary>
+<summary><b><i class="fa-solid fa-boxes-stacked"></i> Module Bundle Architecture & Specifications</b></summary>
 
 #### Bundle File Structure & Contents
 
@@ -249,7 +251,7 @@ revancex-bundle-<category>.zip
 </details>
 
 <details>
-<summary><b> CLI Subcommand Reference</b></summary>
+<summary><b><i class="fa-solid fa-terminal"></i> CLI Subcommand Reference</b></summary>
 
 | Command | Description | Example |
 | --- | --- | --- |
@@ -264,7 +266,7 @@ revancex-bundle-<category>.zip
 </details>
 
 <details>
-<summary><b> Build from Source (Developers)</b></summary>
+<summary><b><i class="fa-solid fa-hammer"></i> Build from Source (Developers)</b></summary>
 
 Compile the CLI directly from source:
 
@@ -281,7 +283,7 @@ cargo build --release
 </details>
 
 <details>
-<summary><b> GitHub Actions (Automated Cloud Builds)</b></summary>
+<summary><b><i class="fa-brands fa-github"></i> GitHub Actions (Automated Cloud Builds)</b></summary>
 
 1. Fork or push to this repository.
 2. The GitHub Actions workflows run automatically:
@@ -293,7 +295,7 @@ cargo build --release
 </details>
 
 <details>
-<summary><b> Environment Variables</b></summary>
+<summary><b><i class="fa-solid fa-sliders"></i> Environment Variables</b></summary>
 
 Copy `.env.example` to `.env` and configure credentials. Never commit `.env`.
 
@@ -308,7 +310,7 @@ Copy `.env.example` to `.env` and configure credentials. Never commit `.env`.
 </details>
 
 <details>
-<summary><b> Adding a New App</b></summary>
+<summary><b><i class="fa-solid fa-circle-plus"></i> Adding a New App</b></summary>
 
 Add an entry to [`config/apps.yaml`](config/apps.yaml) following the existing schema. Run `validate` to check:
 
@@ -319,7 +321,7 @@ Add an entry to [`config/apps.yaml`](config/apps.yaml) following the existing sc
 </details>
 
 <details>
-<summary><b> Upstream Patch Sources</b></summary>
+<summary><b><i class="fa-solid fa-code-branch"></i> Upstream Patch Sources</b></summary>
 
 > Sourced dynamically from [`config/sources.yaml`](config/sources.yaml).
 

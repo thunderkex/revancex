@@ -325,12 +325,17 @@ pub async fn fetch_apk(
         None
     };
 
-    let (target_ver, candidate_versions, strategy_str) = resolve_app_version_and_strategy(
-        id,
-        app,
-        patch_meta.as_deref().map(|v| v.as_slice()),
-        &patch_supported_versions,
-    );
+    let (target_ver, candidate_versions, strategy_str) = if app.allow_any_version {
+        info!("{id}: allow_any_version=true — skipping version pin, downloading latest");
+        (None, Vec::new(), "any".to_string())
+    } else {
+        resolve_app_version_and_strategy(
+            id,
+            app,
+            patch_meta.as_deref().map(|v| v.as_slice()),
+            &patch_supported_versions,
+        )
+    };
 
     let cache_candidates = [&dest[..], &all_dest[..], &legacy_dest[..]];
     let cache_result = check_cached_input_apk(id, &cache_candidates, target_ver.as_deref(), force);

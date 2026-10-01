@@ -158,6 +158,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         post_patch_hooks: vec![],
         display_name: None,
         bundle_priority: 100,
+        allow_any_version: false,
     };
     let ks = resolve(cfg, &app_dummy).await?;
     println!("Keystore file:  {}", ks.file);

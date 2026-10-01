@@ -169,12 +169,20 @@ pub async fn patch(
     };
 
     if zero_applied {
-        let ver_info = apk_version
-            .as_deref()
-            .map(|v| format!(" — version {v} not covered by any enabled patch"))
-            .unwrap_or_default();
-        let plan_count = plan.included.len();
-        anyhow::bail!("{id}: 0/{plan_count} patches applied{ver_info}");
+        if app.allow_any_version {
+            tracing::warn!(
+                "{id}: 0/{} patches applied for version {} — allow_any_version=true, continuing",
+                plan.included.len(),
+                apk_version.as_deref().unwrap_or("unknown")
+            );
+        } else {
+            let ver_info = apk_version
+                .as_deref()
+                .map(|v| format!(" — version {v} not covered by any enabled patch"))
+                .unwrap_or_default();
+            let plan_count = plan.included.len();
+            anyhow::bail!("{id}: 0/{plan_count} patches applied{ver_info}");
+        }
     }
 
     info!("{id}: patched → {output_apk}");

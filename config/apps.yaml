@@ -1,6 +1,7 @@
 apps:
   adguard:
     enabled: true
+    allow_any_version: true
     package: com.adguard.android
     patch_source: rushiranpise
     apk_source: direct
@@ -21,6 +22,7 @@ apps:
 
   camscanner:
     enabled: true
+    allow_any_version: true
     package: com.intsig.camscanner
     patch_source: rushiranpise
     apkmirror_url: https://www.apkmirror.com/apk/intsig-pte/camscanner-phone-pdf-creator/
@@ -41,6 +43,7 @@ apps:
 
   duolingo:
     enabled: true
+    allow_any_version: true
     package: com.duolingo
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
@@ -60,12 +63,14 @@ apps:
 
   facebook:
     enabled: true
+    allow_any_version: true
     package: com.facebook.katana
     patch_source: hushfacebook
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://facebook.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/facebook-2/facebook
     archive_url: https://archive.org/download/geologically/apks/com.facebook.katana
+    version: 580.0.0.51.74
     architectures:
     - arm64-v8a
     mode: patch
@@ -79,6 +84,7 @@ apps:
 
   flightradar24:
     enabled: true
+    allow_any_version: true
     package: com.flightradar24free
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -119,6 +125,7 @@ apps:
 
   google_maps:
     enabled: true
+    allow_any_version: true
     package: com.google.android.apps.maps
     patch_source: bearinmindcat
     cli_source: MorpheApp/morphe-cli
@@ -138,6 +145,7 @@ apps:
 
   google_phone:
     enabled: true
+    allow_any_version: true
     package: com.google.android.dialer
     patch_source: DmoniakPatches
     cli_source: MorpheApp/morphe-cli
@@ -197,6 +205,7 @@ apps:
 
   instagram:
     enabled: true
+    allow_any_version: true
     package: com.instagram.android
     max_version: 439.0.0.37.89
     patches_version: dev
@@ -221,6 +230,7 @@ apps:
 
   lightroom:
     enabled: true
+    allow_any_version: true
     package: com.adobe.lrmobile
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
@@ -261,6 +271,7 @@ apps:
 
   moviebox:
     enabled: true
+    allow_any_version: true
     package: com.community.oneroom
     patch_source: dhrubonai
     cli_source: MorpheApp/morphe-cli
@@ -279,6 +290,7 @@ apps:
 
   myfitnesspal:
     enabled: true
+    allow_any_version: true
     package: com.myfitnesspal.android
     patch_source: hoodles
     uptodown_url: https://calorie-counter-myfitnesspal.en.uptodown.com/android
@@ -297,6 +309,7 @@ apps:
 
   nova_launcher:
     enabled: true
+    allow_any_version: true
     package: com.teslacoilsw.launcher
     patch_source: rushiranpise
     uptodown_url: https://nova-launcher.en.uptodown.com/android
@@ -317,6 +330,7 @@ apps:
 
   pixiv:
     enabled: true
+    allow_any_version: true
     package: jp.pxv.android
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
@@ -341,6 +355,7 @@ apps:
 
   prime_video:
     enabled: true
+    allow_any_version: true
     package: com.amazon.avod.thirdpartyclient
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
@@ -359,6 +374,7 @@ apps:
 
   proton_vpn:
     enabled: true
+    allow_any_version: true
     package: ch.protonvpn.android
     patch_source: DmoniakPatches
     uptodown_url: https://protonvpn.en.uptodown.com/android
@@ -400,6 +416,7 @@ apps:
 
   soundcloud:
     enabled: true
+    allow_any_version: true
     package: com.soundcloud.android
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
@@ -419,6 +436,7 @@ apps:
 
   spotify:
     enabled: true
+    allow_any_version: true
     package: com.spotify.music
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
@@ -438,6 +456,7 @@ apps:
 
   strava:
     enabled: true
+    allow_any_version: true
     package: com.strava
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
@@ -463,6 +482,7 @@ apps:
 
   threads:
     enabled: true
+    allow_any_version: true
     package: com.instagram.barcelona
     patch_source: hushthreads
     cli_source: MorpheApp/morphe-cli
@@ -483,6 +503,7 @@ apps:
 
   tiktok:
     enabled: true
+    allow_any_version: true
     package: com.zhiliaoapp.musically
     patch_source: hushfeed
     cli_source: MorpheApp/morphe-cli
@@ -521,6 +542,7 @@ apps:
 
   x_piko:
     enabled: true
+    allow_any_version: true
     package: com.twitter.android
     version: 12.19.1-release.0
     patch_source: piko
@@ -574,6 +596,7 @@ apps:
 
   pinterest:
     enabled: true
+    allow_any_version: true
     package: com.pinterest
     patch_source: browzomje
     cli_source: MorpheApp/morphe-cli
@@ -592,6 +615,7 @@ apps:
 
   telegram:
     enabled: true
+    allow_any_version: true
     package: org.telegram.messenger
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -610,6 +634,7 @@ apps:
 
   mx_player:
     enabled: true
+    allow_any_version: true
     package: com.mxtech.videoplayer.ad
     patch_source: blazeftl
     cli_source: MorpheApp/morphe-cli
@@ -628,6 +653,7 @@ apps:
 
   capcut:
     enabled: true
+    allow_any_version: true
     package: com.lemon.lvoverseas
     patch_source: rikydev
     cli_source: MorpheApp/morphe-cli
@@ -646,6 +672,7 @@ apps:
 
   pvz_free:
     enabled: true
+    allow_any_version: true
     package: com.ea.game.pvzfree_row
     patch_source: miguelninja
     cli_source: MorpheApp/morphe-cli
@@ -664,6 +691,7 @@ apps:
 
   cloudflare_warp:
     enabled: true
+    allow_any_version: true
     package: com.cloudflare.onedotonedotonedotone
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -682,6 +710,7 @@ apps:
 
   sticker_maker:
     enabled: true
+    allow_any_version: true
     package: com.marsvard.stickermakerforwhatsapp
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -700,6 +729,7 @@ apps:
 
   drama_box:
     enabled: true
+    allow_any_version: true
     package: com.storymatrix.drama
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -718,6 +748,7 @@ apps:
 
   stellarium:
     enabled: true
+    allow_any_version: true
     package: com.noctuasoftware.stellarium_free
     patch_source: bholey
     cli_source: MorpheApp/morphe-cli
@@ -736,6 +767,7 @@ apps:
 
   serverauditor:
     enabled: true
+    allow_any_version: true
     package: com.server.auditor.ssh.client
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli

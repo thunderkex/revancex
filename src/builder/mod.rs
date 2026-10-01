@@ -545,7 +545,6 @@ fn is_beta_or_alpha(s: &str) -> bool {
     lower.contains("beta") || lower.contains("alpha")
 }
 
-
 async fn fetch_archive_org(
     client: &Client,
     url: &str,
@@ -697,7 +696,9 @@ async fn fetch_apkmirror(
             .iter()
             .find(|r| r.contains(&hyphen_ver) || r.contains(&base_hyphen) || r.contains(ver))
             .ok_or_else(|| {
-                anyhow::anyhow!("apkmirror: version {ver} not found in recent releases on {app_url}")
+                anyhow::anyhow!(
+                    "apkmirror: version {ver} not found in recent releases on {app_url}"
+                )
             })?
     } else {
         releases.first().unwrap()

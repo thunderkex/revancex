@@ -16,10 +16,7 @@ fn test_config_loader_and_validation() {
     let microg = cfg.apps.get("microg").expect("microg app missing");
     assert_eq!(microg.package, "app.revanced.android.gms");
 
-    let tiktok = cfg
-        .apps
-        .get("tiktok")
-        .expect("tiktok app missing");
+    let tiktok = cfg.apps.get("tiktok").expect("tiktok app missing");
     assert_eq!(tiktok.package, "com.zhiliaoapp.musically");
 
     config::validate_config(&cfg, true).expect("Strict validation failed");
@@ -1487,7 +1484,8 @@ async fn test_single_module_skips_when_module_single_is_false() {
     {
         let file = std::fs::File::create(&dummy_adguard).unwrap();
         let mut zip = zip::ZipWriter::new(file);
-        let opts = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        let opts = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
         zip.start_file("AndroidManifest.xml", opts).unwrap();
         zip.write_all(&[0x7F; 500]).unwrap();
         zip.finish().unwrap();
@@ -1495,7 +1493,9 @@ async fn test_single_module_skips_when_module_single_is_false() {
 
     let cfg = revancex::config::load_config("./config").expect("Failed to load config");
     assert!(
-        cfg.apps.get("adguard").is_some_and(|a| a.module.as_ref().is_some_and(|m| !m.single)),
+        cfg.apps
+            .get("adguard")
+            .is_some_and(|a| a.module.as_ref().is_some_and(|m| !m.single)),
         "adguard in config/apps.yaml must have module.single = false"
     );
 
@@ -1520,4 +1520,3 @@ async fn test_single_module_skips_when_module_single_is_false() {
         "revancex-module-adguard.zip must NOT be created even with all-enabled"
     );
 }
-

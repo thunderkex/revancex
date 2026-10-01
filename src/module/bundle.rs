@@ -52,9 +52,9 @@ pub async fn build_bundle_module(
                     .apps
                     .iter()
                     .filter(|id| {
-                        cfg.apps
-                            .get(*id)
-                            .is_some_and(|a| a.enabled && a.module.as_ref().is_none_or(|m| m.bundle))
+                        cfg.apps.get(*id).is_some_and(|a| {
+                            a.enabled && a.module.as_ref().is_none_or(|m| m.bundle)
+                        })
                     })
                     .cloned()
                     .collect();

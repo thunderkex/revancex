@@ -3,6 +3,7 @@ use crate::utils::cache::{load_version_cache, save_version_cache};
 use anyhow::Result;
 use std::collections::HashMap;
 use tracing::info;
+use crate::patcher::metadata;
 
 pub fn resolve_app_patch_pairs(
     cfg: &Config,
@@ -99,10 +100,51 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
         }
     }
 
-    let (changed_sources, changed_apps, new_cache_tags) =
+    let (changed_sources, mut changed_apps, new_cache_tags) =
         detect_changed_apps_from_tags(&pairs, &cache.patch_source_tags, &latest_tags);
 
     cache.patch_source_tags = new_cache_tags;
+
+    let mut app_version_changed: Vec<String> = Vec::new();
+    for (app_name, app) in &cfg.apps {
+        if !app.enabled || app.patch_source.is_empty() || app.patch_source == "none" {
+            continue;
+        }
+        if app.version.as_deref().map(|v| !v.eq_ignore_ascii_case("auto")).unwrap_or(false) {
+            continue;
+        }
+        let mpp_path = match metadata::resolve_mpp_path(cfg, app) {
+            Some(p) => p,
+            None => continue,
+        };
+        let patches = match metadata::load(cfg, &mpp_path).await {
+            Ok(p) => p,
+            Err(e) => {
+                tracing::warn!("{app_name}: could not load patch metadata for version check: {e}");
+                continue;
+            }
+        };
+        let supported = metadata::resolve_compatible_versions(&patches, &app.package, &app.patches);
+        let latest_max = crate::utils::semver::max_version(&supported);
+        let cached_max = cache.app_versions.get(app_name).cloned();
+        let latest_str = latest_max.as_deref().unwrap_or("");
+        let cached_str = cached_max.as_deref().unwrap_or("");
+        if !latest_str.is_empty() && latest_str != cached_str {
+            info!("{app_name}: supported app version changed {cached_str:?} → {latest_str:?}");
+            if let Some(v) = latest_max {
+                cache.app_versions.insert(app_name.clone(), v);
+            }
+            if !app_version_changed.contains(app_name) {
+                app_version_changed.push(app_name.clone());
+            }
+            if !changed_apps.contains(app_name) {
+                changed_apps.push(app_name.clone());
+            }
+        }
+    }
+    changed_apps.sort();
+    app_version_changed.sort();
+
     save_version_cache(cache_path, &cache);
 
     let has_updates = !changed_apps.is_empty();
@@ -111,15 +153,17 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
         let out = serde_json::json!({
             "has_updates": has_updates,
             "changed_apps": changed_apps,
-            "changed_sources": changed_sources
+            "changed_sources": changed_sources,
+            "app_version_changed": app_version_changed
         });
         println!("{}", serde_json::to_string_pretty(&out)?);
     } else {
         if has_updates {
             println!(
-                "Updates found: {} sources changed, {} apps affected.",
+                "Updates found: {} sources changed, {} apps affected ({} due to app version change).",
                 changed_sources.len(),
-                changed_apps.len()
+                changed_apps.len(),
+                app_version_changed.len()
             );
         } else {
             println!("No updates detected.");

@@ -7,6 +7,8 @@ use tracing::info;
 pub struct VersionCache {
     #[serde(default)]
     pub patch_source_tags: HashMap<String, String>,
+    #[serde(default)]
+    pub app_versions: HashMap<String, String>,
 }
 
 pub fn load_version_cache(path: &str) -> VersionCache {

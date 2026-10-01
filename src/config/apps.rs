@@ -97,6 +97,8 @@ pub struct AppConfig {
     pub archive_url: Option<String>,
     #[serde(alias = "apkpure-dlurl", default)]
     pub apkpure_url: Option<String>,
+    #[serde(alias = "aptoide-dlurl", default)]
+    pub aptoide_url: Option<String>,
     #[serde(default)]
     pub source_priority: Vec<String>,
     #[serde(alias = "apk_source", default)]

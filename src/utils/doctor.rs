@@ -57,6 +57,7 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
         apkmirror_url: None,
         archive_url: None,
         apkpure_url: None,
+        aptoide_url: None,
         source_priority: vec![],
         apk_source: String::new(),
         apk_url: None,

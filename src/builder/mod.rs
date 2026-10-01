@@ -376,7 +376,7 @@ pub async fn fetch_apk(
         .map(|s| s.as_str())
         .collect();
 
-    let default_order: &[&str] = &["apkmirror", "uptodown", "apkpure", "apkeep"];
+    let default_order: &[&str] = &["apkmirror", "uptodown", "apkpure", "aptoide", "apkeep"];
     let priority: Vec<&str> = if app.source_priority.is_empty() {
         default_order.to_vec()
     } else {
@@ -498,6 +498,21 @@ pub async fn fetch_apk(
                                         return Ok(path);
                                     }
                                     Err(e) => warn!("{id}: apkpure failed: {e}"),
+                                }
+                            }
+                        }
+                        "aptoide" => {
+                            if !app.package.is_empty() {
+                                info!("{id}: trying aptoide for package {}", app.package);
+                                attempted.push("aptoide".into());
+                                match fetch_aptoide(client, &app.package, dest, arch, cur_target.as_deref()).await {
+                                    Ok(path) => {
+                                        info!(
+                                            "{id}: BUILD_REPORT resolved_source=aptoide attempted={attempted:?}"
+                                        );
+                                        return Ok(path);
+                                    }
+                                    Err(e) => warn!("{id}: aptoide failed: {e}"),
                                 }
                             }
                         }
@@ -1062,6 +1077,105 @@ pub async fn download_and_extract_if_bundle(
     std::fs::rename(&temp_dl, dest_apk_path)?;
     let _ = strip_split_requirements_from_apk(dest_apk_path);
     Ok(())
+}
+
+async fn fetch_aptoide(
+    client: &Client,
+    package: &str,
+    dest: &str,
+    arch: &str,
+    target_version: Option<&str>,
+) -> Result<String> {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    const BASE: &str = "https://ws75.aptoide.com/api/7/";
+
+    // Aptoide CPU filter — arch-specific APK selection
+    let q_suffix = match arch {
+        "arm64-v8a" => {
+            let raw = "myCPU=arm64-v8a,armeabi-v7a,armeabi&leanback=0";
+            format!("&q={}", STANDARD.encode(raw))
+        }
+        "armeabi-v7a" => {
+            let raw = "myCPU=armeabi-v7a,armeabi&leanback=0";
+            format!("&q={}", STANDARD.encode(raw))
+        }
+        "x86_64" => {
+            let raw = "myCPU=x86_64,x86&leanback=0";
+            format!("&q={}", STANDARD.encode(raw))
+        }
+        "x86" => {
+            let raw = "myCPU=x86&leanback=0";
+            format!("&q={}", STANDARD.encode(raw))
+        }
+        _ => String::new(),
+    };
+
+    let download_path = if let Some(ver) = target_version {
+        // Find vercode for the requested version
+        let list_url = format!(
+            "{BASE}listAppVersions?package_name={package}&limit=50{q_suffix}"
+        );
+        info!("aptoide: listing versions from {list_url}");
+        let resp: serde_json::Value = client
+            .get(&list_url)
+            .send()
+            .await?
+            .json()
+            .await
+            .context("aptoide: failed to parse listAppVersions JSON")?;
+
+        let list = resp["datalist"]["list"]
+            .as_array()
+            .ok_or_else(|| anyhow::anyhow!("aptoide: no version list for {package}"))?;
+
+        let vercode = list
+            .iter()
+            .find(|item| item["file"]["vername"].as_str().unwrap_or("") == ver)
+            .and_then(|item| item["file"]["vercode"].as_i64())
+            .ok_or_else(|| anyhow::anyhow!("aptoide: version {ver} not found for {package}"))?;
+
+        let meta_url = format!(
+            "{BASE}getAppMeta?package_name={package}&vercode={vercode}{q_suffix}"
+        );
+        info!("aptoide: fetching meta from {meta_url}");
+        let meta: serde_json::Value = client
+            .get(&meta_url)
+            .send()
+            .await?
+            .json()
+            .await
+            .context("aptoide: failed to parse getAppMeta JSON")?;
+
+        meta["data"]["file"]["path"]
+            .as_str()
+            .ok_or_else(|| {
+                anyhow::anyhow!("aptoide: no download path in meta for {package} v{ver}")
+            })?
+            .to_string()
+    } else {
+        // Latest via search
+        let search_url = format!(
+            "{BASE}apps/search?query={package}&limit=1&trusted=true{q_suffix}"
+        );
+        info!("aptoide: searching latest via {search_url}");
+        let resp: serde_json::Value = client
+            .get(&search_url)
+            .send()
+            .await?
+            .json()
+            .await
+            .context("aptoide: failed to parse search JSON")?;
+
+        resp["datalist"]["list"][0]["file"]["path"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("aptoide: no result for {package}"))?
+            .to_string()
+    };
+
+    info!("aptoide: downloading from {download_path}");
+    download_and_extract_if_bundle(client, &download_path, dest, Some("https://aptoide.com/"))
+        .await?;
+    Ok(dest.to_string())
 }
 
 async fn fetch_apkpure_url(

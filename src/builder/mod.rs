@@ -1112,9 +1112,7 @@ async fn fetch_aptoide(
 
     let download_path = if let Some(ver) = target_version {
         // Find vercode for the requested version
-        let list_url = format!(
-            "{BASE}listAppVersions?package_name={package}&limit=50{q_suffix}"
-        );
+        let list_url = format!("{BASE}listAppVersions?package_name={package}&limit=50{q_suffix}");
         info!("aptoide: listing versions from {list_url}");
         let resp: serde_json::Value = client
             .get(&list_url)
@@ -1134,9 +1132,8 @@ async fn fetch_aptoide(
             .and_then(|item| item["file"]["vercode"].as_i64())
             .ok_or_else(|| anyhow::anyhow!("aptoide: version {ver} not found for {package}"))?;
 
-        let meta_url = format!(
-            "{BASE}getAppMeta?package_name={package}&vercode={vercode}{q_suffix}"
-        );
+        let meta_url =
+            format!("{BASE}getAppMeta?package_name={package}&vercode={vercode}{q_suffix}");
         info!("aptoide: fetching meta from {meta_url}");
         let meta: serde_json::Value = client
             .get(&meta_url)
@@ -1154,9 +1151,8 @@ async fn fetch_aptoide(
             .to_string()
     } else {
         // Latest via search
-        let search_url = format!(
-            "{BASE}apps/search?query={package}&limit=1&trusted=true{q_suffix}"
-        );
+        let search_url =
+            format!("{BASE}apps/search?query={package}&limit=1&trusted=true{q_suffix}");
         info!("aptoide: searching latest via {search_url}");
         let resp: serde_json::Value = client
             .get(&search_url)

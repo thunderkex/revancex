@@ -84,8 +84,16 @@ patch_sources:
     repo: SysAdminDoc/Hushfacebook
     asset_pattern: "*.mpp"
 
+  hushthreads:
+    repo: SysAdminDoc/HushThreads
+    asset_pattern: "*.mpp"
+
   DmoniakPatches:
     repo: SatanMerde/D-moniakPatches
+    asset_pattern: "*.mpp"
+
+  bearinmindcat:
+    repo: bearinmindcat/morphe-patches
     asset_pattern: "*.mpp"
     
 apk_sources:

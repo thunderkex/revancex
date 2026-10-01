@@ -117,10 +117,47 @@ apps:
       bundle: true
     dependencies: []
 
+  google_maps:
+    enabled: true
+    package: com.google.android.apps.maps
+    patch_source: bearinmindcat
+    cli_source: MorpheApp/morphe-cli
+    uptodown_url: https://google-maps.en.uptodown.com/android
+    apkmirror_url: https://www.apkmirror.com/apk/google-inc/maps/
+    archive_url: https://archive.org/download/geologically/apks/com.google.android.apps.maps
+    architectures:
+    - arm64-v8a
+    mode: patch
+    keystore:
+      alias: revanced
+      file: keys/google_maps.jks
+    module:
+      single: false
+      bundle: true
+    dependencies: []
+
+  google_phone:
+    enabled: true
+    package: com.google.android.dialer
+    patch_source: DmoniakPatches
+    cli_source: MorpheApp/morphe-cli
+    uptodown_url: https://google-phone.en.uptodown.com/android
+    apkmirror_url: https://www.apkmirror.com/apk/google-inc/google-phone/
+    architectures:
+    - arm64-v8a
+    mode: patch
+    keystore:
+      alias: revanced
+      file: keys/google_phone.jks
+    module:
+      single: false
+      bundle: true
+    dependencies: []
+
   google_photos:
     enabled: true
     package: com.google.android.apps.photos
-    patch_source: de_revanced
+    patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/google-inc/google-photos
     uptodown_url: https://google-photos.en.uptodown.com/android
@@ -128,10 +165,9 @@ apps:
     architectures:
     - arm64-v8a
     mode: patch
-    included_patches:
-    - Spoof features
-    - GmsCore support
-    - Fix selected account persistence
+    excluded_patches:
+    - Custom branding
+    - Change package name
     keystore:
       alias: revanced
       file: keys/google_photos.jks
@@ -140,6 +176,24 @@ apps:
       bundle: true
     dependencies:
     - microg
+
+  subway_surfers:
+    enabled: true
+    package: com.kiloo.subwaysurf
+    patch_source: DmoniakPatches
+    cli_source: MorpheApp/morphe-cli
+    uptodown_url: https://subway-surfers.en.uptodown.com/android
+    apkmirror_url: https://www.apkmirror.com/apk/sybo-games/subwaysurfers
+    architectures:
+    - arm64-v8a
+    mode: patch
+    keystore:
+      alias: revanced
+      file: keys/subway_surfers.jks
+    module:
+      single: false
+      bundle: true
+    dependencies: []
 
   instagram:
     enabled: true
@@ -410,7 +464,7 @@ apps:
   threads:
     enabled: true
     package: com.instagram.barcelona
-    patch_source: de_revanced
+    patch_source: hushthreads
     cli_source: MorpheApp/morphe-cli
     archive_url: https://archive.org/download/geologically/apks/com.instagram.barcelona
     apkmirror_url: https://www.apkmirror.com/apk/instagram/threads/
@@ -532,7 +586,7 @@ apps:
       alias: revanced
       file: keys/pinterest.jks
     module:
-      single: true
+      single: false
       bundle: true
     dependencies: []
 

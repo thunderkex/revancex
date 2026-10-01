@@ -306,13 +306,13 @@ def main():
 
     content_parts = [
         START_MARKER,
-        "### 📱 Stock Apps & Single Root Modules",
+        "### 󰀲 Stock Apps & Single Root Modules",
         "\n".join(stock_module_table),
         "",
-        "### 📦 Bundle Modules (Multi-App)",
+        "###  Bundle Modules (Multi-App)",
         "\n".join(bundle_table),
         "",
-        "### 🛠️ Custom Bundle Modules",
+        "###  Custom Bundle Modules",
         "\n".join(custom_table),
         END_MARKER
     ]

@@ -461,8 +461,6 @@ apps:
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://strava.en.uptodown.com/android
-    architectures:
-    - arm64-v8a
     mode: patch
     included_patches:
     - Unlock subscription features

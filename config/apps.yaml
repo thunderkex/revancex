@@ -5,10 +5,11 @@ apps:
     package: com.adguard.android
     patch_source: rushiranpise
     apk_source: direct
-    version: 4.14.68
     apk_url: https://static.adguard.com/android/release/adguard.apk
     uptodown_url: https://adguard-for-android.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/adguard-software-limited/adguard/
+    apkpure_url: https://apkpure.com/adguard-adblock-privacy/com.adguard.android
+    aptoide_url: com.adguard.android
     architectures:
     - arm64-v8a
     mode: patch
@@ -28,6 +29,8 @@ apps:
     apkmirror_url: https://www.apkmirror.com/apk/intsig-pte/camscanner-phone-pdf-creator/
     uptodown_url: https://camscanner.en.uptodown.com/android
     archive_url: https://archive.org/download/geologically/apks/com.intsig.camscanner
+    apkpure_url: https://apkpure.com/camscanner-pdf-scanner-app/com.intsig.camscanner
+    aptoide_url: com.intsig.camscanner
     architectures:
     - arm64-v8a
     mode: patch
@@ -50,6 +53,8 @@ apps:
     apkmirror_url: https://www.apkmirror.com/apk/duolingo/duolingo-duolingo/
     uptodown_url: https://duolingo.en.uptodown.com/android
     archive_url: https://archive.org/download/geologically/apks/com.duolingo
+    apkpure_url: https://apkpure.com/duolingo-language-lessons/com.duolingo
+    aptoide_url: com.duolingo
     architectures:
     - arm64-v8a
     mode: patch
@@ -70,7 +75,9 @@ apps:
     uptodown_url: https://facebook.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/facebook-2/facebook
     archive_url: https://archive.org/download/geologically/apks/com.facebook.katana
-    version: 580.0.0.51.74
+    apkpure_url: https://apkpure.com/facebook/com.facebook.katana
+    aptoide_url: com.facebook.katana
+    version: 490.0.0.63.82
     architectures:
     - arm64-v8a
     mode: patch
@@ -90,6 +97,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://flightradar24.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/flightradar24-ab/flightradar24-flight-tracker-2/
+    apkpure_url: https://apkpure.com/flightradar24-flight-tracker/com.flightradar24free
+    aptoide_url: com.flightradar24free
     architectures:
     - arm64-v8a
     mode: patch
@@ -132,6 +141,8 @@ apps:
     uptodown_url: https://google-maps.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/google-inc/maps/
     archive_url: https://archive.org/download/geologically/apks/com.google.android.apps.maps
+    apkpure_url: https://apkpure.com/google-maps/com.google.android.apps.maps
+    aptoide_url: com.google.android.apps.maps
     architectures:
     - arm64-v8a
     mode: patch
@@ -151,6 +162,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://google-phone.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/google-inc/google-phone/
+    apkpure_url: https://apkpure.com/phone-by-google/com.google.android.dialer
+    aptoide_url: com.google.android.dialer
     architectures:
     - arm64-v8a
     mode: patch
@@ -214,6 +227,8 @@ apps:
     apkmirror_url: https://www.apkmirror.com/apk/instagram/instagram/
     uptodown_url: https://instagram.en.uptodown.com/android
     archive_url: https://archive.org/download/geologically/apks/com.instagram.android
+    apkpure_url: https://apkpure.com/instagram/com.instagram.android
+    aptoide_url: com.instagram.android
     architectures:
     - arm64-v8a
     mode: patch
@@ -234,10 +249,11 @@ apps:
     package: com.adobe.lrmobile
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
-    version: 11.5.31
     uptodown_url: https://adobe-lightroom-mobile.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/adobe/lightroom
     archive_url: https://archive.org/download/geologically/apks/com.adobe.lrmobile
+    apkpure_url: https://apkpure.com/lightroom-photo-video-editor/com.adobe.lrmobile
+    aptoide_url: com.adobe.lrmobile
     architectures:
     - arm64-v8a
     mode: patch
@@ -277,6 +293,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://com-community-oneroom.en.uptodown.com/android
     archive_url: https://archive.org/download/geologically/apks/com.community.oneroom
+    apkpure_url: https://apkpure.com/moviebox/com.community.oneroom
+    aptoide_url: com.community.oneroom
     architectures:
     - arm64-v8a
     mode: patch
@@ -296,6 +314,8 @@ apps:
     uptodown_url: https://calorie-counter-myfitnesspal.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/myfitnesspal-inc/calorie-counter-myfitnesspal/
     archive_url: https://archive.org/download/geologically/apks/com.myfitnesspal.android
+    apkpure_url: https://apkpure.com/myfitnesspal-calorie-counter/com.myfitnesspal.android
+    aptoide_url: com.myfitnesspal.android
     architectures:
     - arm64-v8a
     mode: patch
@@ -315,6 +335,8 @@ apps:
     uptodown_url: https://nova-launcher.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/instabridge-sweden-ab/nova-launcher/
     archive_url: https://archive.org/download/geologically/apks/com.teslacoilsw.launcher
+    apkpure_url: https://apkpure.com/nova-launcher/com.teslacoilsw.launcher
+    aptoide_url: com.teslacoilsw.launcher
     architectures:
     - arm64-v8a
     mode: patch
@@ -337,6 +359,8 @@ apps:
     apkmirror_url: https://www.apkmirror.com/apk/pixiv-inc/pixiv/
     uptodown_url: https://pixiv.en.uptodown.com/android
     archive_url: https://archive.org/download/geologically/apks/jp.pxv.android
+    apkpure_url: https://apkpure.com/pixiv/jp.pxv.android
+    aptoide_url: jp.pxv.android
     architectures:
     - arm64-v8a
     mode: patch
@@ -361,6 +385,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/amazon-mobile-llc/amazon-prime-video/
     uptodown_url: https://amazon-prime-video.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/amazon-prime-video/com.amazon.avod.thirdpartyclient
+    aptoide_url: com.amazon.avod.thirdpartyclient
     architectures:
     - arm64-v8a
     mode: patch
@@ -380,6 +406,8 @@ apps:
     uptodown_url: https://protonvpn.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn/
     archive_url: https://archive.org/download/geologically/apks/ch.protonvpn.android
+    apkpure_url: https://apkpure.com/proton-vpn-fast-secure/ch.protonvpn.android
+    aptoide_url: ch.protonvpn.android
     architectures:
     - arm64-v8a
     mode: patch
@@ -422,6 +450,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://soundcloud.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/soundcloud/soundcloud-soundcloud
+    apkpure_url: https://apkpure.com/soundcloud-play-music-songs/com.soundcloud.android
+    aptoide_url: com.soundcloud.android
     architectures:
     - arm64-v8a
     mode: both
@@ -443,6 +473,8 @@ apps:
     uptodown_url: https://spotify.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts/
     archive_url: https://archive.org/download/geologically/apks/com.spotify.music/
+    apkpure_url: https://apkpure.com/spotify-music-and-podcasts/com.spotify.music
+    aptoide_url: com.spotify.music
     architectures:
     - arm64-v8a
     mode: patch
@@ -487,6 +519,8 @@ apps:
     archive_url: https://archive.org/download/geologically/apks/com.instagram.barcelona
     apkmirror_url: https://www.apkmirror.com/apk/instagram/threads/
     uptodown_url: https://threads.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/threads-an-instagram-app/com.instagram.barcelona
+    aptoide_url: com.instagram.barcelona
     architectures:
     - arm64-v8a
     mode: patch
@@ -505,9 +539,11 @@ apps:
     package: com.zhiliaoapp.musically
     patch_source: hushfeed
     cli_source: MorpheApp/morphe-cli
-    version: 47.1.3
+    version: 47.1.4
     uptodown_url: https://tiktok.en.uptodown.com/android
     apkmirror_url: https://apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly
+    apkpure_url: https://apkpure.com/tiktok/com.zhiliaoapp.musically
+    aptoide_url: com.zhiliaoapp.musically
     architectures:
     - arm64-v8a
     mode: patch
@@ -542,12 +578,14 @@ apps:
     enabled: true
     allow_any_version: true
     package: com.twitter.android
-    version: 12.19.1-release.0
+    version: 11.91.0-release.0
     patch_source: piko
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/x-corp/twitter/
     archive_url: https://archive.org/download/geologically/apks/com.twitter.android
     uptodown_url: https://twitter.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/twitter/com.twitter.android
+    aptoide_url: com.twitter.android
     architectures:
     - arm64-v8a
     mode: patch
@@ -600,6 +638,9 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/pinterest/pinterest-one-destination-for-a-world-of-inspiration
     uptodown_url: https://pinterest.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/pinterest/com.pinterest
+    aptoide_url: com.pinterest
+    archive_url: https://archive.org/download/geologically/apks/com.pinterest
     architectures:
     - arm64-v8a
     mode: patch
@@ -619,6 +660,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/telegram-messenger-llp/telegram/
     uptodown_url: https://telegram.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/telegram/org.telegram.messenger
+    aptoide_url: org.telegram.messenger
     architectures:
     - arm64-v8a
     mode: patch
@@ -636,8 +679,10 @@ apps:
     package: com.mxtech.videoplayer.ad
     patch_source: blazeftl
     cli_source: MorpheApp/morphe-cli
-    apkmirror_url: https://www.apkmirror.com/apk/amazon-mobile-llc/mx-player/
+    apkmirror_url: https://www.apkmirror.com/apk/mxtech/mx-player/
     uptodown_url: https://mx-player.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/mx-player/com.mxtech.videoplayer.ad
+    aptoide_url: com.mxtech.videoplayer.ad
     architectures:
     - arm64-v8a
     mode: patch
@@ -657,6 +702,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/bytedance-pte-ltd/capcut/
     uptodown_url: https://viamaker.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/capcut-video-editor/com.lemon.lvoverseas
+    aptoide_url: com.lemon.lvoverseas
     architectures:
     - arm64-v8a
     mode: patch
@@ -676,6 +723,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/electronic-arts/plants-vs-zombies-free/
     uptodown_url: https://plants-vs-zombies-free.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/plants-vs-zombies-free/com.ea.game.pvzfree_row
+    aptoide_url: com.ea.game.pvzfree_row
     architectures:
     - arm64-v8a
     mode: patch
@@ -695,6 +744,9 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/cloudflare/1-1-1-1-faster-safer-internet/
     uptodown_url: https://1-1-1-1.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/1-1-1-1-faster-safer-internet/com.cloudflare.onedotonedotonedotone
+    aptoide_url: com.cloudflare.onedotonedotonedotone
+    archive_url: https://archive.org/download/geologically/apks/com.cloudflare.onedotonedotonedotone
     architectures:
     - arm64-v8a
     mode: patch
@@ -714,6 +766,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/marsvard/sticker-maker-for-whatsapp/
     uptodown_url: https://sticker-maker-for-whatsapp.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/sticker-maker-for-whatsapp/com.marsvard.stickermakerforwhatsapp
+    aptoide_url: com.marsvard.stickermakerforwhatsapp
     architectures:
     - arm64-v8a
     mode: patch
@@ -733,6 +787,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/storymatrix/dramabox-stream-drama-shorts
     uptodown_url: https://dramabox.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/dramabox-stream-drama-shorts/com.storymatrix.drama
+    aptoide_url: com.storymatrix.drama
     architectures:
     - arm64-v8a
     mode: patch
@@ -752,6 +808,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/noctua-software/stellarium-mobile-star-map/
     uptodown_url: https://stellarium.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/stellarium-mobile-star-map/com.noctuasoftware.stellarium_free
+    aptoide_url: com.noctuasoftware.stellarium_free
     architectures:
     - arm64-v8a
     mode: patch
@@ -771,6 +829,8 @@ apps:
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/termius-corporation/termius-ssh-telnet-client
     uptodown_url: https://serverauditor.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/termius-ssh-client/com.server.auditor.ssh.client
+    aptoide_url: com.server.auditor.ssh.client
     architectures:
     - arm64-v8a
     mode: patch

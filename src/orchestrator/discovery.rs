@@ -1,9 +1,9 @@
 use crate::config::Config;
+use crate::patcher::metadata;
 use crate::utils::cache::{load_version_cache, save_version_cache};
 use anyhow::Result;
 use std::collections::HashMap;
 use tracing::info;
-use crate::patcher::metadata;
 
 pub fn resolve_app_patch_pairs(
     cfg: &Config,
@@ -110,7 +110,12 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
         if !app.enabled || app.patch_source.is_empty() || app.patch_source == "none" {
             continue;
         }
-        if app.version.as_deref().map(|v| !v.eq_ignore_ascii_case("auto")).unwrap_or(false) {
+        if app
+            .version
+            .as_deref()
+            .map(|v| !v.eq_ignore_ascii_case("auto"))
+            .unwrap_or(false)
+        {
             continue;
         }
         let mpp_path = match metadata::resolve_mpp_path(cfg, app) {

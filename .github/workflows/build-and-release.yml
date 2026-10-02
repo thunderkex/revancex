@@ -291,11 +291,13 @@ jobs:
           fi
           git diff --staged --quiet || git commit -m "$COMMIT_MSG"
           # Discard any leftover untracked/unstaged working-tree changes before rebase
-          git checkout -- . 2>/dev/null || true
+          git checkout -- . 2>/dev/null || :
           PUSH_OK=false
           for i in 1 2 3 4 5; do
             git fetch origin ${{ github.ref_name }}
-            git rebase origin/${{ github.ref_name }} || (git rebase --abort 2>/dev/null || true)
+            if ! git rebase origin/${{ github.ref_name }}; then
+              git rebase --abort 2>/dev/null || :
+            fi
             if git push origin HEAD:${{ github.ref }}; then
               PUSH_OK=true
               break

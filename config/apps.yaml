@@ -1,7 +1,6 @@
 apps:
   adguard:
     enabled: true
-    allow_any_version: true
     package: com.adguard.android
     patch_source: rushiranpise
     apk_url: https://static.adguard.com/android/release/adguard.apk
@@ -22,7 +21,6 @@ apps:
 
   camscanner:
     enabled: true
-    allow_any_version: true
     package: com.intsig.camscanner
     patch_source: rushiranpise
     apkmirror_url: https://www.apkmirror.com/apk/intsig-pte/camscanner-phone-pdf-creator/
@@ -44,8 +42,7 @@ apps:
     dependencies: []
 
   duolingo:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.duolingo
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
@@ -66,8 +63,7 @@ apps:
     dependencies: []
 
   facebook:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.facebook.katana
     patch_source: hushfacebook
     cli_source: MorpheApp/morphe-cli
@@ -88,8 +84,7 @@ apps:
     dependencies: []
 
   flightradar24:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.flightradar24free
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -131,8 +126,7 @@ apps:
     dependencies: []
 
   google_maps:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.google.android.apps.maps
     patch_source: bearinmindcat
     cli_source: MorpheApp/morphe-cli
@@ -153,8 +147,7 @@ apps:
     dependencies: []
 
   google_phone:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.google.android.dialer
     patch_source: DmoniakPatches
     cli_source: MorpheApp/morphe-cli
@@ -215,8 +208,7 @@ apps:
     dependencies: []
 
   instagram:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.instagram.android
     max_version: 439.0.0.37.89
     patches_version: dev
@@ -242,8 +234,7 @@ apps:
     dependencies: []
 
   lightroom:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.adobe.lrmobile
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
@@ -284,8 +275,7 @@ apps:
     dependencies: []
 
   moviebox:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.community.oneroom
     patch_source: dhrubonai
     cli_source: MorpheApp/morphe-cli
@@ -305,8 +295,7 @@ apps:
     dependencies: []
 
   myfitnesspal:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.myfitnesspal.android
     patch_source: hoodles
     uptodown_url: https://calorie-counter-myfitnesspal.en.uptodown.com/android
@@ -326,8 +315,7 @@ apps:
     dependencies: []
 
   nova_launcher:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.teslacoilsw.launcher
     patch_source: rushiranpise
     uptodown_url: https://nova-launcher.en.uptodown.com/android
@@ -349,8 +337,7 @@ apps:
     dependencies: []
 
   pixiv:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: jp.pxv.android
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
@@ -376,8 +363,7 @@ apps:
     dependencies: []
 
   prime_video:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.amazon.avod.thirdpartyclient
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
@@ -397,8 +383,7 @@ apps:
     dependencies: []
 
   proton_vpn:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: ch.protonvpn.android
     patch_source: DmoniakPatches
     uptodown_url: https://protonvpn.en.uptodown.com/android
@@ -441,8 +426,7 @@ apps:
     dependencies: []
 
   soundcloud:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.soundcloud.android
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
@@ -463,8 +447,7 @@ apps:
     dependencies: []
 
   spotify:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.spotify.music
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
@@ -485,21 +468,24 @@ apps:
     dependencies: []
 
   strava:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.strava
-    patch_source: de_revanced
+    patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
+    apkmirror_url: https://www.apkmirror.com/apk/strava/strava/
     uptodown_url: https://strava.en.uptodown.com/android
+    apkpure_url: https://apkpure.com/strava-track-running-cycling-swimming/com.strava
+    aptoide_url: com.strava
+    archive_url: https://archive.org/download/geologically/apks/com.strava
     mode: patch
-    included_patches:
-    - Unlock subscription features
-    - Add activity export
-    - Add route export
-    - Add media download
-    - Hide distractions
-    excluded_patches:
-    - Change package name
+    source_priority:
+    - apkmirror
+    - uptodown
+    - apkpure
+    - aptoide
+    - archive
+    patches:
+    - Unlock Premium
     keystore:
       alias: revanced
       file: keys/strava.jks
@@ -509,8 +495,7 @@ apps:
     dependencies: []
 
   threads:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.instagram.barcelona
     patch_source: hushthreads
     cli_source: MorpheApp/morphe-cli
@@ -532,8 +517,7 @@ apps:
     dependencies: []
 
   tiktok:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.zhiliaoapp.musically
     patch_source: hushfeed
     cli_source: MorpheApp/morphe-cli
@@ -573,8 +557,7 @@ apps:
     archive_url: https://archive.org/download/geologically/apks/cn.wps.moffice_eng
 
   x_piko:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.twitter.android
     version: 11.91.0-release.0
     patch_source: piko
@@ -629,8 +612,7 @@ apps:
       root: []
 
   pinterest:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.pinterest
     patch_source: browzomje
     cli_source: MorpheApp/morphe-cli
@@ -651,8 +633,7 @@ apps:
     dependencies: []
 
   telegram:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: org.telegram.messenger
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -672,8 +653,7 @@ apps:
     dependencies: []
 
   mx_player:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.mxtech.videoplayer.ad
     patch_source: blazeftl
     cli_source: MorpheApp/morphe-cli
@@ -693,8 +673,7 @@ apps:
     dependencies: []
 
   capcut:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.lemon.lvoverseas
     patch_source: rikydev
     cli_source: MorpheApp/morphe-cli
@@ -714,8 +693,7 @@ apps:
     dependencies: []
 
   pvz_free:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.ea.game.pvzfree_row
     patch_source: miguelninja
     cli_source: MorpheApp/morphe-cli
@@ -735,8 +713,7 @@ apps:
     dependencies: []
 
   cloudflare_warp:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.cloudflare.onedotonedotonedotone
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -757,8 +734,7 @@ apps:
     dependencies: []
 
   sticker_maker:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.marsvard.stickermakerforwhatsapp
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -778,8 +754,7 @@ apps:
     dependencies: []
 
   drama_box:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.storymatrix.drama
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -799,8 +774,7 @@ apps:
     dependencies: []
 
   stellarium:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.noctuasoftware.stellarium_free
     patch_source: bholey
     cli_source: MorpheApp/morphe-cli
@@ -820,8 +794,7 @@ apps:
     dependencies: []
 
   serverauditor:
-    enabled: true
-    allow_any_version: true
+    enabled: true  
     package: com.server.auditor.ssh.client
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli

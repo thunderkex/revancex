@@ -325,17 +325,12 @@ pub async fn fetch_apk(
         None
     };
 
-    let (target_ver, candidate_versions, strategy_str) = if app.allow_any_version {
-        info!("{id}: allow_any_version=true — skipping version pin, downloading latest");
-        (None, Vec::new(), "any".to_string())
-    } else {
-        resolve_app_version_and_strategy(
-            id,
-            app,
-            patch_meta.as_deref().map(|v| v.as_slice()),
-            &patch_supported_versions,
-        )
-    };
+    let (target_ver, candidate_versions, strategy_str) = resolve_app_version_and_strategy(
+        id,
+        app,
+        patch_meta.as_deref().map(|v| v.as_slice()),
+        &patch_supported_versions,
+    );
 
     let cache_candidates = [&dest[..], &all_dest[..], &legacy_dest[..]];
     let cache_result = check_cached_input_apk(id, &cache_candidates, target_ver.as_deref(), force);
@@ -542,6 +537,20 @@ pub async fn fetch_apk(
         },
     )
     .await?;
+
+    // Validate downloaded APK version matches target
+    if let Some(ref target) = target_ver {
+        if let Ok(actual_ver) = crate::utils::apk::get_apk_version_name(&dest) {
+            if &actual_ver != target {
+                let _ = std::fs::remove_file(&dest);
+                let _ = std::fs::remove_file(format!("{dest}.version"));
+                let _ = std::fs::remove_file(format!("{dest}.strategy"));
+                anyhow::bail!(
+                    "{id}: downloaded APK version v{actual_ver} does not match target v{target} — discarded"
+                );
+            }
+        }
+    }
 
     let v_write = target_ver
         .as_deref()
@@ -1359,28 +1368,11 @@ async fn fetch_apkpure(
             found_dl_links.push(format!(
                 "https://d.apkpure.com/b/XAPK/{package}?versionName={ver_encoded}"
             ));
+        } else {
             found_dl_links.push(format!(
-                "https://d.apkpure.com/b/APK/{package}?versionName={ver_encoded}"
-            ));
-            found_dl_links.push(format!(
-                "https://d.apkpure.net/b/XAPK/{package}?versionName={ver_encoded}"
-            ));
-            found_dl_links.push(format!(
-                "https://d.apkpure.net/b/APK/{package}?versionName={ver_encoded}"
+                "https://d.apkpure.com/b/XAPK/{package}?version=latest"
             ));
         }
-        found_dl_links.push(format!(
-            "https://d.apkpure.com/b/XAPK/{package}?version=latest"
-        ));
-        found_dl_links.push(format!(
-            "https://d.apkpure.com/b/APK/{package}?version=latest"
-        ));
-        found_dl_links.push(format!(
-            "https://d.apkpure.net/b/XAPK/{package}?version=latest"
-        ));
-        found_dl_links.push(format!(
-            "https://d.apkpure.net/b/APK/{package}?version=latest"
-        ));
     }
 
     found_dl_links.sort_by_key(|link| {

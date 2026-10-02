@@ -239,13 +239,14 @@ pub fn check_app_version_compatibility(
     let mut has_versioned_patch = false;
     let mut any_compatible = false;
 
+    let enabled: Vec<&str> = if !app.included_patches.is_empty() {
+        app.included_patches.iter().map(|s| s.as_str()).collect()
+    } else {
+        app.patches.iter().map(|s| s.as_str()).collect()
+    };
+
     for patch in patches {
-        if !app.patches.is_empty()
-            && !app
-                .patches
-                .iter()
-                .any(|p| p.eq_ignore_ascii_case(&patch.name))
-        {
+        if !enabled.is_empty() && !enabled.iter().any(|p| p.eq_ignore_ascii_case(&patch.name)) {
             continue;
         }
         for compat in &patch.compatible_packages {

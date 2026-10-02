@@ -1,0 +1,16 @@
+{
+  "build_timestamp": "2026-10-02T22:01:19.201972700+00:00",
+  "built": [],
+  "failed": [
+    {
+      "app_id": "strava",
+      "error": "strava: 0/0 patches applied — version 483.10 not covered by any enabled patch",
+      "status": "failed"
+    }
+  ],
+  "revancex_version": "1.0.5",
+  "summary": {
+    "built_count": 0,
+    "failed_count": 1
+  }
+}

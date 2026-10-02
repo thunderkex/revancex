@@ -79,7 +79,6 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
         post_patch_hooks: vec![],
         display_name: None,
         bundle_priority: 100,
-        allow_any_version: false,
     };
     match crate::utils::keystore::resolve(cfg, &dummy_app).await {
         Ok(ks) => {

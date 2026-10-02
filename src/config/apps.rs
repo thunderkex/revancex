@@ -147,8 +147,6 @@ pub struct AppConfig {
     pub display_name: Option<String>,
     #[serde(default = "default_bundle_priority")]
     pub bundle_priority: u32,
-    #[serde(default)]
-    pub allow_any_version: bool,
 }
 
 fn default_bundle_priority() -> u32 {

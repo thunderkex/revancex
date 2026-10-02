@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use tracing::warn;
 
 pub fn get_apk_version_name<P: AsRef<Path>>(apk_path: P) -> Result<String> {
     let data = read_manifest(apk_path)?;
@@ -246,4 +247,44 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
     }
 
     None
+}
+
+pub fn check_apk_integrity<P: AsRef<Path>>(apk_path: P) -> bool {
+    let path = apk_path.as_ref();
+
+    // Check file exists and has reasonable size
+    let metadata = match std::fs::metadata(path) {
+        Ok(m) => m,
+        Err(_) => return false,
+    };
+
+    if metadata.len() < 1_000_000 {
+        warn!("APK too small: {} bytes", metadata.len());
+        return false;
+    }
+
+    // Try to open as ZIP archive
+    let file = match File::open(path) {
+        Ok(f) => f,
+        Err(_) => return false,
+    };
+
+    let mut archive = match zip::ZipArchive::new(file) {
+        Ok(a) => a,
+        Err(e) => {
+            warn!("Failed to open APK as ZIP: {}", e);
+            return false;
+        }
+    };
+
+    // Check for required files
+    let required = ["AndroidManifest.xml", "classes.dex"];
+    for name in required {
+        if archive.by_name(name).is_err() {
+            warn!("Missing required file: {}", name);
+            return false;
+        }
+    }
+
+    true
 }

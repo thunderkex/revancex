@@ -104,7 +104,29 @@ async fn build_single(
         app.patch_source
     );
 
+    if effective_mode != "install" && app.patch_source != "none" && !app.patch_source.is_empty() {
+        let mpp_path = crate::patcher::metadata::resolve_mpp_path(cfg, app);
+        if let Some(ref p) = mpp_path {
+            if let Ok(meta) = crate::patcher::metadata::load(cfg, p).await {
+                if let Some(err) =
+                    crate::patcher::metadata::check_app_version_compatibility(id, app, &meta)
+                {
+                    if app.version_pin_strict {
+                        anyhow::bail!("{id}: {err}");
+                    } else {
+                        tracing::warn!("{id}: {err} (auto-correcting to compatible version)");
+                    }
+                }
+            }
+        }
+    }
+
     let raw_apk = builder::fetch_apk(cfg, id, app, arch, force, uptodown_cb).await?;
+
+    // Check APK integrity after download
+    if !crate::utils::apk::check_apk_integrity(&raw_apk) {
+        anyhow::bail!("{id}: downloaded APK failed integrity check");
+    }
 
     if effective_mode == "install" || app.patch_source == "none" || app.patch_source.is_empty() {
         let dest = format!("{output_dir}/{id}.apk");

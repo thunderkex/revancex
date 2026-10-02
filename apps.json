@@ -301,7 +301,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": null,
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b104/google_phone-patched.apk",
     "enabled": true,
     "id": "google_phone",
     "mode": "patch",
@@ -316,10 +316,15 @@
     "releases": {
       "module": null,
       "root": null,
-      "stock": null
+      "stock": {
+        "filename": "google_phone-patched.apk",
+        "tag": "auto-v1.0.5-2026.10.02-b104",
+        "updated_at": "2026-10-02 17:09:31 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b104/google_phone-patched.apk"
+      }
     },
-    "tag": null,
-    "updated_at": null
+    "tag": "auto-v1.0.5-2026.10.02-b104",
+    "updated_at": "2026-10-02 17:09:31 UTC"
   },
   {
     "architectures": [
@@ -358,7 +363,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/hungry_shark_world-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b104/hungry_shark_world-patched.apk",
     "enabled": true,
     "id": "hungry_shark_world",
     "mode": "patch",
@@ -375,13 +380,13 @@
       "root": null,
       "stock": {
         "filename": "hungry_shark_world-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.29-b89",
-        "updated_at": "2026-09-29 17:30:17 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/hungry_shark_world-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.02-b104",
+        "updated_at": "2026-10-02 17:09:31 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b104/hungry_shark_world-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.29-b89",
-    "updated_at": "2026-09-29 17:30:17 UTC"
+    "tag": "auto-v1.0.5-2026.10.02-b104",
+    "updated_at": "2026-10-02 17:09:31 UTC"
   },
   {
     "architectures": [
@@ -683,7 +688,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/proton_vpn-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b104/proton_vpn-patched.apk",
     "enabled": true,
     "id": "proton_vpn",
     "mode": "patch",
@@ -700,13 +705,13 @@
       "root": null,
       "stock": {
         "filename": "proton_vpn-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.29-b89",
-        "updated_at": "2026-09-29 17:30:17 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/proton_vpn-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.02-b104",
+        "updated_at": "2026-10-02 17:09:31 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b104/proton_vpn-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.29-b89",
-    "updated_at": "2026-09-29 17:30:17 UTC"
+    "tag": "auto-v1.0.5-2026.10.02-b104",
+    "updated_at": "2026-10-02 17:09:31 UTC"
   },
   {
     "architectures": [
@@ -958,7 +963,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": null,
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b104/subway_surfers-patched.apk",
     "enabled": true,
     "id": "subway_surfers",
     "mode": "patch",
@@ -973,10 +978,15 @@
     "releases": {
       "module": null,
       "root": null,
-      "stock": null
+      "stock": {
+        "filename": "subway_surfers-patched.apk",
+        "tag": "auto-v1.0.5-2026.10.02-b104",
+        "updated_at": "2026-10-02 17:09:31 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b104/subway_surfers-patched.apk"
+      }
     },
-    "tag": null,
-    "updated_at": null
+    "tag": "auto-v1.0.5-2026.10.02-b104",
+    "updated_at": "2026-10-02 17:09:31 UTC"
   },
   {
     "architectures": [

@@ -56,9 +56,9 @@
     },
     "threads": {
       "filename": "threads-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/threads-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.28-b84",
-      "updated_at": "2026-09-28 08:40:43 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/threads-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.02-b103",
+      "updated_at": "2026-10-02 09:17:10 UTC"
     },
     "pixiv": {
       "filename": "pixiv-patched.apk",
@@ -146,9 +146,9 @@
     },
     "facebook": {
       "filename": "facebook-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b91/facebook-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.30-b91",
-      "updated_at": "2026-09-30 03:13:27 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/facebook-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.02-b103",
+      "updated_at": "2026-10-02 09:17:10 UTC"
     },
     "nova_launcher": {
       "filename": "nova_launcher-patched.apk",
@@ -182,9 +182,9 @@
     },
     "tiktok": {
       "filename": "tiktok-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b92/tiktok-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.30-b92",
-      "updated_at": "2026-09-30 11:44:50 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/tiktok-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.02-b103",
+      "updated_at": "2026-10-02 09:17:10 UTC"
     },
     "camscanner": {
       "filename": "camscanner-patched.apk",
@@ -215,6 +215,12 @@
       "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.29-b89/hungry_shark_world-patched.apk",
       "tag": "auto-v1.0.5-2026.09.29-b89",
       "updated_at": "2026-09-29 17:30:17 UTC"
+    },
+    "google_maps": {
+      "filename": "google_maps-patched.apk",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/google_maps-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.02-b103",
+      "updated_at": "2026-10-02 09:17:10 UTC"
     }
   },
   "root_apps": {
@@ -278,15 +284,15 @@
     },
     "revancex-bundle-social.zip": {
       "filename": "revancex-bundle-social.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b92/revancex-bundle-social.zip",
-      "tag": "auto-v1.0.5-2026.09.30-b92",
-      "updated_at": "2026-09-30 11:44:50 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/revancex-bundle-social.zip",
+      "tag": "auto-v1.0.5-2026.10.02-b103",
+      "updated_at": "2026-10-02 09:17:10 UTC"
     },
     "revancex-bundle-all.zip": {
       "filename": "revancex-bundle-all.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.30-b94/revancex-bundle-all.zip",
-      "tag": "auto-v1.0.5-2026.09.30-b94",
-      "updated_at": "2026-09-30 21:49:44 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/revancex-bundle-all.zip",
+      "tag": "auto-v1.0.5-2026.10.02-b103",
+      "updated_at": "2026-10-02 09:17:10 UTC"
     }
   },
   "custom_bundles": {}

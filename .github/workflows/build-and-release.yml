@@ -282,18 +282,20 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md config/releases_registry.json docs/apps.json config/version_cache.json
+          git add README.md config/releases_registry.json docs/apps.json config/version_cache.json config/modules.yaml
           # [skip ci] is mandatory in commit messages to prevent triggering release-cli.yml via config/** path filters
           if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
             COMMIT_MSG="docs: update custom bundle registry for ${{ steps.meta.outputs.tag }} [skip ci]"
           else
             COMMIT_MSG="docs: auto-update apps and modules registry for ${{ steps.meta.outputs.tag }} [skip ci]"
           fi
-          git diff --quiet && git diff --staged --quiet || git commit -m "$COMMIT_MSG"
+          git diff --staged --quiet || git commit -m "$COMMIT_MSG"
+          # Discard any leftover untracked/unstaged working-tree changes before rebase
+          git checkout -- . 2>/dev/null || true
           PUSH_OK=false
           for i in 1 2 3 4 5; do
             git fetch origin ${{ github.ref_name }}
-            git rebase origin/${{ github.ref_name }} || git rebase --abort
+            git rebase origin/${{ github.ref_name }} || (git rebase --abort 2>/dev/null || true)
             if git push origin HEAD:${{ github.ref }}; then
               PUSH_OK=true
               break

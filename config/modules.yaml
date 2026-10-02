@@ -78,6 +78,5 @@ modules:
     module_id: null
     zip_name: null
 single_modules:
-- pinterest
 - youtube
 - youtube_music

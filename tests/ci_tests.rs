@@ -1573,6 +1573,12 @@ fn test_failed_patch_ensures_no_output_in_release_dir() {
     let _ = std::fs::remove_file(format!("{out_dir}/fake_app-patched.apk.idsig"));
     let _ = std::fs::remove_file(format!("{out_dir}/fake_app-root.apk.idsig"));
 
-    assert!(!fake_patched.exists(), "Failed app must not leave patched APK in output dir");
-    assert!(!fake_root.exists(), "Failed app must not leave root APK in output dir");
+    assert!(
+        !fake_patched.exists(),
+        "Failed app must not leave patched APK in output dir"
+    );
+    assert!(
+        !fake_root.exists(),
+        "Failed app must not leave root APK in output dir"
+    );
 }

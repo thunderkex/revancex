@@ -628,7 +628,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/pixiv-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/pixiv-patched.apk",
     "enabled": true,
     "id": "pixiv",
     "mode": "patch",
@@ -645,20 +645,20 @@
       "root": null,
       "stock": {
         "filename": "pixiv-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/pixiv-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.03-b106",
+        "updated_at": "2026-10-03 03:12:04 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/pixiv-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.28-b84",
-    "updated_at": "2026-09-28 08:40:43 UTC"
+    "tag": "auto-v1.0.5-2026.10.03-b106",
+    "updated_at": "2026-10-03 03:12:04 UTC"
   },
   {
     "architectures": [
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/prime_video-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/prime_video-patched.apk",
     "enabled": true,
     "id": "prime_video",
     "mode": "patch",
@@ -675,13 +675,13 @@
       "root": null,
       "stock": {
         "filename": "prime_video-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/prime_video-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.03-b106",
+        "updated_at": "2026-10-03 03:12:04 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/prime_video-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.28-b84",
-    "updated_at": "2026-09-28 08:40:43 UTC"
+    "tag": "auto-v1.0.5-2026.10.03-b106",
+    "updated_at": "2026-10-03 03:12:04 UTC"
   },
   {
     "architectures": [
@@ -808,7 +808,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/soundcloud-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/soundcloud-patched.apk",
     "enabled": true,
     "id": "soundcloud",
     "mode": "both",
@@ -824,19 +824,19 @@
       "module": null,
       "root": {
         "filename": "soundcloud-root.apk",
-        "tag": "auto-v1.0.4-2026.09.17-b26",
-        "updated_at": "2026-09-17 23:48:33 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.4-2026.09.17-b26/soundcloud-root.apk"
+        "tag": "auto-v1.0.5-2026.10.03-b106",
+        "updated_at": "2026-10-03 03:12:04 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/soundcloud-root.apk"
       },
       "stock": {
         "filename": "soundcloud-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/soundcloud-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.03-b106",
+        "updated_at": "2026-10-03 03:12:04 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/soundcloud-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.28-b84",
-    "updated_at": "2026-09-28 08:40:43 UTC"
+    "tag": "auto-v1.0.5-2026.10.03-b106",
+    "updated_at": "2026-10-03 03:12:04 UTC"
   },
   {
     "architectures": [
@@ -933,7 +933,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.4-2026.09.17-b26/strava-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/strava-patched.apk",
     "enabled": true,
     "id": "strava",
     "mode": "patch",
@@ -950,13 +950,13 @@
       "root": null,
       "stock": {
         "filename": "strava-patched.apk",
-        "tag": "auto-v1.0.4-2026.09.17-b26",
-        "updated_at": "2026-09-17 23:48:33 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.4-2026.09.17-b26/strava-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.03-b106",
+        "updated_at": "2026-10-03 03:12:04 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/strava-patched.apk"
       }
     },
-    "tag": "auto-v1.0.4-2026.09.17-b26",
-    "updated_at": "2026-09-17 23:48:33 UTC"
+    "tag": "auto-v1.0.5-2026.10.03-b106",
+    "updated_at": "2026-10-03 03:12:04 UTC"
   },
   {
     "architectures": [
@@ -1053,7 +1053,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/tiktok-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/tiktok-patched.apk",
     "enabled": true,
     "id": "tiktok",
     "mode": "patch",
@@ -1070,13 +1070,13 @@
       "root": null,
       "stock": {
         "filename": "tiktok-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.02-b103",
-        "updated_at": "2026-10-02 09:17:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/tiktok-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.03-b106",
+        "updated_at": "2026-10-03 03:12:04 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/tiktok-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.02-b103",
-    "updated_at": "2026-10-02 09:17:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.03-b106",
+    "updated_at": "2026-10-03 03:12:04 UTC"
   },
   {
     "architectures": [

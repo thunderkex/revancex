@@ -2,7 +2,7 @@ name: Check Patch Updates
 
 on:
   schedule:
-    - cron: '0 */3 * * *'  # Run every 3 hours
+    - cron: '0 */23 * * *' 
   workflow_dispatch:
     inputs:
       force_build:

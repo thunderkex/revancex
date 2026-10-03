@@ -226,9 +226,9 @@ pub fn resolve_app_version_and_strategy(
         };
 
         if is_stale {
-            if app.version_pin_strict {
+            if app.version_pin_strict || patch_supported_versions.is_empty() {
                 warn!(
-                    "{id}: pinned version v{pin} falls outside compatible patch range, but version_pin_strict=true — honoring pin"
+                    "{id}: pinned version v{pin} falls outside compatible patch range, but version_pin_strict=true (or no compatible versions available) — honoring pin"
                 );
                 (
                     Some(pin.to_string()),
@@ -538,15 +538,31 @@ pub async fn fetch_apk(
     )
     .await?;
 
-    // Validate downloaded APK version matches target
-    if let Some(ref target) = target_ver {
-        if let Ok(actual_ver) = crate::utils::apk::get_apk_version_name(&dest) {
-            if &actual_ver != target {
+    if let Ok(actual_ver) = crate::utils::apk::get_apk_version_name(&dest) {
+        let actual_parts = crate::utils::semver::parse_version_numbers(&actual_ver);
+        if let Some(ref target) = target_ver {
+            let target_parts = crate::utils::semver::parse_version_numbers(target);
+            if &actual_ver != target && (actual_parts.is_empty() || actual_parts != target_parts) {
                 let _ = std::fs::remove_file(&dest);
                 let _ = std::fs::remove_file(format!("{dest}.version"));
                 let _ = std::fs::remove_file(format!("{dest}.strategy"));
                 anyhow::bail!(
                     "{id}: downloaded APK version v{actual_ver} does not match target v{target} — discarded"
+                );
+            }
+        } else if !patch_supported_versions.is_empty() {
+            let is_supported = patch_supported_versions.iter().any(|v| {
+                v == &actual_ver
+                    || (!actual_parts.is_empty()
+                        && crate::utils::semver::parse_version_numbers(v) == actual_parts)
+            });
+            if !is_supported {
+                let _ = std::fs::remove_file(&dest);
+                let _ = std::fs::remove_file(format!("{dest}.version"));
+                let _ = std::fs::remove_file(format!("{dest}.strategy"));
+                anyhow::bail!(
+                    "{id}: downloaded APK version v{actual_ver} is not compatible with any enabled patch (supported: {:?}) — discarded",
+                    patch_supported_versions
                 );
             }
         }
@@ -986,7 +1002,6 @@ async fn fetch_apkeep(package: &str, dest: &str, target_version: Option<&str>) -
     let tmp_dir = tempfile::tempdir()?;
     let out_dir = tmp_dir.path().to_str().unwrap();
 
-    let mut success = false;
     if let Some(ver) = target_version {
         let app_arg = format!("{package}@{ver}");
         info!("apkeep: attempting targeted download {app_arg}");
@@ -994,16 +1009,12 @@ async fn fetch_apkeep(package: &str, dest: &str, target_version: Option<&str>) -
             .args(["-a", &app_arg, "-d", "apk-pure", out_dir])
             .status()
             .await;
-        if let Ok(st) = res {
-            if st.success() {
-                success = true;
-            } else {
-                warn!("apkeep: targeted download for {app_arg} failed (exit {st}), falling back to latest");
-            }
+        match res {
+            Ok(st) if st.success() => {}
+            Ok(st) => anyhow::bail!("apkeep: targeted download for {app_arg} failed (exit {st})"),
+            Err(e) => anyhow::bail!("apkeep: targeted download for {app_arg} failed to run: {e}"),
         }
-    }
-
-    if !success {
+    } else {
         info!("apkeep: attempting download for {package} (latest)");
         let status = tokio::process::Command::new("apkeep")
             .args(["-a", package, "-d", "apk-pure", out_dir])
@@ -1305,8 +1316,9 @@ async fn fetch_apkpure(
         if let Some(ver) = target_version {
             let ver_clean = ver.replace(' ', "-");
             dl_pages.push(format!("{can_url}/download/{ver_clean}"));
+        } else {
+            dl_pages.push(format!("{can_url}/download"));
         }
-        dl_pages.push(format!("{can_url}/download"));
     }
 
     let re_dl_link = Regex::new(

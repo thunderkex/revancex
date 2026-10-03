@@ -61,11 +61,21 @@ pub async fn run_pipeline(
             Ok(Ok(path)) => built.push(path),
             Ok(Err(e)) => {
                 warn!("Build failed for {id}: {e}");
-                failed.push((id, e.to_string()));
+                failed.push((id.clone(), e.to_string()));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}.apk"));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk"));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk"));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk.idsig"));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk.idsig"));
             }
             Err(e) => {
                 warn!("Task panicked for {id}: {e}");
-                failed.push((id, format!("task panicked: {e}")));
+                failed.push((id.clone(), format!("task panicked: {e}")));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}.apk"));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk"));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk"));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk.idsig"));
+                let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk.idsig"));
             }
         }
     }
@@ -111,7 +121,9 @@ async fn build_single(
                 if let Some(err) =
                     crate::patcher::metadata::check_app_version_compatibility(id, app, &meta)
                 {
-                    if app.version_pin_strict {
+                    let patch_supported =
+                        crate::builder::resolve_all_patch_compatible_versions(cfg, app).await;
+                    if app.version_pin_strict || patch_supported.is_empty() {
                         anyhow::bail!("{id}: {err}");
                     } else {
                         tracing::warn!("{id}: {err} (auto-correcting to compatible version)");

@@ -1520,3 +1520,59 @@ async fn test_single_module_skips_when_module_single_is_false() {
         "revancex-module-adguard.zip must NOT be created even with all-enabled"
     );
 }
+
+#[test]
+fn test_stale_pin_with_empty_compatible_versions_does_not_auto_correct() {
+    use revancex::patcher::metadata::{PackageCompat, PatchMeta};
+
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let mut app = cfg.apps.values().next().unwrap().clone();
+    app.package = "com.test.app".to_string();
+    app.version = Some("1.0.0".to_string());
+    app.version_pin_strict = false;
+    app.patches = vec!["PatchA".to_string()];
+
+    let patch_meta = vec![PatchMeta {
+        name: "PatchA".to_string(),
+        description: "Patch A".to_string(),
+        compatible_packages: vec![PackageCompat {
+            name: "com.test.app".to_string(),
+            versions: vec!["2.0.0".to_string()],
+        }],
+    }];
+    let patch_supported = Vec::new();
+
+    let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
+        "test_app",
+        &app,
+        Some(&patch_meta),
+        &patch_supported,
+    );
+
+    assert_eq!(target_ver, Some("1.0.0".to_string()));
+    assert_eq!(strategy, "strict-honored-despite-stale");
+    assert_eq!(candidates, vec!["1.0.0".to_string()]);
+}
+
+#[test]
+fn test_failed_patch_ensures_no_output_in_release_dir() {
+    let tmp = tempfile::tempdir().unwrap();
+    let out_dir = tmp.path().to_str().unwrap();
+
+    let fake_patched = tmp.path().join("fake_app-patched.apk");
+    let fake_root = tmp.path().join("fake_app-root.apk");
+    std::fs::write(&fake_patched, b"fake content").unwrap();
+    std::fs::write(&fake_root, b"fake content").unwrap();
+
+    assert!(fake_patched.exists());
+    assert!(fake_root.exists());
+
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app.apk"));
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-patched.apk"));
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-root.apk"));
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-patched.apk.idsig"));
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-root.apk.idsig"));
+
+    assert!(!fake_patched.exists(), "Failed app must not leave patched APK in output dir");
+    assert!(!fake_root.exists(), "Failed app must not leave root APK in output dir");
+}

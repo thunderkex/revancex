@@ -60,6 +60,7 @@ pub async fn patch(
         .unwrap_or_else(|| app.patch_source.clone());
 
     let suffix = if is_root { "-root.apk" } else { "-patched.apk" };
+    let staging_apk = format!("{}/{id}{suffix}-stage.apk", cfg.build.temp_dir);
     let output_apk = format!("{output_dir}/{id}{suffix}");
 
     let mpp_path = metadata::resolve_mpp_path(cfg, app);
@@ -97,7 +98,7 @@ pub async fn patch(
         &repo,
         app,
         apk_path,
-        &output_apk,
+        &staging_apk,
         &plan,
     );
 
@@ -142,6 +143,8 @@ pub async fn patch(
         .await
         .context("java not found — install JDK 21+")?;
     if !output.status.success() {
+        let _ = std::fs::remove_file(&staging_apk);
+        let _ = std::fs::remove_file(&output_apk);
         anyhow::bail!("{id}: morphe-cli exited with {}", output.status);
     }
 
@@ -156,7 +159,7 @@ pub async fn patch(
 
     let dex_changed = match (
         crate::utils::apk::dex_entries_crc(apk_path),
-        crate::utils::apk::dex_entries_crc(&output_apk),
+        crate::utils::apk::dex_entries_crc(&staging_apk),
     ) {
         (Ok(in_crc), Ok(out_crc)) => in_crc != out_crc,
         _ => true,
@@ -169,6 +172,8 @@ pub async fn patch(
     };
 
     if zero_applied {
+        let _ = std::fs::remove_file(&staging_apk);
+        let _ = std::fs::remove_file(&output_apk);
         let ver_info = apk_version
             .as_deref()
             .map(|v| format!(" — version {v} not covered by any enabled patch"))
@@ -176,8 +181,6 @@ pub async fn patch(
         let plan_count = plan.included.len();
         anyhow::bail!("{id}: 0/{plan_count} patches applied{ver_info}");
     }
-
-    info!("{id}: patched → {output_apk}");
 
     for hook in &app.post_patch_hooks {
         let should_run = match hook.when {
@@ -193,13 +196,15 @@ pub async fn patch(
                 tracing::warn!("{id}: optional hook script not found: {}", hook.script);
                 continue;
             } else {
+                let _ = std::fs::remove_file(&staging_apk);
+                let _ = std::fs::remove_file(&output_apk);
                 anyhow::bail!("{id}: declared hook script not found: {}", hook.script);
             }
         }
         info!("{id}: running post-patch hook: {}", hook.script);
         let status = tokio::process::Command::new("python")
             .arg(&hook.script)
-            .arg(&output_apk)
+            .arg(&staging_apk)
             .arg(&ks.file)
             .arg(&ks.alias)
             .arg(&ks.password)
@@ -213,6 +218,8 @@ pub async fn patch(
                 if hook.optional {
                     tracing::warn!("{id}: optional hook {} exited with {st}", hook.script);
                 } else {
+                    let _ = std::fs::remove_file(&staging_apk);
+                    let _ = std::fs::remove_file(&output_apk);
                     anyhow::bail!("{id}: hook {} exited with {st}", hook.script);
                 }
             }
@@ -220,11 +227,34 @@ pub async fn patch(
                 if hook.optional {
                     tracing::warn!("{id}: optional hook {} failed to launch: {e}", hook.script);
                 } else {
+                    let _ = std::fs::remove_file(&staging_apk);
+                    let _ = std::fs::remove_file(&output_apk);
                     anyhow::bail!("{id}: hook {} failed to launch: {e}", hook.script);
                 }
             }
         }
     }
 
+    if !crate::utils::apk::check_apk_integrity(&staging_apk) {
+        let _ = std::fs::remove_file(&staging_apk);
+        let _ = std::fs::remove_file(&output_apk);
+        anyhow::bail!("{id}: patched APK failed integrity check");
+    }
+
+    std::fs::rename(&staging_apk, &output_apk)
+        .or_else(|_| {
+            std::fs::copy(&staging_apk, &output_apk)
+                .map(|_| ())
+                .and_then(|_| std::fs::remove_file(&staging_apk))
+        })
+        .with_context(|| format!("failed to move patched APK to {output_apk}"))?;
+
+    let staging_idsig = format!("{staging_apk}.idsig");
+    let output_idsig = format!("{output_apk}.idsig");
+    if Path::new(&staging_idsig).exists() {
+        let _ = std::fs::rename(&staging_idsig, &output_idsig);
+    }
+
+    info!("{id}: patched → {output_apk}");
     Ok(output_apk)
 }

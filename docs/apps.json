@@ -181,7 +181,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.04-b109/facebook-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.07-b112/facebook-patched.apk",
     "enabled": true,
     "id": "facebook",
     "mode": "patch",
@@ -198,13 +198,13 @@
       "root": null,
       "stock": {
         "filename": "facebook-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.04-b109",
-        "updated_at": "2026-10-04 02:39:38 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.04-b109/facebook-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.07-b112",
+        "updated_at": "2026-10-07 02:19:42 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.07-b112/facebook-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.04-b109",
-    "updated_at": "2026-10-04 02:39:38 UTC"
+    "tag": "auto-v1.0.5-2026.10.07-b112",
+    "updated_at": "2026-10-07 02:19:42 UTC"
   },
   {
     "architectures": [
@@ -271,7 +271,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/google_maps-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.07-b112/google_maps-patched.apk",
     "enabled": true,
     "id": "google_maps",
     "mode": "patch",
@@ -288,13 +288,13 @@
       "root": null,
       "stock": {
         "filename": "google_maps-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.02-b103",
-        "updated_at": "2026-10-02 09:17:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.02-b103/google_maps-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.07-b112",
+        "updated_at": "2026-10-07 02:19:42 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.07-b112/google_maps-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.02-b103",
-    "updated_at": "2026-10-02 09:17:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.07-b112",
+    "updated_at": "2026-10-07 02:19:42 UTC"
   },
   {
     "architectures": [
@@ -1055,7 +1055,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.04-b109/tiktok-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.07-b112/tiktok-patched.apk",
     "enabled": true,
     "id": "tiktok",
     "mode": "patch",
@@ -1072,13 +1072,13 @@
       "root": null,
       "stock": {
         "filename": "tiktok-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.04-b109",
-        "updated_at": "2026-10-04 02:39:38 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.04-b109/tiktok-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.07-b112",
+        "updated_at": "2026-10-07 02:19:42 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.07-b112/tiktok-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.04-b109",
-    "updated_at": "2026-10-04 02:39:38 UTC"
+    "tag": "auto-v1.0.5-2026.10.07-b112",
+    "updated_at": "2026-10-07 02:19:42 UTC"
   },
   {
     "architectures": [

@@ -271,7 +271,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.07-b112/google_maps-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.08-b113/google_maps-patched.apk",
     "enabled": true,
     "id": "google_maps",
     "mode": "patch",
@@ -288,13 +288,13 @@
       "root": null,
       "stock": {
         "filename": "google_maps-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.07-b112",
-        "updated_at": "2026-10-07 02:19:42 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.07-b112/google_maps-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.08-b113",
+        "updated_at": "2026-10-08 02:42:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.08-b113/google_maps-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.07-b112",
-    "updated_at": "2026-10-07 02:19:42 UTC"
+    "tag": "auto-v1.0.5-2026.10.08-b113",
+    "updated_at": "2026-10-08 02:42:38 UTC"
   },
   {
     "architectures": [
@@ -393,7 +393,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.06-b111/instagram-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.08-b113/instagram-patched.apk",
     "enabled": true,
     "id": "instagram",
     "mode": "patch",
@@ -410,13 +410,13 @@
       "root": null,
       "stock": {
         "filename": "instagram-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.06-b111",
-        "updated_at": "2026-10-06 02:55:04 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.06-b111/instagram-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.08-b113",
+        "updated_at": "2026-10-08 02:42:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.08-b113/instagram-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.06-b111",
-    "updated_at": "2026-10-06 02:55:04 UTC"
+    "tag": "auto-v1.0.5-2026.10.08-b113",
+    "updated_at": "2026-10-08 02:42:38 UTC"
   },
   {
     "architectures": [
@@ -511,7 +511,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/mx_player-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.08-b113/mx_player-patched.apk",
     "enabled": true,
     "id": "mx_player",
     "mode": "patch",
@@ -528,13 +528,13 @@
       "root": null,
       "stock": {
         "filename": "mx_player-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/mx_player-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.08-b113",
+        "updated_at": "2026-10-08 02:42:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.08-b113/mx_player-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.09.28-b84",
-    "updated_at": "2026-09-28 08:40:43 UTC"
+    "tag": "auto-v1.0.5-2026.10.08-b113",
+    "updated_at": "2026-10-08 02:42:38 UTC"
   },
   {
     "architectures": [

@@ -271,7 +271,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.09-b114/google_maps-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.10-b115/google_maps-patched.apk",
     "enabled": true,
     "id": "google_maps",
     "mode": "patch",
@@ -288,13 +288,13 @@
       "root": null,
       "stock": {
         "filename": "google_maps-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.09-b114",
-        "updated_at": "2026-10-09 03:01:49 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.09-b114/google_maps-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.10-b115",
+        "updated_at": "2026-10-10 02:18:05 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.10-b115/google_maps-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.09-b114",
-    "updated_at": "2026-10-09 03:01:49 UTC"
+    "tag": "auto-v1.0.5-2026.10.10-b115",
+    "updated_at": "2026-10-10 02:18:05 UTC"
   },
   {
     "architectures": [
@@ -393,7 +393,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.08-b113/instagram-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.10-b115/instagram-patched.apk",
     "enabled": true,
     "id": "instagram",
     "mode": "patch",
@@ -410,13 +410,13 @@
       "root": null,
       "stock": {
         "filename": "instagram-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.08-b113",
-        "updated_at": "2026-10-08 02:42:38 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.08-b113/instagram-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.10-b115",
+        "updated_at": "2026-10-10 02:18:05 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.10-b115/instagram-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.08-b113",
-    "updated_at": "2026-10-08 02:42:38 UTC"
+    "tag": "auto-v1.0.5-2026.10.10-b115",
+    "updated_at": "2026-10-10 02:18:05 UTC"
   },
   {
     "architectures": [

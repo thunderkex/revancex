@@ -181,7 +181,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/facebook-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/facebook-patched.apk",
     "enabled": true,
     "id": "facebook",
     "mode": "patch",
@@ -198,13 +198,13 @@
       "root": null,
       "stock": {
         "filename": "facebook-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.11-b116",
-        "updated_at": "2026-10-11 02:05:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/facebook-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.12-b117",
+        "updated_at": "2026-10-12 02:29:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/facebook-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.11-b116",
-    "updated_at": "2026-10-11 02:05:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.12-b117",
+    "updated_at": "2026-10-12 02:29:17 UTC"
   },
   {
     "architectures": [
@@ -271,7 +271,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.10-b115/google_maps-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk",
     "enabled": true,
     "id": "google_maps",
     "mode": "patch",
@@ -288,20 +288,20 @@
       "root": null,
       "stock": {
         "filename": "google_maps-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.10-b115",
-        "updated_at": "2026-10-10 02:18:05 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.10-b115/google_maps-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.12-b117",
+        "updated_at": "2026-10-12 02:29:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.10-b115",
-    "updated_at": "2026-10-10 02:18:05 UTC"
+    "tag": "auto-v1.0.5-2026.10.12-b117",
+    "updated_at": "2026-10-12 02:29:17 UTC"
   },
   {
     "architectures": [
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/google_phone-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_phone-patched.apk",
     "enabled": true,
     "id": "google_phone",
     "mode": "patch",
@@ -318,13 +318,13 @@
       "root": null,
       "stock": {
         "filename": "google_phone-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.11-b116",
-        "updated_at": "2026-10-11 02:05:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/google_phone-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.12-b117",
+        "updated_at": "2026-10-12 02:29:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_phone-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.11-b116",
-    "updated_at": "2026-10-11 02:05:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.12-b117",
+    "updated_at": "2026-10-12 02:29:17 UTC"
   },
   {
     "architectures": [
@@ -363,7 +363,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/hungry_shark_world-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/hungry_shark_world-patched.apk",
     "enabled": true,
     "id": "hungry_shark_world",
     "mode": "patch",
@@ -380,13 +380,13 @@
       "root": null,
       "stock": {
         "filename": "hungry_shark_world-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.11-b116",
-        "updated_at": "2026-10-11 02:05:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/hungry_shark_world-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.12-b117",
+        "updated_at": "2026-10-12 02:29:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/hungry_shark_world-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.11-b116",
-    "updated_at": "2026-10-11 02:05:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.12-b117",
+    "updated_at": "2026-10-12 02:29:17 UTC"
   },
   {
     "architectures": [
@@ -688,7 +688,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/proton_vpn-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/proton_vpn-patched.apk",
     "enabled": true,
     "id": "proton_vpn",
     "mode": "patch",
@@ -705,13 +705,13 @@
       "root": null,
       "stock": {
         "filename": "proton_vpn-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.11-b116",
-        "updated_at": "2026-10-11 02:05:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/proton_vpn-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.12-b117",
+        "updated_at": "2026-10-12 02:29:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/proton_vpn-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.11-b116",
-    "updated_at": "2026-10-11 02:05:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.12-b117",
+    "updated_at": "2026-10-12 02:29:17 UTC"
   },
   {
     "architectures": [
@@ -965,7 +965,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/subway_surfers-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/subway_surfers-patched.apk",
     "enabled": true,
     "id": "subway_surfers",
     "mode": "patch",
@@ -982,13 +982,13 @@
       "root": null,
       "stock": {
         "filename": "subway_surfers-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.11-b116",
-        "updated_at": "2026-10-11 02:05:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/subway_surfers-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.12-b117",
+        "updated_at": "2026-10-12 02:29:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/subway_surfers-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.11-b116",
-    "updated_at": "2026-10-11 02:05:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.12-b117",
+    "updated_at": "2026-10-12 02:29:17 UTC"
   },
   {
     "architectures": [
@@ -1055,7 +1055,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/tiktok-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/tiktok-patched.apk",
     "enabled": true,
     "id": "tiktok",
     "mode": "patch",
@@ -1072,13 +1072,13 @@
       "root": null,
       "stock": {
         "filename": "tiktok-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.11-b116",
-        "updated_at": "2026-10-11 02:05:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/tiktok-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.12-b117",
+        "updated_at": "2026-10-12 02:29:17 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/tiktok-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.11-b116",
-    "updated_at": "2026-10-11 02:05:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.12-b117",
+    "updated_at": "2026-10-12 02:29:17 UTC"
   },
   {
     "architectures": [

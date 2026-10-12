@@ -406,7 +406,7 @@ pub async fn fetch_apk(
         .map(|s| s.as_str())
         .collect();
 
-    let default_order: &[&str] = &["apkmirror", "uptodown", "apkpure", "aptoide", "apkeep"];
+    let default_order: &[&str] = &["apkeep", "apkmirror", "uptodown", "apkpure", "aptoide"];
     let priority: Vec<&str> = if app.source_priority.is_empty() {
         default_order.to_vec()
     } else {
@@ -1033,14 +1033,30 @@ async fn resolve_github_asset_url(
     Ok(url.to_string())
 }
 
+fn resolve_apkeep_cmd() -> String {
+    if crate::utils::is_command_available("apkeep") {
+        return "apkeep".to_string();
+    }
+    let local = if cfg!(windows) {
+        "tools/apkeep.exe"
+    } else {
+        "tools/apkeep"
+    };
+    if std::path::Path::new(local).exists() {
+        return local.to_string();
+    }
+    "apkeep".to_string()
+}
+
 async fn fetch_apkeep(package: &str, dest: &str, target_version: Option<&str>) -> Result<String> {
     let tmp_dir = tempfile::tempdir()?;
     let out_dir = tmp_dir.path().to_str().unwrap();
+    let apkeep_cmd = resolve_apkeep_cmd();
 
     if let Some(ver) = target_version {
         let app_arg = format!("{package}@{ver}");
         info!("apkeep: attempting targeted download {app_arg}");
-        let res = tokio::process::Command::new("apkeep")
+        let res = tokio::process::Command::new(&apkeep_cmd)
             .args(["-a", &app_arg, "-d", "apk-pure", out_dir])
             .status()
             .await;
@@ -1051,7 +1067,7 @@ async fn fetch_apkeep(package: &str, dest: &str, target_version: Option<&str>) -
         }
     } else {
         info!("apkeep: attempting download for {package} (latest)");
-        let status = tokio::process::Command::new("apkeep")
+        let status = tokio::process::Command::new(&apkeep_cmd)
             .args(["-a", package, "-d", "apk-pure", out_dir])
             .status()
             .await

@@ -79,6 +79,21 @@ pub fn make_browser_client(cfg: &Config) -> Result<Client> {
         .map_err(Into::into)
 }
 
+pub fn is_command_available(cmd: &str) -> bool {
+    if let Ok(path_var) = std::env::var("PATH") {
+        for dir in std::env::split_paths(&path_var) {
+            let p = dir.join(cmd);
+            if p.is_file() {
+                return true;
+            }
+            if cfg!(windows) && dir.join(format!("{cmd}.exe")).is_file() {
+                return true;
+            }
+        }
+    }
+    false
+}
+
 pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<()> {
     let client = make_github_client(cfg)?;
     let mut version_cache = cache::load_version_cache(&cfg.build.version_cache);
@@ -130,6 +145,38 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
         .await
         {
             tracing::warn!("APKEditor download failed, split-bundle merging unavailable: {e}");
+        }
+    }
+
+    let apkeep_filename = if cfg!(windows) {
+        "apkeep.exe"
+    } else {
+        "apkeep"
+    };
+    let apkeep_dest = format!("{}/{apkeep_filename}", cfg.build.tools_dir);
+    if !is_command_available("apkeep") && !std::path::Path::new(&apkeep_dest).exists() {
+        let apkeep_url = if cfg!(windows) {
+            "https://github.com/EFForg/apkeep/releases/download/1.1.0/apkeep-x86_64-pc-windows-msvc.exe"
+        } else {
+            "https://github.com/EFForg/apkeep/releases/download/1.1.0/apkeep-x86_64-unknown-linux-gnu"
+        };
+        if let Err(e) = download_file_with_client(
+            &client,
+            apkeep_url,
+            &apkeep_dest,
+            cfg.build.download_retries,
+            None,
+        )
+        .await
+        {
+            tracing::warn!("apkeep download failed, fallback APK downloads may be limited: {e}");
+        } else {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let _ =
+                    std::fs::set_permissions(&apkeep_dest, std::fs::Permissions::from_mode(0o755));
+            }
         }
     }
 

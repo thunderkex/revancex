@@ -912,6 +912,15 @@ apkpure_url: "com.example.app"
 }
 
 #[test]
+fn test_is_command_available_std_commands() {
+    let test_cmd = if cfg!(windows) { "cmd" } else { "sh" };
+    assert!(revancex::utils::is_command_available(test_cmd));
+    assert!(!revancex::utils::is_command_available(
+        "nonexistent_binary_xyz_12345"
+    ));
+}
+
+#[test]
 fn test_keystore_password_fallback_on_empty_or_short() {
     std::env::set_var("KEYSTORE_PASSWORD", "");
     assert_eq!(revancex::utils::get_keystore_password(), "revanced");

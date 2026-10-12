@@ -9,6 +9,10 @@ inputs:
     description: 'Release tag to download (empty for latest)'
     required: false
     default: ''
+  force_build:
+    description: 'Force build CLI from source rather than downloading pre-built binary'
+    required: false
+    default: 'false'
 
 outputs:
   cli_source:
@@ -32,12 +36,16 @@ runs:
         CLI_URL="https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/revancex-linux-x86_64.tar.gz"
 
         DOWNLOADED=false
-        echo "Attempting to download pre-built CLI for ${TARGET_TAG} from ${CLI_URL}..."
-        if curl -sSLf "$CLI_URL" | tar -xz -C bin/; then
-          echo "Successfully downloaded pre-built CLI binary (${TARGET_TAG})."
-          DOWNLOADED=true
+        if [ "${{ inputs.force_build }}" = "true" ]; then
+          echo "force_build is true; skipping download and building CLI binary from source..."
         else
-          echo "Pre-built binary not found for ${TARGET_TAG}."
+          echo "Attempting to download pre-built CLI for ${TARGET_TAG} from ${CLI_URL}..."
+          if curl -sSLf "$CLI_URL" | tar -xz -C bin/; then
+            echo "Successfully downloaded pre-built CLI binary (${TARGET_TAG})."
+            DOWNLOADED=true
+          else
+            echo "Pre-built binary not found for ${TARGET_TAG}."
+          fi
         fi
 
         if [ "$DOWNLOADED" = "false" ]; then

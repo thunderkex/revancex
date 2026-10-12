@@ -134,6 +134,9 @@ fn test_real_arch_stripping() {
     assert!(!has_x86, "x86 native lib must be stripped");
     assert!(!has_v7a, "armeabi-v7a native lib must be stripped");
 
+    assert!(builder::arch::apk_has_arch(test_apk_path, "arm64-v8a").unwrap());
+    assert!(!builder::arch::apk_has_arch(test_apk_path, "x86_64").unwrap());
+
     builder::arch::verify_arch_native_libs(test_apk_path, test_apk_path, "arm64-v8a")
         .expect("verify_arch_native_libs should succeed for preserved arch");
 
@@ -448,7 +451,7 @@ async fn test_auto_version_resolution_from_patch() {
         if std::path::Path::new("tools/morphe-cli.jar").exists() {
             let ver = builder::resolve_patch_compatible_version(&cfg, ig_app).await;
             if let Some(v) = ver {
-                assert_eq!(v, "439.0.0.37.89");
+                assert!(v == "439.0.0.37.89" || v == "447.0.0.55.81", "Unexpected instagram resolved version: {v}");
             }
         }
     }

@@ -113,6 +113,19 @@ pub fn verify_arch_native_libs(
     Ok(())
 }
 
+pub fn apk_has_arch(apk: &str, target_arch: &str) -> Result<bool> {
+    let file = std::fs::File::open(apk)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    let target_prefix = format!("lib/{target_arch}/");
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i)?;
+        if entry.name().starts_with(&target_prefix) && entry.name().ends_with(".so") {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 fn should_strip(name: &str, target_arch: &str) -> bool {
     if name.starts_with("lib/") {
         let parts: Vec<&str> = name.split('/').collect();

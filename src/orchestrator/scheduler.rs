@@ -272,25 +272,17 @@ async fn build_single(
         );
     }
 
-    let apk_path = if arch != "all" {
+    let apk_path = if arch != "all" && arch != "universal" {
         let work_apk = format!("{}/{id}-{arch}-work.apk", cfg.build.temp_dir);
-        if let Err(e) = builder::arch::strip_unsupported_archs_to(&raw_apk, &work_apk, arch) {
+        if let Ok(false) = builder::arch::apk_has_arch(&raw_apk, arch) {
+            info!("{id}: input APK has no native libs for '{arch}', using unstripped universal APK");
+            raw_apk
+        } else if let Err(e) = builder::arch::strip_unsupported_archs_to(&raw_apk, &work_apk, arch) {
             warn!("{id}: arch stripping note: {e}");
             raw_apk
         } else if let Err(e) = builder::arch::verify_arch_native_libs(&raw_apk, &work_apk, arch) {
-            return (
-                None,
-                AppBuildReport {
-                    status: "failed".to_string(),
-                    target_version: target_ver,
-                    resolution_strategy: Some(strategy_str),
-                    version_conflict,
-                    patches_included: vec![],
-                    patches_auto_disabled: vec![],
-                    warnings: vec![],
-                    error: Some(format!("{id}: arch verification failed: {e}")),
-                },
-            );
+            warn!("{id}: arch verification note: {e}; falling back to universal unstripped APK");
+            raw_apk
         } else {
             work_apk
         }

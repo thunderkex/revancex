@@ -156,8 +156,10 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
             Ok(p) => p,
             Err(e) => {
                 tracing::warn!("{app_name}: could not load patch metadata for version check: {e}");
-                unresolved_apps
-                    .insert(app_name.clone(), SkipReason::MetadataLoadFailed(e.to_string()));
+                unresolved_apps.insert(
+                    app_name.clone(),
+                    SkipReason::MetadataLoadFailed(e.to_string()),
+                );
                 continue;
             }
         };

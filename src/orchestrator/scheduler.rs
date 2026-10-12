@@ -275,9 +275,12 @@ async fn build_single(
     let apk_path = if arch != "all" && arch != "universal" {
         let work_apk = format!("{}/{id}-{arch}-work.apk", cfg.build.temp_dir);
         if let Ok(false) = builder::arch::apk_has_arch(&raw_apk, arch) {
-            info!("{id}: input APK has no native libs for '{arch}', using unstripped universal APK");
+            info!(
+                "{id}: input APK has no native libs for '{arch}', using unstripped universal APK"
+            );
             raw_apk
-        } else if let Err(e) = builder::arch::strip_unsupported_archs_to(&raw_apk, &work_apk, arch) {
+        } else if let Err(e) = builder::arch::strip_unsupported_archs_to(&raw_apk, &work_apk, arch)
+        {
             warn!("{id}: arch stripping note: {e}");
             raw_apk
         } else if let Err(e) = builder::arch::verify_arch_native_libs(&raw_apk, &work_apk, arch) {

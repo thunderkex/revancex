@@ -451,7 +451,10 @@ async fn test_auto_version_resolution_from_patch() {
         if std::path::Path::new("tools/morphe-cli.jar").exists() {
             let ver = builder::resolve_patch_compatible_version(&cfg, ig_app).await;
             if let Some(v) = ver {
-                assert!(v == "439.0.0.37.89" || v == "447.0.0.55.81", "Unexpected instagram resolved version: {v}");
+                assert!(
+                    v == "439.0.0.37.89" || v == "447.0.0.55.81",
+                    "Unexpected instagram resolved version: {v}"
+                );
             }
         }
     }
@@ -1242,9 +1245,8 @@ fn test_stale_pin_honored_when_strict() {
             versions: vec!["2.0.0".to_string()],
         }],
     }];
-    let patch_supported = revancex::patcher::metadata::CompatibleVersions::Intersection(vec![
-        "2.0.0".to_string(),
-    ]);
+    let patch_supported =
+        revancex::patcher::metadata::CompatibleVersions::Intersection(vec!["2.0.0".to_string()]);
 
     let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
         "test_app",

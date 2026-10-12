@@ -6,9 +6,25 @@ use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tracing::{info, warn};
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AppBuildReport {
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolution_strategy: Option<String>,
+    pub version_conflict: Option<Vec<(String, Vec<String>)>>,
+    pub patches_included: Vec<String>,
+    pub patches_auto_disabled: Vec<crate::patcher::plan::DisabledPatch>,
+    pub warnings: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
 pub struct BuildSummary {
     pub built: Vec<String>,
     pub failed: Vec<(String, String)>, // (app_id, error_message)
+    pub reports: std::collections::BTreeMap<String, AppBuildReport>,
 }
 
 pub async fn run_pipeline(
@@ -56,12 +72,21 @@ pub async fn run_pipeline(
 
     let mut built = Vec::new();
     let mut failed = Vec::new();
+    let mut reports = std::collections::BTreeMap::new();
     for (id, handle) in handles {
         match handle.await {
-            Ok(Ok(path)) => built.push(path),
-            Ok(Err(e)) => {
-                warn!("Build failed for {id}: {e}");
-                failed.push((id.clone(), e.to_string()));
+            Ok((Some(path), report)) => {
+                reports.insert(id.clone(), report);
+                built.push(path);
+            }
+            Ok((None, report)) => {
+                let err_str = report
+                    .error
+                    .clone()
+                    .unwrap_or_else(|| "build failed".to_string());
+                warn!("Build failed for {id}: {err_str}");
+                failed.push((id.clone(), err_str));
+                reports.insert(id.clone(), report);
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk"));
@@ -70,7 +95,21 @@ pub async fn run_pipeline(
             }
             Err(e) => {
                 warn!("Task panicked for {id}: {e}");
-                failed.push((id.clone(), format!("task panicked: {e}")));
+                let err_str = format!("task panicked: {e}");
+                failed.push((id.clone(), err_str.clone()));
+                reports.insert(
+                    id.clone(),
+                    AppBuildReport {
+                        status: "failed".to_string(),
+                        target_version: None,
+                        resolution_strategy: None,
+                        version_conflict: None,
+                        patches_included: vec![],
+                        patches_auto_disabled: vec![],
+                        warnings: vec![],
+                        error: Some(err_str),
+                    },
+                );
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk"));
@@ -80,7 +119,11 @@ pub async fn run_pipeline(
         }
     }
 
-    Ok(BuildSummary { built, failed })
+    Ok(BuildSummary {
+        built,
+        failed,
+        reports,
+    })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -93,7 +136,7 @@ async fn build_single(
     force: bool,
     output_dir: &str,
     uptodown_cb: Option<Arc<std::sync::atomic::AtomicU32>>,
-) -> Result<String> {
+) -> (Option<String>, AppBuildReport) {
     let effective_mode = match cli_mode {
         Some(m) if !m.is_empty() => m,
         _ => {
@@ -114,37 +157,119 @@ async fn build_single(
         app.patch_source
     );
 
+    let patch_supported = crate::builder::resolve_all_patch_compatible_versions(cfg, app).await;
+    let version_conflict = match &patch_supported {
+        crate::patcher::metadata::CompatibleVersions::Conflict { patch_versions } => {
+            Some(patch_versions.clone())
+        }
+        _ => None,
+    };
+    let mpp_path = crate::patcher::metadata::resolve_mpp_path(cfg, app);
+    let meta = if let Some(ref p) = mpp_path {
+        crate::patcher::metadata::load(cfg, p).await.ok()
+    } else {
+        None
+    };
+    let (target_ver, _, strategy_str) = crate::builder::resolve_app_version_and_strategy(
+        id,
+        app,
+        meta.as_deref().map(|v| v.as_slice()),
+        &patch_supported,
+    );
+
     if effective_mode != "install" && app.patch_source != "none" && !app.patch_source.is_empty() {
-        let mpp_path = crate::patcher::metadata::resolve_mpp_path(cfg, app);
-        if let Some(ref p) = mpp_path {
-            if let Ok(meta) = crate::patcher::metadata::load(cfg, p).await {
-                if let Some(err) =
-                    crate::patcher::metadata::check_app_version_compatibility(id, app, &meta)
-                {
-                    let patch_supported =
-                        crate::builder::resolve_all_patch_compatible_versions(cfg, app).await;
-                    if app.version_pin_strict || patch_supported.is_empty() {
-                        anyhow::bail!("{id}: {err}");
-                    } else {
-                        tracing::warn!("{id}: {err} (auto-correcting to compatible version)");
-                    }
+        if let Some(ref meta_slice) = meta {
+            if let Some(err) =
+                crate::patcher::metadata::check_app_version_compatibility(id, app, meta_slice)
+            {
+                if app.version_pin_strict || patch_supported.is_empty() {
+                    return (
+                        None,
+                        AppBuildReport {
+                            status: "failed".to_string(),
+                            target_version: target_ver,
+                            resolution_strategy: Some(strategy_str),
+                            version_conflict,
+                            patches_included: vec![],
+                            patches_auto_disabled: vec![],
+                            warnings: vec![err.clone()],
+                            error: Some(format!("{id}: {err}")),
+                        },
+                    );
+                } else {
+                    tracing::warn!("{id}: {err} (auto-correcting to compatible version)");
                 }
             }
         }
     }
 
-    let raw_apk = builder::fetch_apk(cfg, id, app, arch, force, uptodown_cb).await?;
+    let raw_apk = match builder::fetch_apk(cfg, id, app, arch, force, uptodown_cb).await {
+        Ok(a) => a,
+        Err(e) => {
+            return (
+                None,
+                AppBuildReport {
+                    status: "failed".to_string(),
+                    target_version: target_ver,
+                    resolution_strategy: Some(strategy_str),
+                    version_conflict,
+                    patches_included: vec![],
+                    patches_auto_disabled: vec![],
+                    warnings: vec![],
+                    error: Some(format!("{id}: fetch APK failed: {e}")),
+                },
+            );
+        }
+    };
 
     // Check APK integrity after download
     if !crate::utils::apk::check_apk_integrity(&raw_apk) {
-        anyhow::bail!("{id}: downloaded APK failed integrity check");
+        return (
+            None,
+            AppBuildReport {
+                status: "failed".to_string(),
+                target_version: target_ver,
+                resolution_strategy: Some(strategy_str),
+                version_conflict,
+                patches_included: vec![],
+                patches_auto_disabled: vec![],
+                warnings: vec![],
+                error: Some(format!("{id}: downloaded APK failed integrity check")),
+            },
+        );
     }
 
     if effective_mode == "install" || app.patch_source == "none" || app.patch_source.is_empty() {
         let dest = format!("{output_dir}/{id}.apk");
-        std::fs::copy(&raw_apk, &dest)?;
+        if let Err(e) = std::fs::copy(&raw_apk, &dest) {
+            return (
+                None,
+                AppBuildReport {
+                    status: "failed".to_string(),
+                    target_version: target_ver,
+                    resolution_strategy: Some(strategy_str),
+                    version_conflict,
+                    patches_included: vec![],
+                    patches_auto_disabled: vec![],
+                    warnings: vec![],
+                    error: Some(e.to_string()),
+                },
+            );
+        }
         info!("{id}: copied unpatched official APK to {dest}");
-        return Ok(dest);
+        return (
+            Some(dest),
+            AppBuildReport {
+                status: "success".to_string(),
+                target_version: target_ver,
+                resolution_strategy: Some(strategy_str),
+                version_conflict,
+                patches_included: vec![],
+                patches_auto_disabled: vec![],
+                warnings: vec![],
+                error: None,
+            },
+        );
     }
 
     let apk_path = if arch != "all" {
@@ -152,26 +277,76 @@ async fn build_single(
         if let Err(e) = builder::arch::strip_unsupported_archs_to(&raw_apk, &work_apk, arch) {
             warn!("{id}: arch stripping note: {e}");
             raw_apk
+        } else if let Err(e) = builder::arch::verify_arch_native_libs(&raw_apk, &work_apk, arch) {
+            return (
+                None,
+                AppBuildReport {
+                    status: "failed".to_string(),
+                    target_version: target_ver,
+                    resolution_strategy: Some(strategy_str),
+                    version_conflict,
+                    patches_included: vec![],
+                    patches_auto_disabled: vec![],
+                    warnings: vec![],
+                    error: Some(format!("{id}: arch verification failed: {e}")),
+                },
+            );
         } else {
-            builder::arch::verify_arch_native_libs(&raw_apk, &work_apk, arch)?;
             work_apk
         }
     } else {
         raw_apk
     };
 
-    if effective_mode == "both" {
-        let non_root = patcher::patch(cfg, id, app, &apk_path, output_dir, false).await?;
-        patcher::patch(cfg, id, app, &apk_path, output_dir, true).await?;
-        Ok(non_root)
+    let patch_res = if effective_mode == "both" {
+        match patcher::patch(cfg, id, app, &apk_path, output_dir, false).await {
+            Ok((non_root, plan)) => {
+                let _ = patcher::patch(cfg, id, app, &apk_path, output_dir, true).await;
+                Ok((non_root, plan))
+            }
+            Err(e) => Err(e),
+        }
     } else {
         let is_root = effective_mode == "module" || effective_mode == "root";
-        let patched = patcher::patch(cfg, id, app, &apk_path, output_dir, is_root).await?;
-        if effective_mode == "lite" {
-            if let Err(e) = builder::lite::optimize_apk(&patched) {
-                warn!("{id}: lite optimization note: {e}");
+        match patcher::patch(cfg, id, app, &apk_path, output_dir, is_root).await {
+            Ok((patched, plan)) => {
+                if effective_mode == "lite" {
+                    if let Err(e) = builder::lite::optimize_apk(&patched) {
+                        warn!("{id}: lite optimization note: {e}");
+                    }
+                }
+                Ok((patched, plan))
             }
+            Err(e) => Err(e),
         }
-        Ok(patched)
+    };
+
+    match patch_res {
+        Ok((out_path, plan)) => (
+            Some(out_path),
+            AppBuildReport {
+                status: "success".to_string(),
+                target_version: target_ver,
+                resolution_strategy: Some(strategy_str),
+                version_conflict,
+                patches_included: plan.included,
+                patches_auto_disabled: plan.auto_disabled,
+                warnings: plan.warnings,
+                error: None,
+            },
+        ),
+        Err(e) => (
+            None,
+            AppBuildReport {
+                status: "failed".to_string(),
+                target_version: target_ver,
+                resolution_strategy: Some(strategy_str),
+                version_conflict,
+                patches_included: vec![],
+                patches_auto_disabled: vec![],
+                warnings: vec![],
+                error: Some(e.to_string()),
+            },
+        ),
     }
 }

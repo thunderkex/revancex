@@ -133,8 +133,8 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
         }
     }
 
-    let mut repo_branches: std::collections::HashMap<String, Option<String>> =
-        std::collections::HashMap::new();
+    let mut repo_branches: std::collections::BTreeMap<(String, Option<String>), String> =
+        std::collections::BTreeMap::new();
 
     let target_apps: Vec<&crate::config::AppConfig> = match targets {
         Some(tlist) => tlist.iter().filter_map(|id| cfg.apps.get(id)).collect(),
@@ -159,16 +159,13 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
                 .or(app.patch_branch.clone())
                 .or(source_branch);
 
-            match repo_branches.get(&repo) {
-                Some(Some(_)) => {}
-                _ => {
-                    repo_branches.insert(repo, branch);
-                }
-            }
+            repo_branches
+                .entry((repo, branch))
+                .or_insert_with(|| app.patch_source.clone());
         }
     }
 
-    for (repo, branch) in repo_branches {
+    for ((repo, branch), source_alias) in repo_branches {
         let safe_name = repo.replace('/', "_");
         let dest = format!("{}/patches_{safe_name}.mpp", cfg.build.tools_dir);
         let versioned_dest = branch
@@ -180,7 +177,17 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
             .await
             .ok();
         let upstream_tag = upstream_rel.as_ref().map(|r| r.tag_name.clone());
-        let cached_tag = version_cache.patch_source_tags.get(&repo).cloned();
+
+        let cache_key = match &branch {
+            Some(b) => format!("{source_alias}@{b}"),
+            None => source_alias.clone(),
+        };
+        let cached_tag = version_cache
+            .patch_source_tags
+            .get(&cache_key)
+            .or_else(|| version_cache.patch_source_tags.get(&source_alias))
+            .or_else(|| version_cache.patch_source_tags.get(&repo))
+            .cloned();
 
         let needs_download = if !is_valid_jar_or_bundle(primary_dest) {
             true
@@ -223,7 +230,7 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
                     .await?;
                 }
                 if let Some(tag) = upstream_tag {
-                    version_cache.patch_source_tags.insert(repo.clone(), tag);
+                    version_cache.patch_source_tags.insert(cache_key, tag);
                     cache_modified = true;
                 }
             }
@@ -543,44 +550,10 @@ pub fn parse_java_major_version(output: &str) -> Option<u32> {
 }
 
 pub fn write_build_report(summary: &BuildSummary, path: &str) -> Result<()> {
-    let ts = chrono::Utc::now().to_rfc3339();
-    let version = env!("CARGO_PKG_VERSION");
-
-    let built: Vec<serde_json::Value> = summary
-        .built
-        .iter()
-        .map(|p| {
-            serde_json::json!({
-                "status": "success",
-                "artifact": p
-            })
-        })
-        .collect();
-
-    let failed: Vec<serde_json::Value> = summary
-        .failed
-        .iter()
-        .map(|(id, err)| {
-            serde_json::json!({
-                "status": "failed",
-                "app_id": id,
-                "error": err
-            })
-        })
-        .collect();
-
-    let report = serde_json::json!({
-        "build_timestamp": ts,
-        "revancex_version": version,
-        "summary": {
-            "built_count": summary.built.len(),
-            "failed_count": summary.failed.len()
-        },
-        "built": built,
-        "failed": failed
-    });
-
-    let json = serde_json::to_string_pretty(&report)?;
+    if let Some(parent) = std::path::Path::new(path).parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let json = serde_json::to_string_pretty(&summary.reports)?;
     std::fs::write(path, &json).with_context(|| format!("Writing build report to {path}"))?;
     info!("Build report written to {path}");
     Ok(())

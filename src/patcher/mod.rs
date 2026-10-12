@@ -47,7 +47,7 @@ pub async fn patch(
     apk_path: &str,
     output_dir: &str,
     is_root: bool,
-) -> Result<String> {
+) -> Result<(String, plan::PatchPlan)> {
     let ks = crate::utils::keystore::resolve(cfg, app).await?;
     if ks.generated {
         tracing::warn!("{id}: generated new keystore at {} (first run)", ks.file);
@@ -256,5 +256,5 @@ pub async fn patch(
     }
 
     info!("{id}: patched → {output_apk}");
-    Ok(output_apk)
+    Ok((output_apk, plan))
 }

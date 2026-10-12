@@ -211,12 +211,23 @@ async fn main() -> Result<()> {
             )
             .await?;
 
-            let report_path = report.unwrap_or_else(|| "BUILD_REPORT.json".to_string());
+            let report_path = report.unwrap_or_else(|| format!("{output_dir}/BUILD_REPORT.json"));
             utils::write_build_report(&summary, &report_path)?;
 
-            if !summary.failed.is_empty() {
+            let has_failures = !summary.failed.is_empty()
+                || summary.reports.values().any(|r| r.status != "success");
+
+            if has_failures {
                 for (id, err) in &summary.failed {
                     eprintln!("FAILED: {id}: {err}");
+                }
+                for (id, r) in &summary.reports {
+                    if r.status != "success" && !summary.failed.iter().any(|(fid, _)| fid == id) {
+                        eprintln!(
+                            "FAILED: {id}: {}",
+                            r.error.as_deref().unwrap_or("status is not success")
+                        );
+                    }
                 }
                 if !keep_going {
                     std::process::exit(1);

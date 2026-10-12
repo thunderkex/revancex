@@ -72,17 +72,20 @@ pub fn is_turnstile_blocked(status: u16, headers: &reqwest::header::HeaderMap, b
         || body.contains("cf_chl_opt")
 }
 
-pub async fn resolve_all_patch_compatible_versions(cfg: &Config, app: &AppConfig) -> Vec<String> {
+pub async fn resolve_all_patch_compatible_versions(
+    cfg: &Config,
+    app: &AppConfig,
+) -> metadata::CompatibleVersions {
     let Some(mpp_path) = metadata::resolve_mpp_path(cfg, app) else {
-        return Vec::new();
+        return metadata::CompatibleVersions::Unconstrained;
     };
     let cli_jar = format!("{}/morphe-cli.jar", cfg.build.tools_dir);
     if !Path::new(&cli_jar).exists() {
-        return Vec::new();
+        return metadata::CompatibleVersions::Unconstrained;
     }
     let patches = match metadata::load(cfg, &mpp_path).await {
         Ok(p) => p,
-        Err(_) => return Vec::new(),
+        Err(_) => return metadata::CompatibleVersions::Unconstrained,
     };
     let enabled = app
         .included_patches
@@ -94,7 +97,19 @@ pub async fn resolve_all_patch_compatible_versions(cfg: &Config, app: &AppConfig
 }
 
 pub async fn resolve_patch_compatible_version(cfg: &Config, app: &AppConfig) -> Option<String> {
-    crate::utils::semver::max_version(resolve_all_patch_compatible_versions(cfg, app).await)
+    match resolve_all_patch_compatible_versions(cfg, app).await {
+        metadata::CompatibleVersions::Intersection(v) => crate::utils::semver::max_version(&v),
+        metadata::CompatibleVersions::Conflict { patch_versions } => {
+            let smallest = patch_versions
+                .iter()
+                .filter(|(_, v)| !v.is_empty())
+                .min_by_key(|(_, v)| v.len())
+                .map(|(_, v)| v.as_slice())
+                .unwrap_or(&[]);
+            crate::utils::semver::max_version(smallest)
+        }
+        metadata::CompatibleVersions::Unconstrained => None,
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -201,7 +216,7 @@ pub fn resolve_app_version_and_strategy(
     id: &str,
     app: &AppConfig,
     patch_meta: Option<&[metadata::PatchMeta]>,
-    patch_supported_versions: &[String],
+    patch_supported: &metadata::CompatibleVersions,
 ) -> (Option<String>, Vec<String>, String) {
     let configured_pin = app
         .version
@@ -218,6 +233,25 @@ pub fn resolve_app_version_and_strategy(
                 .filter(|v| !v.eq_ignore_ascii_case("auto"))
         });
 
+    let available_versions = match patch_supported {
+        metadata::CompatibleVersions::Intersection(v) => v.clone(),
+        metadata::CompatibleVersions::Conflict { patch_versions } => {
+            let conflict_str = patch_versions
+                .iter()
+                .map(|(p, vs)| format!("{p}: [{}]", vs.join(", ")))
+                .collect::<Vec<_>>()
+                .join("; ");
+            warn!("{id}: conflicting patch version constraints: {conflict_str}");
+            patch_versions
+                .iter()
+                .filter(|(_, v)| !v.is_empty())
+                .min_by_key(|(_, v)| v.len())
+                .map(|(_, v)| v.clone())
+                .unwrap_or_default()
+        }
+        metadata::CompatibleVersions::Unconstrained => Vec::new(),
+    };
+
     if let Some(pin) = configured_pin {
         let is_stale = if let Some(meta) = patch_meta {
             metadata::check_app_version_compatibility(id, app, meta).is_some()
@@ -226,7 +260,7 @@ pub fn resolve_app_version_and_strategy(
         };
 
         if is_stale {
-            if app.version_pin_strict || patch_supported_versions.is_empty() {
+            if app.version_pin_strict || available_versions.is_empty() {
                 warn!(
                     "{id}: pinned version v{pin} falls outside compatible patch range, but version_pin_strict=true (or no compatible versions available) — honoring pin"
                 );
@@ -239,8 +273,8 @@ pub fn resolve_app_version_and_strategy(
                 warn!(
                     "{id}: pinned version v{pin} falls outside compatible patch range and version_pin_strict=false — auto-correcting to compatible version"
                 );
-                let auto_ver = crate::utils::semver::max_version(patch_supported_versions);
-                let mut candidates: Vec<String> = patch_supported_versions.to_vec();
+                let auto_ver = crate::utils::semver::max_version(&available_versions);
+                let mut candidates: Vec<String> = available_versions;
                 candidates.reverse();
                 (
                     auto_ver,
@@ -256,8 +290,8 @@ pub fn resolve_app_version_and_strategy(
             )
         }
     } else {
-        let auto_ver = crate::utils::semver::max_version(patch_supported_versions);
-        let mut candidates: Vec<String> = patch_supported_versions.to_vec();
+        let auto_ver = crate::utils::semver::max_version(&available_versions);
+        let mut candidates: Vec<String> = available_versions;
         candidates.reverse();
         (auto_ver, candidates, "auto".to_string())
     }
@@ -317,7 +351,8 @@ pub async fn fetch_apk(
     let all_dest = format!("{}/{id}-all-input.apk", cfg.build.temp_dir);
     let legacy_dest = format!("{}/{id}-input.apk", cfg.build.temp_dir);
 
-    let patch_supported_versions = resolve_all_patch_compatible_versions(cfg, app).await;
+    let patch_compat = resolve_all_patch_compatible_versions(cfg, app).await;
+    let patch_supported_versions = patch_compat.to_vec();
     let mpp_path = metadata::resolve_mpp_path(cfg, app);
     let patch_meta = if let Some(ref p) = mpp_path {
         metadata::load(cfg, p).await.ok()
@@ -329,7 +364,7 @@ pub async fn fetch_apk(
         id,
         app,
         patch_meta.as_deref().map(|v| v.as_slice()),
-        &patch_supported_versions,
+        &patch_compat,
     );
 
     let cache_candidates = [&dest[..], &all_dest[..], &legacy_dest[..]];

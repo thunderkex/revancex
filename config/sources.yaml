@@ -95,6 +95,10 @@ patch_sources:
   bearinmindcat:
     repo: bearinmindcat/morphe-patches
     asset_pattern: "*.mpp"
+
+  jasonwu:
+    repo: jasonwu1994/Gboard-patches
+    asset_pattern: "*.mpp"
     
 apk_sources:
   uptodown:

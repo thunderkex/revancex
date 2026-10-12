@@ -147,52 +147,89 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
     patches
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum CompatibleVersions {
+    Unconstrained,
+    Intersection(Vec<String>),
+    Conflict {
+        patch_versions: Vec<(String, Vec<String>)>,
+    },
+}
+
+impl CompatibleVersions {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            CompatibleVersions::Unconstrained => true,
+            CompatibleVersions::Intersection(v) => v.is_empty(),
+            CompatibleVersions::Conflict { .. } => true,
+        }
+    }
+
+    pub fn to_vec(&self) -> Vec<String> {
+        match self {
+            CompatibleVersions::Intersection(v) => v.clone(),
+            _ => Vec::new(),
+        }
+    }
+}
+
 pub fn resolve_compatible_versions(
     patches: &[PatchMeta],
     package: &str,
     enabled_patches: &[String],
-) -> Vec<String> {
-    let mut version_counts: HashMap<String, usize> = HashMap::new();
+) -> CompatibleVersions {
+    let active_patches: Vec<&PatchMeta> = patches
+        .iter()
+        .filter(|patch| {
+            if enabled_patches.is_empty() {
+                true
+            } else {
+                enabled_patches.iter().any(|e| {
+                    e.eq_ignore_ascii_case(&patch.name)
+                        || crate::patcher::name::normalize(e)
+                            == crate::patcher::name::normalize(&patch.name)
+                })
+            }
+        })
+        .collect();
 
-    for patch in patches {
-        if !enabled_patches.is_empty()
-            && !enabled_patches
-                .iter()
-                .any(|e| e.eq_ignore_ascii_case(&patch.name))
-        {
-            continue;
-        }
-        for compat in &patch.compatible_packages {
-            if compat.name == package {
-                for v in &compat.versions {
-                    *version_counts.entry(v.clone()).or_insert(0) += 1;
-                }
+    let mut constraining: Vec<(String, Vec<String>)> = Vec::new();
+
+    for patch in active_patches {
+        if let Some(compat) = patch.compatible_packages.iter().find(|c| c.name == package) {
+            if !compat.versions.is_empty() {
+                constraining.push((patch.name.clone(), compat.versions.clone()));
             }
         }
     }
 
-    if version_counts.is_empty() {
-        return Vec::new();
+    if constraining.is_empty() {
+        return CompatibleVersions::Unconstrained;
     }
 
-    let max_count = version_counts.values().copied().max().unwrap_or(0);
-    if max_count == 0 {
-        return Vec::new();
+    let first_versions = &constraining[0].1;
+    let mut intersection: std::collections::HashSet<&str> =
+        first_versions.iter().map(|s| s.as_str()).collect();
+
+    for (_, versions) in &constraining[1..] {
+        let set: std::collections::HashSet<&str> = versions.iter().map(|s| s.as_str()).collect();
+        intersection = intersection.intersection(&set).copied().collect();
     }
 
-    let mut result: Vec<String> = version_counts
-        .into_iter()
-        .filter(|(_, count)| *count == max_count)
-        .map(|(v, _)| v)
-        .collect();
+    if intersection.is_empty() {
+        return CompatibleVersions::Conflict {
+            patch_versions: constraining,
+        };
+    }
 
+    let mut result: Vec<String> = intersection.into_iter().map(String::from).collect();
     result.sort_by(|a, b| {
         let pa = crate::utils::semver::parse_version_numbers(a);
         let pb = crate::utils::semver::parse_version_numbers(b);
         crate::utils::semver::compare_version_parts(&pa, &pb)
     });
 
-    result
+    CompatibleVersions::Intersection(result)
 }
 
 pub fn resolve_mpp_path(cfg: &Config, app: &crate::config::AppConfig) -> Option<String> {
@@ -281,16 +318,209 @@ pub fn check_app_version_compatibility(
 pub async fn validate_patch_compatibilities(cfg: &Config) -> Vec<String> {
     let mut warnings = Vec::new();
     for (id, app) in &cfg.apps {
-        if !app.enabled {
+        if !app.enabled || app.patch_source == "none" || app.patch_source.is_empty() {
             continue;
         }
-        if let Some(mpp_path) = resolve_mpp_path(cfg, app) {
-            if let Ok(meta) = load(cfg, &mpp_path).await {
+        let mpp_path = resolve_mpp_path(cfg, app);
+        let is_auto = app
+            .version
+            .as_deref()
+            .map(|v| v.eq_ignore_ascii_case("auto"))
+            .unwrap_or(true);
+
+        if let Some(ref mpp) = mpp_path {
+            if let Ok(meta) = load(cfg, mpp).await {
                 if let Some(warn) = check_app_version_compatibility(id, app, &meta) {
                     warnings.push(warn);
+                } else if is_auto {
+                    let pkg_in_bundle = meta
+                        .iter()
+                        .any(|p| p.compatible_packages.iter().any(|c| c.name == app.package));
+                    if !pkg_in_bundle {
+                        warnings.push(format!(
+                            "App '{id}': enabled with version=auto but package '{}' was not found in patch bundle",
+                            app.package
+                        ));
+                    } else {
+                        let enabled = if !app.included_patches.is_empty() {
+                            &app.included_patches
+                        } else {
+                            &app.patches
+                        };
+                        let compat = resolve_compatible_versions(&meta, &app.package, enabled);
+                        if let CompatibleVersions::Conflict { patch_versions } = compat {
+                            let conflict_desc = patch_versions
+                                .iter()
+                                .map(|(p, vs)| format!("{p}: [{}]", vs.join(", ")))
+                                .collect::<Vec<_>>()
+                                .join("; ");
+                            warnings.push(format!(
+                                "App '{id}': version conflict between enabled patches: {conflict_desc}"
+                            ));
+                        }
+                    }
                 }
+            } else {
+                warnings.push(format!(
+                    "App '{id}': could not load patch metadata from {mpp}"
+                ));
             }
+        } else if is_auto {
+            warnings.push(format!(
+                "App '{id}': enabled with version=auto but no patch bundle (.mpp) found on disk"
+            ));
         }
     }
     warnings
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_two_patches_same_compat_versions_returns_intersection() {
+        let patches = vec![
+            PatchMeta {
+                name: "PatchA".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["1.0.0".to_string(), "2.0.0".to_string()],
+                }],
+            },
+            PatchMeta {
+                name: "PatchB".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["2.0.0".to_string(), "3.0.0".to_string()],
+                }],
+            },
+        ];
+        let res = resolve_compatible_versions(&patches, "com.test", &[]);
+        assert_eq!(
+            res,
+            CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_two_patches_disjoint_compat_versions_returns_conflict() {
+        let patches = vec![
+            PatchMeta {
+                name: "PatchA".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["1.0.0".to_string()],
+                }],
+            },
+            PatchMeta {
+                name: "PatchB".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["2.0.0".to_string()],
+                }],
+            },
+        ];
+        let res = resolve_compatible_versions(&patches, "com.test", &[]);
+        match res {
+            CompatibleVersions::Conflict { patch_versions } => {
+                assert_eq!(patch_versions.len(), 2);
+                assert_eq!(patch_versions[0].0, "PatchA");
+                assert_eq!(patch_versions[1].0, "PatchB");
+            }
+            _ => panic!("Expected Conflict, got {:?}", res),
+        }
+    }
+
+    #[test]
+    fn test_universal_patch_and_constrained_patch_returns_constrained_range() {
+        let patches = vec![
+            PatchMeta {
+                name: "Universal".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec![],
+                }],
+            },
+            PatchMeta {
+                name: "Constrained".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["2.0.0".to_string(), "2.1.0".to_string()],
+                }],
+            },
+        ];
+        let res = resolve_compatible_versions(&patches, "com.test", &[]);
+        assert_eq!(
+            res,
+            CompatibleVersions::Intersection(vec!["2.0.0".to_string(), "2.1.0".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_irrelevant_patch_does_not_affect_result() {
+        let patches = vec![
+            PatchMeta {
+                name: "Irrelevant".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.other".to_string(),
+                    versions: vec!["9.9.9".to_string()],
+                }],
+            },
+            PatchMeta {
+                name: "Relevant".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["1.2.3".to_string()],
+                }],
+            },
+        ];
+        let res = resolve_compatible_versions(&patches, "com.test", &[]);
+        assert_eq!(
+            res,
+            CompatibleVersions::Intersection(vec!["1.2.3".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_empty_enabled_patches_uses_every_patch() {
+        let patches = vec![
+            PatchMeta {
+                name: "P1".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["1.0.0".to_string(), "2.0.0".to_string()],
+                }],
+            },
+            PatchMeta {
+                name: "P2".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["2.0.0".to_string(), "3.0.0".to_string()],
+                }],
+            },
+        ];
+        let res_empty = resolve_compatible_versions(&patches, "com.test", &[]);
+        assert_eq!(
+            res_empty,
+            CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
+        );
+
+        let res_explicit = resolve_compatible_versions(&patches, "com.test", &["P1".to_string()]);
+        assert_eq!(
+            res_explicit,
+            CompatibleVersions::Intersection(vec!["1.0.0".to_string(), "2.0.0".to_string()])
+        );
+    }
+}
+

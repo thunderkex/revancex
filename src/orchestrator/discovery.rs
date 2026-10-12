@@ -79,6 +79,16 @@ pub fn detect_changed_apps_from_tags(
     (changed_sources, changed_apps, updated_cache)
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub enum SkipReason {
+    NoMppFile(String),
+    MetadataLoadFailed(String),
+    PackageNotInBundle,
+    VersionPinned,
+    VersionConflict(Vec<(String, Vec<String>)>),
+    Unconstrained,
+}
+
 pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
     let client = crate::utils::make_github_client(cfg)?;
 
@@ -106,6 +116,9 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
     cache.patch_source_tags = new_cache_tags;
 
     let mut app_version_changed: Vec<String> = Vec::new();
+    let mut version_conflicts: Vec<serde_json::Value> = Vec::new();
+    let mut unresolved_apps: HashMap<String, SkipReason> = HashMap::new();
+
     for (app_name, app) in &cfg.apps {
         if !app.enabled || app.patch_source.is_empty() || app.patch_source == "none" {
             continue;
@@ -116,21 +129,82 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
             .map(|v| !v.eq_ignore_ascii_case("auto"))
             .unwrap_or(false)
         {
+            unresolved_apps.insert(app_name.clone(), SkipReason::VersionPinned);
             continue;
         }
         let mpp_path = match metadata::resolve_mpp_path(cfg, app) {
             Some(p) => p,
-            None => continue,
+            None => {
+                let target = app
+                    .patches_version
+                    .as_deref()
+                    .or(app.patch_branch.as_deref());
+                let repo = cfg
+                    .patch_sources
+                    .get(&app.patch_source)
+                    .map(|p| p.repo.clone())
+                    .unwrap_or_else(|| app.patch_source.clone());
+                let safe_name = repo.replace('/', "_");
+                let expected_path = target
+                    .map(|t| format!("{}/patches_{safe_name}_{t}.mpp", cfg.build.tools_dir))
+                    .unwrap_or_else(|| format!("{}/patches_{safe_name}.mpp", cfg.build.tools_dir));
+                unresolved_apps.insert(app_name.clone(), SkipReason::NoMppFile(expected_path));
+                continue;
+            }
         };
         let patches = match metadata::load(cfg, &mpp_path).await {
             Ok(p) => p,
             Err(e) => {
                 tracing::warn!("{app_name}: could not load patch metadata for version check: {e}");
+                unresolved_apps
+                    .insert(app_name.clone(), SkipReason::MetadataLoadFailed(e.to_string()));
                 continue;
             }
         };
-        let supported = metadata::resolve_compatible_versions(&patches, &app.package, &app.patches);
-        let latest_max = crate::utils::semver::max_version(&supported);
+
+        let pkg_in_bundle = patches
+            .iter()
+            .any(|p| p.compatible_packages.iter().any(|c| c.name == app.package));
+        if !pkg_in_bundle {
+            unresolved_apps.insert(app_name.clone(), SkipReason::PackageNotInBundle);
+            continue;
+        }
+
+        let enabled_patches = if !app.included_patches.is_empty() {
+            &app.included_patches
+        } else {
+            &app.patches
+        };
+
+        let supported =
+            metadata::resolve_compatible_versions(&patches, &app.package, enabled_patches);
+        let latest_max = match supported {
+            metadata::CompatibleVersions::Intersection(ref vs) => {
+                crate::utils::semver::max_version(vs)
+            }
+            metadata::CompatibleVersions::Conflict { ref patch_versions } => {
+                unresolved_apps.insert(
+                    app_name.clone(),
+                    SkipReason::VersionConflict(patch_versions.clone()),
+                );
+                version_conflicts.push(serde_json::json!({
+                    "app": app_name,
+                    "conflicts": patch_versions
+                }));
+                let smallest = patch_versions
+                    .iter()
+                    .filter(|(_, v)| !v.is_empty())
+                    .min_by_key(|(_, v)| v.len())
+                    .map(|(_, v)| v.as_slice())
+                    .unwrap_or(&[]);
+                crate::utils::semver::max_version(smallest)
+            }
+            metadata::CompatibleVersions::Unconstrained => {
+                unresolved_apps.insert(app_name.clone(), SkipReason::Unconstrained);
+                None
+            }
+        };
+
         let cached_max = cache.app_versions.get(app_name).cloned();
         let latest_str = latest_max.as_deref().unwrap_or("");
         let cached_str = cached_max.as_deref().unwrap_or("");
@@ -159,7 +233,9 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
             "has_updates": has_updates,
             "changed_apps": changed_apps,
             "changed_sources": changed_sources,
-            "app_version_changed": app_version_changed
+            "app_version_changed": app_version_changed,
+            "version_conflicts": version_conflicts,
+            "unresolved_apps": unresolved_apps
         });
         println!("{}", serde_json::to_string_pretty(&out)?);
     } else {

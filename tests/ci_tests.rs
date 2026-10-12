@@ -574,7 +574,9 @@ fn test_plan_resolve_with_apk_version_auto_disables_incompatible() {
 
 #[test]
 fn test_resolve_compatible_versions_maximum_coverage() {
-    use revancex::patcher::metadata::{resolve_compatible_versions, PackageCompat, PatchMeta};
+    use revancex::patcher::metadata::{
+        resolve_compatible_versions, CompatibleVersions, PackageCompat, PatchMeta,
+    };
 
     let patches = vec![
         PatchMeta {
@@ -611,8 +613,17 @@ fn test_resolve_compatible_versions_maximum_coverage() {
         },
     ];
 
-    let result = resolve_compatible_versions(&patches, "com.pkg", &[]);
-    assert_eq!(result, vec!["2.0.0".to_string()]);
+    let result = resolve_compatible_versions(&patches[0..3], "com.pkg", &[]);
+    assert_eq!(
+        result,
+        CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
+    );
+
+    let conflict_result = resolve_compatible_versions(&patches, "com.pkg", &[]);
+    assert!(matches!(
+        conflict_result,
+        CompatibleVersions::Conflict { .. }
+    ));
 }
 
 #[test]
@@ -1192,7 +1203,10 @@ fn test_stale_pin_auto_corrects_when_not_strict() {
             versions: vec!["2.0.0".to_string(), "2.1.0".to_string()],
         }],
     }];
-    let patch_supported = vec!["2.0.0".to_string(), "2.1.0".to_string()];
+    let patch_supported = revancex::patcher::metadata::CompatibleVersions::Intersection(vec![
+        "2.0.0".to_string(),
+        "2.1.0".to_string(),
+    ]);
 
     let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
         "test_app",
@@ -1225,7 +1239,9 @@ fn test_stale_pin_honored_when_strict() {
             versions: vec!["2.0.0".to_string()],
         }],
     }];
-    let patch_supported = vec!["2.0.0".to_string()];
+    let patch_supported = revancex::patcher::metadata::CompatibleVersions::Intersection(vec![
+        "2.0.0".to_string(),
+    ]);
 
     let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
         "test_app",
@@ -1540,7 +1556,7 @@ fn test_stale_pin_with_empty_compatible_versions_does_not_auto_correct() {
             versions: vec!["2.0.0".to_string()],
         }],
     }];
-    let patch_supported = Vec::new();
+    let patch_supported = revancex::patcher::metadata::CompatibleVersions::Unconstrained;
 
     let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
         "test_app",

@@ -450,6 +450,28 @@ pub fn validate_config(cfg: &Config, strict: bool) -> Result<()> {
     }
 
     if strict {
+        let mut referenced_sources: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
+        for (id, app) in &cfg.apps {
+            if app.enabled && !app.patch_source.is_empty() && app.patch_source != "none" {
+                if !cfg.patch_sources.contains_key(&app.patch_source) {
+                    anyhow::bail!(
+                        "App '{id}' has patch_source '{}' which does not exist in patch_sources",
+                        app.patch_source
+                    );
+                }
+                referenced_sources.insert(app.patch_source.clone());
+            }
+        }
+
+        for source_name in cfg.patch_sources.keys() {
+            if !referenced_sources.contains(source_name) {
+                eprintln!(
+                    "Warning: patch_source '{source_name}' is declared but not referenced by any enabled app (dead config)"
+                );
+            }
+        }
+
         for (module_name, module_def) in &cfg.modules {
             let mut pkg_map: HashMap<String, Vec<String>> = HashMap::new();
             for app_id in &module_def.apps {

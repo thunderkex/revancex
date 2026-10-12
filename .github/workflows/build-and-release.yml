@@ -110,6 +110,36 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
+      - name: Upload Build Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-report-${{ inputs.tag_prefix }}-${{ inputs.arch }}
+          path: output/BUILD_REPORT.json
+          if-no-files-found: warn
+
+      - name: Validate Build Report
+        run: |
+          if [ -f output/BUILD_REPORT.json ]; then
+            FAILED_OR_CONFLICT=$(python3 -c "
+          import json, sys
+          with open('output/BUILD_REPORT.json') as f:
+              data = json.load(f)
+          bad = []
+          for app, rep in data.items():
+              if rep.get('status') != 'success' or rep.get('version_conflict') is not None:
+                  bad.append(f'{app} (status={rep.get(\"status\")}, conflict={rep.get(\"version_conflict\") is not None})')
+          if bad:
+              print(', '.join(bad))
+              sys.exit(1)
+          " 2>&1)
+            if [ $? -ne 0 ]; then
+              echo "::error::Build report contains failed or version-conflicted apps: $FAILED_OR_CONFLICT"
+              exit 1
+            fi
+            echo "Build report validated: all apps succeeded with no conflicts."
+          fi
+
       - name: Verify build produced output
         run: |
           count=$(find output -maxdepth 1 \( -name '*.apk' -o -name '*.zip' \) -type f 2>/dev/null | wc -l)

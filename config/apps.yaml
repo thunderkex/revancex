@@ -31,8 +31,6 @@ apps:
     architectures:
     - arm64-v8a
     mode: patch
-    patches:
-    - unlock-premium
     keystore:
       alias: revanced
       file: keys/camscanner.jks
@@ -106,12 +104,12 @@ apps:
   gboard:
     enabled: true
     package: com.google.android.inputmethod.latin
-    patch_source: jkennethcarino
-    patch_version: dev
+    patch_source: jasonwu
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://gboard-go.en.uptodown.com/android
     apkmirror_url: https://apkmirror.com/apk/google-inc/gboard
     archive_url: https://archive.org/download/geologically/apks/com.google.android.inputmethod.latin
+    aptoide_url: com.google.android.inputmethod.latin
     architectures:
     - arm64-v8a
     mode: patch
@@ -365,7 +363,7 @@ apps:
   prime_video:
     enabled: true  
     package: com.amazon.avod.thirdpartyclient
-    patch_source: de_revanced
+    patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/amazon-mobile-llc/amazon-prime-video/
     uptodown_url: https://amazon-prime-video.en.uptodown.com/android
@@ -420,48 +418,6 @@ apps:
     keystore:
       alias: revanced
       file: keys/reddit.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
-  soundcloud:
-    enabled: true  
-    package: com.soundcloud.android
-    patch_source: de_revanced
-    cli_source: MorpheApp/morphe-cli
-    uptodown_url: https://soundcloud.en.uptodown.com/android
-    apkmirror_url: https://www.apkmirror.com/apk/soundcloud/soundcloud-soundcloud
-    apkpure_url: https://apkpure.com/soundcloud-play-music-songs/com.soundcloud.android
-    aptoide_url: com.soundcloud.android
-    architectures:
-    - arm64-v8a
-    mode: both
-    patches: []
-    keystore:
-      alias: revanced
-      file: keys/soundcloud.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
-  spotify:
-    enabled: true  
-    package: com.spotify.music
-    patch_source: hoodles
-    cli_source: MorpheApp/morphe-cli
-    uptodown_url: https://spotify.en.uptodown.com/android
-    apkmirror_url: https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts/
-    archive_url: https://archive.org/download/geologically/apks/com.spotify.music/
-    apkpure_url: https://apkpure.com/spotify-music-and-podcasts/com.spotify.music
-    aptoide_url: com.spotify.music
-    architectures:
-    - arm64-v8a
-    mode: patch
-    keystore:
-      alias: revanced
-      file: keys/spotify.jks
     module:
       single: false
       bundle: true

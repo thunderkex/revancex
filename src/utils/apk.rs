@@ -286,5 +286,20 @@ pub fn check_apk_integrity<P: AsRef<Path>>(apk_path: P) -> bool {
         }
     }
 
+    use std::io::Read;
+    let mut sink = [0u8; 8192];
+    for i in 0..archive.len() {
+        if let Ok(mut entry) = archive.by_index(i) {
+            while let Ok(n) = entry.read(&mut sink) {
+                if n == 0 {
+                    break;
+                }
+            }
+        } else {
+            warn!("Corrupted ZIP entry at index {i}");
+            return false;
+        }
+    }
+
     true
 }

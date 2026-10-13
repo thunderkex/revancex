@@ -61,15 +61,24 @@ impl std::fmt::Display for ApkpureError {
 impl std::error::Error for ApkpureError {}
 
 pub fn is_turnstile_blocked(status: u16, headers: &reqwest::header::HeaderMap, body: &str) -> bool {
-    if headers.contains_key("cf-mitigated") {
+    let _ = status;
+    if headers
+        .get("cf-mitigated")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.contains("challenge"))
+        .unwrap_or(false)
+    {
         return true;
     }
-    if (status == 403 || status == 503) && headers.contains_key("cf-ray") {
-        return true;
-    }
-    body.contains("cf-turnstile")
-        || body.contains("challenges.cloudflare.com")
-        || body.contains("cf_chl_opt")
+    let snippet = &body[..body.len().min(5120)];
+    snippet.contains("cf-turnstile")
+        || snippet.contains("challenges.cloudflare.com")
+        || snippet.contains("cf_chl_opt")
+        || snippet.contains("Just a moment...")
+        || snippet.contains("cf-chl-bypass")
+        || snippet.contains("Checking your browser")
+        || snippet.contains("cloudflare-static")
+        || snippet.contains("verify you are human")
 }
 
 pub async fn resolve_all_patch_compatible_versions(
@@ -77,15 +86,15 @@ pub async fn resolve_all_patch_compatible_versions(
     app: &AppConfig,
 ) -> metadata::CompatibleVersions {
     let Some(mpp_path) = metadata::resolve_mpp_path(cfg, app) else {
-        return metadata::CompatibleVersions::Unconstrained;
+        return metadata::CompatibleVersions::Unknown;
     };
     let cli_jar = format!("{}/morphe-cli.jar", cfg.build.tools_dir);
     if !Path::new(&cli_jar).exists() {
-        return metadata::CompatibleVersions::Unconstrained;
+        return metadata::CompatibleVersions::Unknown;
     }
     let patches = match metadata::load(cfg, &mpp_path).await {
         Ok(p) => p,
-        Err(_) => return metadata::CompatibleVersions::Unconstrained,
+        Err(_) => return metadata::CompatibleVersions::Unknown,
     };
     let enabled = app
         .included_patches
@@ -108,7 +117,7 @@ pub async fn resolve_patch_compatible_version(cfg: &Config, app: &AppConfig) -> 
                 .unwrap_or(&[]);
             crate::utils::semver::max_version(smallest)
         }
-        metadata::CompatibleVersions::Unconstrained => None,
+        metadata::CompatibleVersions::Unconstrained | metadata::CompatibleVersions::Unknown => None,
     }
 }
 
@@ -249,7 +258,7 @@ pub fn resolve_app_version_and_strategy(
                 .map(|(_, v)| v.clone())
                 .unwrap_or_default()
         }
-        metadata::CompatibleVersions::Unconstrained => Vec::new(),
+        metadata::CompatibleVersions::Unconstrained | metadata::CompatibleVersions::Unknown => Vec::new(),
     };
 
     if let Some(pin) = configured_pin {
@@ -407,7 +416,9 @@ pub async fn fetch_apk(
         .collect();
 
     let default_order: &[&str] = &["apkeep", "apkmirror", "uptodown", "apkpure", "aptoide"];
-    let priority: Vec<&str> = if app.source_priority.is_empty() {
+    let priority: Vec<&str> = if app.strict_sources {
+        app.source_priority.iter().map(|s| s.as_str()).collect()
+    } else if app.source_priority.is_empty() {
         default_order.to_vec()
     } else {
         app.source_priority.iter().map(|s| s.as_str()).collect()
@@ -443,6 +454,7 @@ pub async fn fetch_apk(
             let dest = &dest;
             let supported_refs = &supported_refs;
             let priority = &priority;
+            let apk_sources = &cfg.apk_sources;
             async move {
                 if let Some(url) = &app.archive_url {
                     info!("{id}: checking archive.org source {url}");
@@ -514,7 +526,37 @@ pub async fn fetch_apk(
                         }
                         "apkpure" => {
                             if !app.package.is_empty() {
-                                info!("{id}: trying apkpure for package {}", app.package);
+                                let api_entry = apk_sources.get("apkpure_api");
+                                let api_enabled = api_entry.map(|e| e.enabled).unwrap_or(true);
+                                if api_enabled {
+                                    info!("{id}: trying apkpure_api for package {}", app.package);
+                                    attempted.push("apkpure_api".into());
+                                    let api_headers = api_entry
+                                        .map(|e| e.headers.clone())
+                                        .unwrap_or_default();
+                                    match fetch_apkpure_api(
+                                        client,
+                                        &app.package,
+                                        dest,
+                                        arch,
+                                        cur_target.as_deref(),
+                                        &api_headers,
+                                    )
+                                    .await
+                                    {
+                                        Ok(path) => {
+                                            info!("{id}: BUILD_REPORT resolved_source=apkpure_api attempted={attempted:?}");
+                                            return Ok(path);
+                                        }
+                                        Err(e) => {
+                                            warn!("{id}: apkpure_api miss ({e}), falling back to page scraper");
+                                        }
+                                    }
+                                } else {
+                                    info!("{id}: apkpure_api disabled by config kill switch");
+                                }
+
+                                info!("{id}: trying apkpure page scraper for package {}", app.package);
                                 attempted.push("apkpure".into());
                                 let result = if let Some(base) = &app.apkpure_url {
                                     fetch_apkpure_url(client, base, dest, arch, cur_target.as_deref()).await
@@ -620,7 +662,7 @@ fn is_beta_or_alpha(s: &str) -> bool {
     lower.contains("beta") || lower.contains("alpha")
 }
 
-async fn fetch_archive_org(
+pub(crate) async fn fetch_archive_org(
     client: &Client,
     url: &str,
     arch: &str,
@@ -733,7 +775,7 @@ async fn fetch_archive_org(
     Ok(dest.to_string())
 }
 
-async fn fetch_apkmirror(
+pub(crate) async fn fetch_apkmirror(
     client: &Client,
     app_url: &str,
     arch: &str,
@@ -848,7 +890,7 @@ async fn fetch_apkmirror(
     Ok(dest.to_string())
 }
 
-async fn fetch_uptodown(
+pub(crate) async fn fetch_uptodown(
     client: &Client,
     base_url: &str,
     _arch: &str,
@@ -1048,7 +1090,7 @@ fn resolve_apkeep_cmd() -> String {
     "apkeep".to_string()
 }
 
-async fn fetch_apkeep(package: &str, dest: &str, target_version: Option<&str>) -> Result<String> {
+pub(crate) async fn fetch_apkeep(package: &str, dest: &str, target_version: Option<&str>) -> Result<String> {
     let tmp_dir = tempfile::tempdir()?;
     let out_dir = tmp_dir.path().to_str().unwrap();
     let apkeep_cmd = resolve_apkeep_cmd();
@@ -1150,7 +1192,7 @@ pub async fn download_and_extract_if_bundle(
     Ok(())
 }
 
-async fn fetch_aptoide(
+pub(crate) async fn fetch_aptoide(
     client: &Client,
     package: &str,
     dest: &str,
@@ -1160,7 +1202,6 @@ async fn fetch_aptoide(
     use base64::{engine::general_purpose::STANDARD, Engine as _};
     const BASE: &str = "https://ws75.aptoide.com/api/7/";
 
-    // Aptoide CPU filter — arch-specific APK selection
     let q_suffix = match arch {
         "arm64-v8a" => {
             let raw = "myCPU=arm64-v8a,armeabi-v7a,armeabi&leanback=0";
@@ -1181,9 +1222,50 @@ async fn fetch_aptoide(
         _ => String::new(),
     };
 
-    let download_path = if let Some(ver) = target_version {
-        // Find vercode for the requested version
-        let list_url = format!("{BASE}listAppVersions?package_name={package}&limit=50{q_suffix}");
+    let normalize = crate::utils::version::normalize_version;
+
+    let target_norm = target_version.map(normalize);
+
+    if let Some(ref tgt) = target_norm {
+        let site_url = format!("https://en.aptoide.com/app/{package}");
+        if let Ok(resp) = client.get(&site_url).send().await {
+            if resp.status().is_success() {
+                if let Ok(html) = resp.text().await {
+                    if let Some(start) = html.find("{\"props\"") {
+                        let json_str = &html[start..];
+                        let end = json_str.find("</script>").unwrap_or(json_str.len());
+                        if let Ok(props) = serde_json::from_str::<serde_json::Value>(&json_str[..end]) {
+                            if let Some(versions) = props["pageProps"]["versions"].as_array() {
+                                for ver_entry in versions {
+                                    let vername = ver_entry["vername"].as_str().unwrap_or("");
+                                    if normalize(vername) == *tgt {
+                                        if let Some(path) = ver_entry["file"]["path"].as_str() {
+                                            if !path.is_empty() {
+                                                info!("aptoide website: found {package} v{vername}, downloading {path}");
+                                                download_and_extract_if_bundle(
+                                                    client,
+                                                    path,
+                                                    dest,
+                                                    Some("https://aptoide.com/"),
+                                                )
+                                                .await?;
+                                                return Ok(dest.to_string());
+                                            }
+                                        }
+                                        info!("aptoide website: v{vername} found but no download URL (older version)");
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let download_path = if let Some(ref tgt) = target_norm {
+        let list_url = format!("{BASE}listAppVersions?package_name={package}&limit=100{q_suffix}");
         info!("aptoide: listing versions from {list_url}");
         let resp: serde_json::Value = client
             .get(&list_url)
@@ -1197,11 +1279,19 @@ async fn fetch_aptoide(
             .as_array()
             .ok_or_else(|| anyhow::anyhow!("aptoide: no version list for {package}"))?;
 
-        let vercode = list
-            .iter()
-            .find(|item| item["file"]["vername"].as_str().unwrap_or("") == ver)
+        let entry = list.iter().find(|item| {
+            let vn = item["file"]["vername"].as_str().unwrap_or("");
+            normalize(vn) == *tgt
+        });
+
+        let vercode = entry
             .and_then(|item| item["file"]["vercode"].as_i64())
-            .ok_or_else(|| anyhow::anyhow!("aptoide: version {ver} not found for {package}"))?;
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "aptoide: version {:?} (normalized: {tgt}) not found for {package}",
+                    target_version
+                )
+            })?;
 
         let meta_url =
             format!("{BASE}getAppMeta?package_name={package}&vercode={vercode}{q_suffix}");
@@ -1217,11 +1307,13 @@ async fn fetch_aptoide(
         meta["data"]["file"]["path"]
             .as_str()
             .ok_or_else(|| {
-                anyhow::anyhow!("aptoide: no download path in meta for {package} v{ver}")
+                anyhow::anyhow!(
+                    "aptoide: no download path in meta for {package} v{tgt}"
+                )
             })?
             .to_string()
     } else {
-        // Latest via search
+        // Latest — API search (no specific version requested).
         let search_url =
             format!("{BASE}apps/search?query={package}&limit=1&trusted=true{q_suffix}");
         info!("aptoide: searching latest via {search_url}");
@@ -1245,7 +1337,167 @@ async fn fetch_aptoide(
     Ok(dest.to_string())
 }
 
-async fn fetch_apkpure_url(
+async fn fetch_apkpure_api(
+    client: &Client,
+    package: &str,
+    dest: &str,
+    arch: &str,
+    target_version: Option<&str>,
+    extra_headers: &std::collections::HashMap<String, String>,
+) -> Result<String> {
+    let url = format!(
+        "https://tapi.pureapk.com/v3/get_app_his_version?package_name={package}&hl=en"
+    );
+    info!("apkpure_api: querying {url}");
+
+    let mut req = client.get(&url);
+    for (k, v) in extra_headers {
+        req = req.header(k.as_str(), v.as_str());
+    }
+    if !extra_headers.contains_key("X-Pure-Api-Version") {
+        req = req.header("X-Pure-Api-Version", "3");
+    }
+    if !extra_headers.contains_key("User-Agent") {
+        req = req.header("User-Agent", "APKPure/3.19.27 (Android 12; arm64-v8a)");
+    }
+    if !extra_headers.contains_key("Accept") {
+        req = req.header("Accept", "application/json");
+    }
+    let resp = req.send().await.context("apkpure_api: request failed")?;
+
+    if !resp.status().is_success() {
+        anyhow::bail!("apkpure_api: HTTP {} for {package}", resp.status());
+    }
+
+    let body: serde_json::Value = resp.json().await.context("apkpure_api: JSON parse failed")?;
+
+    let version_list = body["data"]["version_list"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("apkpure_api: no version_list for {package}"))?;
+
+    if version_list.is_empty() {
+        anyhow::bail!("apkpure_api: empty version_list for {package}");
+    }
+
+    let entry = if let Some(ver) = target_version {
+        version_list.iter().find(|e| {
+            let vn = e["version_name"].as_str().unwrap_or("");
+            vn == ver || crate::utils::version::versions_match(vn, ver)
+        })
+    } else {
+        version_list.first()
+    };
+
+    let entry = match entry {
+        Some(e) => e,
+        None => {
+            anyhow::bail!(
+                "apkpure_api: version {:?} not in the ~20 newest entries for {package} — miss",
+                target_version
+            );
+        }
+    };
+
+    let asset_url = entry["asset"]["urls"]
+        .as_array()
+        .and_then(|arr| {
+            arr.iter()
+                .find(|u| u.as_str().map(|s| s.contains(arch)).unwrap_or(false))
+                .or_else(|| arr.first())
+        })
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("apkpure_api: no asset URL in entry for {package}"))?;
+
+    info!("apkpure_api: downloading {package} from {asset_url}");
+    download_and_extract_if_bundle(client, asset_url, dest, Some("https://apkpure.com/"))
+        .await?;
+    Ok(dest.to_string())
+}
+
+/// Resolve-only variant: returns the asset URL without downloading.
+/// Used by `src/sources/apkpure.rs` to populate `Resolved` ahead of time.
+pub(crate) async fn resolve_apkpure_api_url(
+    client: &Client,
+    package: &str,
+    arch: &str,
+    target_version: Option<&str>,
+    extra_headers: &std::collections::HashMap<String, String>,
+) -> Result<String> {
+    let url = format!(
+        "https://tapi.pureapk.com/v3/get_app_his_version?package_name={package}&hl=en"
+    );
+
+    let mut req = client.get(&url);
+    for (k, v) in extra_headers {
+        req = req.header(k.as_str(), v.as_str());
+    }
+    if !extra_headers.contains_key("X-Pure-Api-Version") {
+        req = req.header("X-Pure-Api-Version", "3");
+    }
+    if !extra_headers.contains_key("User-Agent") {
+        req = req.header("User-Agent", "APKPure/3.19.27 (Android 12; arm64-v8a)");
+    }
+    if !extra_headers.contains_key("Accept") {
+        req = req.header("Accept", "application/json");
+    }
+    let resp = req.send().await.context("apkpure_api: request failed")?;
+    if !resp.status().is_success() {
+        anyhow::bail!("apkpure_api: HTTP {} for {package}", resp.status());
+    }
+    let body: serde_json::Value = resp.json().await.context("apkpure_api: JSON parse failed")?;
+    let version_list = body["data"]["version_list"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("apkpure_api: no version_list for {package}"))?;
+    if version_list.is_empty() {
+        anyhow::bail!("apkpure_api: empty version_list for {package}");
+    }
+    let entry = if let Some(ver) = target_version {
+        version_list.iter().find(|e| {
+            let vn = e["version_name"].as_str().unwrap_or("");
+            vn == ver || crate::utils::version::versions_match(vn, ver)
+        })
+    } else {
+        version_list.first()
+    };
+    let entry = entry.ok_or_else(|| {
+        anyhow::anyhow!(
+            "apkpure_api: version {:?} not in the ~20 newest entries for {package} — miss",
+            target_version
+        )
+    })?;
+    let asset_url = entry["asset"]["urls"]
+        .as_array()
+        .and_then(|arr| {
+            arr.iter()
+                .find(|u| u.as_str().map(|s| s.contains(arch)).unwrap_or(false))
+                .or_else(|| arr.first())
+        })
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("apkpure_api: no asset URL in entry for {package}"))?;
+    Ok(asset_url.to_string())
+}
+
+pub(crate) async fn fetch_apkpure_url_pub(
+    client: &Client,
+    base_url: &str,
+    dest: &str,
+    arch: &str,
+    target_version: Option<&str>,
+) -> Result<String, ApkpureError> {
+    fetch_apkpure_url(client, base_url, dest, arch, target_version).await
+}
+
+pub(crate) async fn fetch_apkpure_pub(
+    client: &Client,
+    package_or_url: &str,
+    dest: &str,
+    arch: &str,
+    target_version: Option<&str>,
+) -> Result<String, ApkpureError> {
+    fetch_apkpure(client, package_or_url, dest, arch, target_version).await
+}
+
+pub(crate) async fn fetch_apkpure_url(
     client: &Client,
     base_url: &str,
     dest: &str,
@@ -1315,7 +1567,7 @@ async fn resolve_apkpure_cdn_url(url: &str, referer: Option<&str>) -> String {
     url.to_string()
 }
 
-async fn fetch_apkpure(
+pub(crate) async fn fetch_apkpure(
     client: &Client,
     package_or_url: &str,
     dest: &str,

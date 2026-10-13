@@ -107,3 +107,9 @@ apk_sources:
     base_url: https://www.apkmirror.com
   archive:
     base_url: https://archive.org/download/geologically/apks
+  apkpure_api:
+    enabled: true
+    headers:
+      X-Pure-Api-Version: "3"
+      User-Agent: "APKPure/3.19.27 (Android 12; arm64-v8a)"
+      Accept: "application/json"

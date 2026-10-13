@@ -5,17 +5,14 @@ use anyhow::{bail, Context, Result};
 use reqwest::Client;
 use serde::Deserialize;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Forge {
+    #[default]
     Github,
     Gitlab,
-    Codeberg { domain: String },
-}
-
-impl Default for Forge {
-    fn default() -> Self {
-        Forge::Github
-    }
+    Codeberg {
+        domain: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

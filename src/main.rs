@@ -162,6 +162,22 @@ enum Commands {
     },
 
     Doctor,
+
+    Sources {
+        #[command(subcommand)]
+        sub: SourcesSubcommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum SourcesSubcommand {
+    Probe {
+        app: String,
+        #[arg(long, default_value = "arm64-v8a")]
+        arch: String,
+        #[arg(long)]
+        version: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -418,6 +434,76 @@ async fn main() -> Result<()> {
         Commands::Doctor => {
             utils::doctor::run_doctor(&config).await?;
         }
+
+        Commands::Sources { sub } => match sub {
+            SourcesSubcommand::Probe { app, arch, version } => {
+                let app_cfg = config
+                    .apps
+                    .get(&app)
+                    .ok_or_else(|| anyhow::anyhow!("App '{app}' not found in configuration"))?;
+
+                let client = utils::make_browser_client(&config)?;
+                let ctx = revancex::sources::SourceCtx::new(&client, &config, 5);
+                let registry = revancex::sources::default_registry();
+                let ordered = revancex::sources::source_order(&registry, app_cfg, &config);
+
+                println!(
+                    "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | {}",
+                    "SOURCE", "OUTCOME", "VERSION", "HOST", "MS", "REASON/TRACE"
+                );
+                println!("{:-<14}-+-{:-<8}-+-{:-<16}-+-{:-<25}-+-{:-<6}-+-----------------------", "", "", "", "", "");
+
+                let mut any_resolved = false;
+                for src in ordered {
+                    let start = std::time::Instant::now();
+                    let outcome = src.resolve(&ctx, app_cfg, version.as_deref(), &arch).await;
+                    let elapsed_ms = start.elapsed().as_millis();
+
+                    match outcome {
+                        Ok(Some(res)) => {
+                            any_resolved = true;
+                            let host = reqwest::Url::parse(&res.url)
+                                .ok()
+                                .and_then(|u| u.host_str().map(|h| h.to_string()))
+                                .unwrap_or_else(|| "-".to_string());
+                            let ver = res.version_found.unwrap_or_else(|| "-".to_string());
+                            println!(
+                                "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | OK",
+                                src.name(),
+                                "hit",
+                                ver,
+                                host,
+                                elapsed_ms
+                            );
+                        }
+                        Ok(None) => {
+                            println!(
+                                "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | not found",
+                                src.name(),
+                                "miss",
+                                "-",
+                                "-",
+                                elapsed_ms
+                            );
+                        }
+                        Err(e) => {
+                            println!(
+                                "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | {e}",
+                                src.name(),
+                                "error",
+                                "-",
+                                "-",
+                                elapsed_ms
+                            );
+                        }
+                    }
+                }
+
+                if !any_resolved {
+                    std::process::exit(1);
+                }
+            }
+        },
     }
 
     Ok(())

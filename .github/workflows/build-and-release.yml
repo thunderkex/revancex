@@ -54,10 +54,29 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    services:
+      flaresolverr:
+        image: ghcr.io/flaresolverr/flaresolverr:v3.3.21
+        ports:
+          - 8191:8191
+        options: --shm-size=1gb
     outputs:
       release_tag: ${{ steps.meta.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Wait for FlareSolverr
+        continue-on-error: true
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s -f http://localhost:8191/ > /dev/null; then
+              echo "FlareSolverr is ready!"
+              exit 0
+            fi
+            echo "Waiting for FlareSolverr ($i/30)..."
+            sleep 5
+          done
+          echo "::warning::FlareSolverr wait timed out; continuing without solver."
 
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -116,6 +135,29 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          FLARESOLVERR_URL: http://localhost:8191/v1
+          TRAWL_URL: ${{ secrets.TRAWL_URL }}
+
+      - name: Write attempted sources to GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          if [ -f output/BUILD_REPORT.json ]; then
+            python3 -c "
+          import json, os
+          summary = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary and os.path.exists('output/BUILD_REPORT.json'):
+              with open('output/BUILD_REPORT.json') as f:
+                  data = json.load(f)
+              lines = ['### APK Source Acquisition Summary\n', '| App | Status | Source | Resolved Version |\n| --- | --- | --- | --- |\n']
+              for app, rep in data.items():
+                  src = rep.get('resolved_source') or 'none'
+                  ver = rep.get('resolved_version') or 'none'
+                  st = rep.get('status') or 'unknown'
+                  lines.append(f'| {app} | {st} | {src} | {ver} |\n')
+              with open(summary, 'a') as out:
+                  out.writelines(lines)
+          " 2>/dev/null || true
+          fi
 
       - name: Upload Build Report
         if: always()

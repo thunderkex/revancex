@@ -312,8 +312,11 @@ pub struct Config {
     pub modules: BTreeMap<String, ModuleDefinition>,
     pub cli_repo: String,
     pub cli_pattern: String,
+    pub cli_provider: String,
     pub patch_sources: BTreeMap<String, PatchSourceEntry>,
     pub apk_sources: BTreeMap<String, ApkSourceEntry>,
+    pub apk_source_order: Vec<String>,
+    pub fetch: crate::config::sources::FetchConfig,
     pub build: BuildConfig,
     pub module_meta: ModuleMetaConfig,
 }
@@ -331,6 +334,10 @@ struct SourcesFile {
     patch_sources: BTreeMap<String, PatchSourceEntry>,
     #[serde(default)]
     apk_sources: BTreeMap<String, ApkSourceEntry>,
+    #[serde(default)]
+    apk_source_order: Vec<String>,
+    #[serde(default)]
+    fetch: crate::config::sources::FetchConfig,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -417,11 +424,12 @@ pub fn load_config(config_dir: &str) -> Result<Config> {
         Err(_) => ModuleMetaFile::default(),
     };
 
-    let (cli_repo, cli_pattern) = match sources.cli {
-        Some(c) => (c.repo, c.asset_pattern),
+    let (cli_repo, cli_pattern, cli_provider) = match sources.cli {
+        Some(c) => (c.repo, c.asset_pattern, c.provider),
         None => (
             "MorpheApp/morphe-desktop".to_string(),
             "morphe-*-all.jar".to_string(),
+            "github".to_string(),
         ),
     };
 
@@ -430,8 +438,11 @@ pub fn load_config(config_dir: &str) -> Result<Config> {
         modules: modules.modules,
         cli_repo,
         cli_pattern,
+        cli_provider,
         patch_sources: sources.patch_sources,
         apk_sources: sources.apk_sources,
+        apk_source_order: sources.apk_source_order,
+        fetch: sources.fetch,
         build: build_file.build,
         module_meta: module_meta_file.module,
     })

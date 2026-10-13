@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
@@ -73,11 +74,37 @@ impl AppDependencies {
     }
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct AppSourceConfig {
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub repo: Option<String>,
+    #[serde(default)]
+    pub project: Option<String>,
+    #[serde(default)]
+    pub domain: Option<String>,
+    #[serde(default)]
+    pub keyword: Option<String>,
+    #[serde(default)]
+    pub slug: Option<String>,
+    #[serde(default)]
+    pub tag: Option<String>,
+    #[serde(default)]
+    pub asset_pattern: Option<String>,
+    #[serde(default)]
+    pub version_regex: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AppConfig {
     pub enabled: bool,
     #[serde(default)]
     pub package: String,
+    #[serde(default)]
+    pub sources: HashMap<String, AppSourceConfig>,
     #[serde(alias = "patches-source", default)]
     pub patch_source: String,
     #[serde(
@@ -101,6 +128,10 @@ pub struct AppConfig {
     pub aptoide_url: Option<String>,
     #[serde(default)]
     pub source_priority: Vec<String>,
+    #[serde(default)]
+    pub strict_sources: bool,
+    #[serde(default)]
+    pub on_unknown_compat: Option<String>,
     #[serde(alias = "apk_source", default)]
     pub apk_source: String,
     #[serde(alias = "apk_url", default)]

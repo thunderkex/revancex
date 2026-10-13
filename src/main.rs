@@ -448,8 +448,8 @@ async fn main() -> Result<()> {
                 let ordered = revancex::sources::source_order(&registry, app_cfg, &config);
 
                 println!(
-                    "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | {}",
-                    "SOURCE", "OUTCOME", "VERSION", "HOST", "MS", "REASON/TRACE"
+                    "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | REASON/TRACE",
+                    "SOURCE", "OUTCOME", "VERSION", "HOST", "MS"
                 );
                 println!(
                     "{:-<14}-+-{:-<8}-+-{:-<16}-+-{:-<25}-+-{:-<6}-+-----------------------",

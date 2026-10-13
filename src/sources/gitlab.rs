@@ -64,7 +64,7 @@ impl ApkSource for GitlabSource {
                         || n.ends_with(".apkm")
                         || n.ends_with(".xapk")
                         || n.ends_with(".apks");
-                    let kw_match = keyword.map_or(true, |k| n.contains(k));
+                    let kw_match = keyword.is_none_or(|k| n.contains(k));
                     valid_ext && kw_match
                 })
                 .collect();

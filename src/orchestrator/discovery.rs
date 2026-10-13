@@ -201,7 +201,7 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
                     .unwrap_or(&[]);
                 crate::utils::semver::max_version(smallest)
             }
-            metadata::CompatibleVersions::Unconstrained => {
+            metadata::CompatibleVersions::Unconstrained | metadata::CompatibleVersions::Unknown => {
                 unresolved_apps.insert(app_name.clone(), SkipReason::Unconstrained);
                 None
             }

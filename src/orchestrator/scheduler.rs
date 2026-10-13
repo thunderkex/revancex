@@ -19,6 +19,35 @@ pub struct AppBuildReport {
     pub warnings: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub attempted_sources: Vec<SourceAttemptRecord>,
+}
+
+impl AppBuildReport {
+    pub fn failed(err: impl Into<String>) -> Self {
+        Self {
+            status: "failed".to_string(),
+            target_version: None,
+            resolution_strategy: None,
+            version_conflict: None,
+            patches_included: vec![],
+            patches_auto_disabled: vec![],
+            warnings: vec![],
+            error: Some(err.into()),
+            attempted_sources: vec![],
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct SourceAttemptRecord {
+    pub source: String,
+    pub outcome: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    pub reason: String,
 }
 
 pub struct BuildSummary {
@@ -97,19 +126,7 @@ pub async fn run_pipeline(
                 warn!("Task panicked for {id}: {e}");
                 let err_str = format!("task panicked: {e}");
                 failed.push((id.clone(), err_str.clone()));
-                reports.insert(
-                    id.clone(),
-                    AppBuildReport {
-                        status: "failed".to_string(),
-                        target_version: None,
-                        resolution_strategy: None,
-                        version_conflict: None,
-                        patches_included: vec![],
-                        patches_auto_disabled: vec![],
-                        warnings: vec![],
-                        error: Some(err_str),
-                    },
-                );
+                reports.insert(id.clone(), AppBuildReport::failed(err_str));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk"));
@@ -177,6 +194,31 @@ async fn build_single(
         &patch_supported,
     );
 
+    if effective_mode != "install"
+        && app.patch_source != "none"
+        && !app.patch_source.is_empty()
+        && matches!(patch_supported, crate::patcher::metadata::CompatibleVersions::Unknown)
+        && app.version.as_deref().map(|v| v.eq_ignore_ascii_case("auto")).unwrap_or(true)
+        && app.on_unknown_compat.as_deref().unwrap_or("fail") == "fail"
+    {
+        let msg = format!("{id}: refusing to build latest, patch compatibility unknown");
+        warn!("{msg}");
+        return (
+            None,
+            AppBuildReport {
+                status: "failed".to_string(),
+                target_version: target_ver,
+                resolution_strategy: Some(strategy_str),
+                version_conflict,
+                patches_included: vec![],
+                patches_auto_disabled: vec![],
+                warnings: vec![msg.clone()],
+                error: Some(msg),
+                attempted_sources: vec![],
+            },
+        );
+    }
+
     if effective_mode != "install" && app.patch_source != "none" && !app.patch_source.is_empty() {
         if let Some(ref meta_slice) = meta {
             if let Some(err) =
@@ -194,6 +236,7 @@ async fn build_single(
                             patches_auto_disabled: vec![],
                             warnings: vec![err.clone()],
                             error: Some(format!("{id}: {err}")),
+                            attempted_sources: vec![],
                         },
                     );
                 } else {
@@ -217,6 +260,7 @@ async fn build_single(
                     patches_auto_disabled: vec![],
                     warnings: vec![],
                     error: Some(format!("{id}: fetch APK failed: {e}")),
+                    attempted_sources: vec![],
                 },
             );
         }
@@ -235,6 +279,7 @@ async fn build_single(
                 patches_auto_disabled: vec![],
                 warnings: vec![],
                 error: Some(format!("{id}: downloaded APK failed integrity check")),
+                attempted_sources: vec![],
             },
         );
     }
@@ -253,6 +298,7 @@ async fn build_single(
                     patches_auto_disabled: vec![],
                     warnings: vec![],
                     error: Some(e.to_string()),
+                    attempted_sources: vec![],
                 },
             );
         }
@@ -268,6 +314,7 @@ async fn build_single(
                 patches_auto_disabled: vec![],
                 warnings: vec![],
                 error: None,
+                attempted_sources: vec![],
             },
         );
     }
@@ -328,6 +375,7 @@ async fn build_single(
                 patches_auto_disabled: plan.auto_disabled,
                 warnings: plan.warnings,
                 error: None,
+                attempted_sources: vec![],
             },
         ),
         Err(e) => (
@@ -341,6 +389,7 @@ async fn build_single(
                 patches_auto_disabled: vec![],
                 warnings: vec![],
                 error: Some(e.to_string()),
+                attempted_sources: vec![],
             },
         ),
     }

@@ -34,6 +34,7 @@ tempfile = "3.0"
 futures = "0.3"
 ua_generator = { version = "0.5.79", default-features = false }
 base64 = "0.22"
+scraper = "0.22"
 
 [profile.release]
 opt-level = 3

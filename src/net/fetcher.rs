@@ -69,19 +69,10 @@ struct FlareSolverrRequest<'a> {
 struct FlareSolverrCookie {
     name: String,
     value: String,
-    #[allow(dead_code)]
-    #[serde(default)]
-    domain: Option<String>,
 }
 
 #[derive(Deserialize)]
 struct FlareSolverrSolution {
-    #[allow(dead_code)]
-    #[serde(default)]
-    url: String,
-    #[allow(dead_code)]
-    #[serde(default)]
-    status: u16,
     #[serde(default)]
     response: String,
     #[serde(default)]

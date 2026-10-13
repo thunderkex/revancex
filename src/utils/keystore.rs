@@ -130,6 +130,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
     let app_dummy = crate::config::apps::AppConfig {
         enabled: true,
         package: String::new(),
+        sources: std::collections::HashMap::new(),
         patch_source: String::new(),
         patch_branch: None,
         cli_source: String::new(),
@@ -153,6 +154,8 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         keystore: None,
         module: None,
         dependencies: crate::config::apps::AppDependencies::default(),
+        strict_sources: false,
+        on_unknown_compat: None,
         description: None,
         min_version: None,
         max_version: None,

@@ -1,9 +1,11 @@
 pub mod apk;
 pub mod cache;
 pub mod doctor;
+pub mod forge;
 pub mod github;
 pub mod keystore;
 pub mod semver;
+pub mod version;
 pub mod zip;
 
 use crate::config::Config;

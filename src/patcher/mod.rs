@@ -40,6 +40,36 @@ pub fn parse_applied_patch_count(stdout: &str) -> Option<usize> {
     None
 }
 
+pub fn parse_filtered_version(stdout: &str, package: &str) -> Option<String> {
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        let marker = format!("Filtering patches for {package}");
+        if let Some(idx) = trimmed.find(&marker) {
+            let after = &trimmed[idx + marker.len()..];
+            let ver_candidate = after
+                .split_whitespace()
+                .find(|tok| tok.starts_with('v') && tok.len() > 1)
+                .map(|tok| &tok[1..])
+                .or_else(|| after.split_whitespace().next());
+            if let Some(raw) = ver_candidate {
+                let norm = crate::utils::version::normalize_version(raw);
+                if !norm.is_empty() {
+                    return Some(norm);
+                }
+            }
+        }
+    }
+    None
+}
+
+pub fn is_fingerprint_failure(stderr: &str, stdout: &str) -> bool {
+    let combined = format!("{stderr}\n{stdout}").to_lowercase();
+    combined.contains("failed to match the fingerprint")
+        || combined.contains("patch.patchexception")
+        || combined.contains("patching aborted")
+        || (combined.contains("fingerprint") && combined.contains("failed"))
+}
+
 pub async fn patch(
     cfg: &Config,
     id: &str,
@@ -180,6 +210,19 @@ pub async fn patch(
             .unwrap_or_default();
         let plan_count = plan.included.len();
         anyhow::bail!("{id}: 0/{plan_count} patches applied{ver_info}");
+    }
+
+    if let (Some(actual), Some(reported)) = (
+        apk_version.as_deref(),
+        parse_filtered_version(&stdout, &app.package),
+    ) {
+        if !crate::utils::version::versions_match(actual, &reported) {
+            let _ = std::fs::remove_file(&staging_apk);
+            let _ = std::fs::remove_file(&output_apk);
+            anyhow::bail!(
+                "{id}: version mismatch — downloaded APK is v{actual}, but patcher targeted v{reported}"
+            );
+        }
     }
 
     for hook in &app.post_patch_hooks {

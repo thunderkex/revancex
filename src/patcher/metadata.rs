@@ -154,12 +154,13 @@ pub enum CompatibleVersions {
     Conflict {
         patch_versions: Vec<(String, Vec<String>)>,
     },
+    Unknown,
 }
 
 impl CompatibleVersions {
     pub fn is_empty(&self) -> bool {
         match self {
-            CompatibleVersions::Unconstrained => true,
+            CompatibleVersions::Unconstrained | CompatibleVersions::Unknown => true,
             CompatibleVersions::Intersection(v) => v.is_empty(),
             CompatibleVersions::Conflict { .. } => true,
         }

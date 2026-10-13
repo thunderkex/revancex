@@ -52,7 +52,9 @@ impl ApkSource for ApkcomboSource {
                             let ext = &caps[2];
 
                             let matches = match version {
-                                Some(req_v) => normalize_version(ver_str) == normalize_version(req_v),
+                                Some(req_v) => {
+                                    normalize_version(ver_str) == normalize_version(req_v)
+                                }
                                 None => true,
                             };
 

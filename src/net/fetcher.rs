@@ -28,7 +28,10 @@ impl fmt::Display for FetchError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Blocked { host } => {
-                write!(f, "Host {host} is blocked by Cloudflare (all bypass stages failed)")
+                write!(
+                    f,
+                    "Host {host} is blocked by Cloudflare (all bypass stages failed)"
+                )
             }
             Self::ChallengeFailed { host, reason } => {
                 write!(f, "Challenge bypass failed for {host}: {reason}")
@@ -168,7 +171,9 @@ impl Fetcher {
                 .send()
                 .await;
             match probe_res {
-                Ok(r) if r.status().is_success() || r.status() == StatusCode::METHOD_NOT_ALLOWED => {
+                Ok(r)
+                    if r.status().is_success() || r.status() == StatusCode::METHOD_NOT_ALLOWED =>
+                {
                     info!("FlareSolverr available at {fs_url}");
                     self.flaresolverr_available.store(true, Ordering::SeqCst);
                 }
@@ -179,8 +184,8 @@ impl Fetcher {
             }
         }
 
-        let trawl_url = std::env::var("TRAWL_URL")
-            .unwrap_or_else(|_| self.config.trawl.url.clone());
+        let trawl_url =
+            std::env::var("TRAWL_URL").unwrap_or_else(|_| self.config.trawl.url.clone());
         if !trawl_url.is_empty() && self.config.trawl.enabled != "false" {
             let probe_res = self
                 .client
@@ -189,7 +194,9 @@ impl Fetcher {
                 .send()
                 .await;
             match probe_res {
-                Ok(r) if r.status().is_success() || r.status() == StatusCode::METHOD_NOT_ALLOWED => {
+                Ok(r)
+                    if r.status().is_success() || r.status() == StatusCode::METHOD_NOT_ALLOWED =>
+                {
                     info!("Trawl available at {trawl_url}");
                     self.trawl_available.store(true, Ordering::SeqCst);
                 }
@@ -203,7 +210,11 @@ impl Fetcher {
 
     pub fn is_challenge(&self, _status: StatusCode, headers: &HeaderMap, body: &str) -> bool {
         if let Some(cf_mitigated) = headers.get("cf-mitigated") {
-            if cf_mitigated.to_str().unwrap_or_default().eq_ignore_ascii_case("challenge") {
+            if cf_mitigated
+                .to_str()
+                .unwrap_or_default()
+                .eq_ignore_ascii_case("challenge")
+            {
                 return true;
             }
         }
@@ -276,7 +287,10 @@ impl Fetcher {
             Ok(resp) => {
                 let status = resp.status();
                 let headers = resp.headers().clone();
-                let body = resp.text().await.map_err(|e| FetchError::Network(e.into()))?;
+                let body = resp
+                    .text()
+                    .await
+                    .map_err(|e| FetchError::Network(e.into()))?;
 
                 if self.is_challenge(status, &headers, &body) {
                     debug!("Challenge detected on {url} (status: {status})");
@@ -358,7 +372,9 @@ impl Fetcher {
             .client
             .post(&endpoint)
             .json(&req_body)
-            .timeout(Duration::from_secs(self.config.flaresolverr.timeout_secs + 10))
+            .timeout(Duration::from_secs(
+                self.config.flaresolverr.timeout_secs + 10,
+            ))
             .send()
             .await
             .with_context(|| format!("Failed to connect to FlareSolverr at {endpoint}"))?;
@@ -397,8 +413,8 @@ impl Fetcher {
     }
 
     async fn solve_with_trawl(&self, url: &str, _host: &str) -> Result<SolvedSolution> {
-        let trawl_url = std::env::var("TRAWL_URL")
-            .unwrap_or_else(|_| self.config.trawl.url.clone());
+        let trawl_url =
+            std::env::var("TRAWL_URL").unwrap_or_else(|_| self.config.trawl.url.clone());
         let endpoint = if trawl_url.ends_with("/scrape") {
             trawl_url.clone()
         } else {

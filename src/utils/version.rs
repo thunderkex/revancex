@@ -32,9 +32,7 @@ pub fn versions_match(a: &str, b: &str) -> bool {
 }
 
 fn parse_numeric(v: &str) -> Vec<u64> {
-    v.split('.')
-        .filter_map(|s| s.parse::<u64>().ok())
-        .collect()
+    v.split('.').filter_map(|s| s.parse::<u64>().ok()).collect()
 }
 
 #[cfg(test)]
@@ -43,7 +41,10 @@ mod tests {
 
     #[test]
     fn normalize_suffix_variants() {
-        assert_eq!(normalize_version("18.0.3.954559732-release-arm64-v8a"), "18.0.3.954559732");
+        assert_eq!(
+            normalize_version("18.0.3.954559732-release-arm64-v8a"),
+            "18.0.3.954559732"
+        );
         assert_eq!(normalize_version("32.30.0(1575420)"), "32.30.0");
         assert_eq!(normalize_version("6.6 build 002"), "6.6");
         assert_eq!(normalize_version("20.12.36"), "20.12.36");
@@ -53,7 +54,10 @@ mod tests {
 
     #[test]
     fn versions_match_cases() {
-        assert!(versions_match("18.0.3.954559732-release-arm64-v8a", "18.0.3.954559732"));
+        assert!(versions_match(
+            "18.0.3.954559732-release-arm64-v8a",
+            "18.0.3.954559732"
+        ));
         assert!(versions_match("32.30.0(1575420)", "32.30.0"));
         assert!(versions_match("6.6 build 002", "6.6"));
         assert!(!versions_match("1.2.3", "1.2.4"));

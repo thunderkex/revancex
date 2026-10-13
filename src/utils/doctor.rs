@@ -40,12 +40,11 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
     check_tool("keytool", "required for keystore generation/info");
 
     println!("\n--- Bypass & Network Services ---");
-    let fs_url = std::env::var("FLARESOLVERR_URL")
-        .unwrap_or_else(|_| cfg.fetch.flaresolverr.url.clone());
+    let fs_url =
+        std::env::var("FLARESOLVERR_URL").unwrap_or_else(|_| cfg.fetch.flaresolverr.url.clone());
     check_http_service("FlareSolverr", &fs_url).await;
 
-    let trawl_url = std::env::var("TRAWL_URL")
-        .unwrap_or_else(|_| cfg.fetch.trawl.url.clone());
+    let trawl_url = std::env::var("TRAWL_URL").unwrap_or_else(|_| cfg.fetch.trawl.url.clone());
     if !trawl_url.is_empty() {
         check_http_service("Trawl", &trawl_url).await;
     } else {

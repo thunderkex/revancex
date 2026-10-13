@@ -23,7 +23,11 @@ impl ApkSource for UptodownSource {
                 return Ok(None);
             }
             let url = app.uptodown_url.as_deref().unwrap();
-            Ok(Some(Resolved::simple(url.to_string(), version.map(str::to_string), arch)))
+            Ok(Some(Resolved::simple(
+                url.to_string(),
+                version.map(str::to_string),
+                arch,
+            )))
         })
     }
 

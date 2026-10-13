@@ -26,9 +26,7 @@ impl ApkSource for ApkpureSource {
             let api_entry = ctx.cfg.apk_sources.get("apkpure_api");
             let api_enabled = api_entry.map(|e| e.enabled).unwrap_or(true);
             if api_enabled {
-                let api_headers = api_entry
-                    .map(|e| e.headers.clone())
-                    .unwrap_or_default();
+                let api_headers = api_entry.map(|e| e.headers.clone()).unwrap_or_default();
                 if let Ok(url) = crate::builder::resolve_apkpure_api_url(
                     ctx.client,
                     &app.package,
@@ -44,10 +42,7 @@ impl ApkSource for ApkpureSource {
                 }
             }
 
-            let page_url = app
-                .apkpure_url
-                .as_deref()
-                .unwrap_or(&app.package);
+            let page_url = app.apkpure_url.as_deref().unwrap_or(&app.package);
             let mut r = Resolved::simple(page_url.to_string(), version.map(str::to_string), arch);
             r.trace.push("apkpure_page".into());
             Ok(Some(r))

@@ -1,5 +1,5 @@
-pub mod apkeep;
 pub mod apkcombo;
+pub mod apkeep;
 pub mod apkfab;
 pub mod apkmirror;
 pub mod apkpure;
@@ -63,7 +63,11 @@ pub struct Resolved {
 }
 
 impl Resolved {
-    pub fn simple(url: impl Into<String>, version_found: impl Into<Option<String>>, arch: impl Into<String>) -> Self {
+    pub fn simple(
+        url: impl Into<String>,
+        version_found: impl Into<Option<String>>,
+        arch: impl Into<String>,
+    ) -> Self {
         Self {
             url: url.into(),
             file_kind: FileKind::Apk,
@@ -123,7 +127,11 @@ pub struct SourceAttempt {
     pub trace: Vec<String>,
 }
 
-pub async fn default_fetch(ctx: &SourceCtx<'_>, resolved: &Resolved, dest: &str) -> Result<PathBuf> {
+pub async fn default_fetch(
+    ctx: &SourceCtx<'_>,
+    resolved: &Resolved,
+    dest: &str,
+) -> Result<PathBuf> {
     use crate::builder::{download_and_extract_if_bundle, is_turnstile_blocked};
 
     let mut req = ctx.client.get(&resolved.url);

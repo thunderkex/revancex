@@ -23,7 +23,11 @@ impl ApkSource for ApkmirrorSource {
                 return Ok(None);
             }
             let url = app.apkmirror_url.as_deref().unwrap();
-            Ok(Some(Resolved::simple(url.to_string(), version.map(str::to_string), arch)))
+            Ok(Some(Resolved::simple(
+                url.to_string(),
+                version.map(str::to_string),
+                arch,
+            )))
         })
     }
 
@@ -46,4 +50,3 @@ impl ApkSource for ApkmirrorSource {
         })
     }
 }
-

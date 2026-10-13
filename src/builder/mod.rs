@@ -258,7 +258,9 @@ pub fn resolve_app_version_and_strategy(
                 .map(|(_, v)| v.clone())
                 .unwrap_or_default()
         }
-        metadata::CompatibleVersions::Unconstrained | metadata::CompatibleVersions::Unknown => Vec::new(),
+        metadata::CompatibleVersions::Unconstrained | metadata::CompatibleVersions::Unknown => {
+            Vec::new()
+        }
     };
 
     if let Some(pin) = configured_pin {
@@ -1090,7 +1092,11 @@ fn resolve_apkeep_cmd() -> String {
     "apkeep".to_string()
 }
 
-pub(crate) async fn fetch_apkeep(package: &str, dest: &str, target_version: Option<&str>) -> Result<String> {
+pub(crate) async fn fetch_apkeep(
+    package: &str,
+    dest: &str,
+    target_version: Option<&str>,
+) -> Result<String> {
     let tmp_dir = tempfile::tempdir()?;
     let out_dir = tmp_dir.path().to_str().unwrap();
     let apkeep_cmd = resolve_apkeep_cmd();
@@ -1234,7 +1240,9 @@ pub(crate) async fn fetch_aptoide(
                     if let Some(start) = html.find("{\"props\"") {
                         let json_str = &html[start..];
                         let end = json_str.find("</script>").unwrap_or(json_str.len());
-                        if let Ok(props) = serde_json::from_str::<serde_json::Value>(&json_str[..end]) {
+                        if let Ok(props) =
+                            serde_json::from_str::<serde_json::Value>(&json_str[..end])
+                        {
                             if let Some(versions) = props["pageProps"]["versions"].as_array() {
                                 for ver_entry in versions {
                                     let vername = ver_entry["vername"].as_str().unwrap_or("");
@@ -1307,9 +1315,7 @@ pub(crate) async fn fetch_aptoide(
         meta["data"]["file"]["path"]
             .as_str()
             .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "aptoide: no download path in meta for {package} v{tgt}"
-                )
+                anyhow::anyhow!("aptoide: no download path in meta for {package} v{tgt}")
             })?
             .to_string()
     } else {
@@ -1345,9 +1351,8 @@ async fn fetch_apkpure_api(
     target_version: Option<&str>,
     extra_headers: &std::collections::HashMap<String, String>,
 ) -> Result<String> {
-    let url = format!(
-        "https://tapi.pureapk.com/v3/get_app_his_version?package_name={package}&hl=en"
-    );
+    let url =
+        format!("https://tapi.pureapk.com/v3/get_app_his_version?package_name={package}&hl=en");
     info!("apkpure_api: querying {url}");
 
     let mut req = client.get(&url);
@@ -1369,7 +1374,10 @@ async fn fetch_apkpure_api(
         anyhow::bail!("apkpure_api: HTTP {} for {package}", resp.status());
     }
 
-    let body: serde_json::Value = resp.json().await.context("apkpure_api: JSON parse failed")?;
+    let body: serde_json::Value = resp
+        .json()
+        .await
+        .context("apkpure_api: JSON parse failed")?;
 
     let version_list = body["data"]["version_list"]
         .as_array()
@@ -1409,8 +1417,7 @@ async fn fetch_apkpure_api(
         .ok_or_else(|| anyhow::anyhow!("apkpure_api: no asset URL in entry for {package}"))?;
 
     info!("apkpure_api: downloading {package} from {asset_url}");
-    download_and_extract_if_bundle(client, asset_url, dest, Some("https://apkpure.com/"))
-        .await?;
+    download_and_extract_if_bundle(client, asset_url, dest, Some("https://apkpure.com/")).await?;
     Ok(dest.to_string())
 }
 
@@ -1423,9 +1430,8 @@ pub(crate) async fn resolve_apkpure_api_url(
     target_version: Option<&str>,
     extra_headers: &std::collections::HashMap<String, String>,
 ) -> Result<String> {
-    let url = format!(
-        "https://tapi.pureapk.com/v3/get_app_his_version?package_name={package}&hl=en"
-    );
+    let url =
+        format!("https://tapi.pureapk.com/v3/get_app_his_version?package_name={package}&hl=en");
 
     let mut req = client.get(&url);
     for (k, v) in extra_headers {
@@ -1444,7 +1450,10 @@ pub(crate) async fn resolve_apkpure_api_url(
     if !resp.status().is_success() {
         anyhow::bail!("apkpure_api: HTTP {} for {package}", resp.status());
     }
-    let body: serde_json::Value = resp.json().await.context("apkpure_api: JSON parse failed")?;
+    let body: serde_json::Value = resp
+        .json()
+        .await
+        .context("apkpure_api: JSON parse failed")?;
     let version_list = body["data"]["version_list"]
         .as_array()
         .ok_or_else(|| anyhow::anyhow!("apkpure_api: no version_list for {package}"))?;

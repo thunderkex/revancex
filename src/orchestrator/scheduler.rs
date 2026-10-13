@@ -197,8 +197,15 @@ async fn build_single(
     if effective_mode != "install"
         && app.patch_source != "none"
         && !app.patch_source.is_empty()
-        && matches!(patch_supported, crate::patcher::metadata::CompatibleVersions::Unknown)
-        && app.version.as_deref().map(|v| v.eq_ignore_ascii_case("auto")).unwrap_or(true)
+        && matches!(
+            patch_supported,
+            crate::patcher::metadata::CompatibleVersions::Unknown
+        )
+        && app
+            .version
+            .as_deref()
+            .map(|v| v.eq_ignore_ascii_case("auto"))
+            .unwrap_or(true)
         && app.on_unknown_compat.as_deref().unwrap_or("fail") == "fail"
     {
         let msg = format!("{id}: refusing to build latest, patch compatibility unknown");

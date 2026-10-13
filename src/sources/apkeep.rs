@@ -23,7 +23,11 @@ impl ApkSource for ApkeepSource {
                 return Ok(None);
             }
             let pseudo_url = format!("apkeep://{}/{}", app.package, version.unwrap_or("latest"));
-            Ok(Some(Resolved::simple(pseudo_url, version.map(str::to_string), arch)))
+            Ok(Some(Resolved::simple(
+                pseudo_url,
+                version.map(str::to_string),
+                arch,
+            )))
         })
     }
 

@@ -127,7 +127,8 @@ async fn fetch_github_release(
         .with_context(|| format!("GitHub API request failed for {repo}"))?;
 
     let status = resp.status();
-    if status == reqwest::StatusCode::FORBIDDEN || status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+    if status == reqwest::StatusCode::FORBIDDEN || status == reqwest::StatusCode::TOO_MANY_REQUESTS
+    {
         bail!("GitHub API rate limited for {repo} — set GITHUB_TOKEN to increase limits");
     }
     if status == reqwest::StatusCode::NOT_FOUND {

@@ -23,7 +23,11 @@ impl ApkSource for AptoideSource {
                 return Ok(None);
             }
             let pseudo = format!("aptoide://{}", app.package);
-            Ok(Some(Resolved::simple(pseudo, version.map(str::to_string), arch)))
+            Ok(Some(Resolved::simple(
+                pseudo,
+                version.map(str::to_string),
+                arch,
+            )))
         })
     }
 

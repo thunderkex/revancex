@@ -98,7 +98,7 @@ pub struct AppSourceConfig {
     pub version_regex: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct AppConfig {
     pub enabled: bool,
     #[serde(default)]
@@ -130,6 +130,10 @@ pub struct AppConfig {
     pub source_priority: Vec<String>,
     #[serde(default)]
     pub strict_sources: bool,
+    #[serde(default)]
+    pub allow_build_failure: bool,
+    #[serde(default)]
+    pub expected_cert_sha256: Option<String>,
     #[serde(default)]
     pub on_unknown_compat: Option<String>,
     #[serde(alias = "apk_source", default)]
@@ -212,7 +216,7 @@ fn default_mode() -> String {
     "full".to_string()
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct KeystoreRef {
     #[serde(default = "default_alias")]
     pub alias: String,
@@ -227,7 +231,7 @@ fn default_keystore_file() -> String {
     "keys/default.jks".to_string()
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct ModuleFlags {
     #[serde(default = "default_true")]
     pub single: bool,

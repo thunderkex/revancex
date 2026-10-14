@@ -64,6 +64,12 @@ pub struct BuildConfig {
     pub asset_exclude_patterns: Vec<String>,
     #[serde(default = "default_version_fallback_attempts")]
     pub version_fallback_attempts: usize,
+    #[serde(default = "default_tools_check_interval_hours")]
+    pub tools_check_interval_hours: u64,
+}
+
+fn default_tools_check_interval_hours() -> u64 {
+    6
 }
 
 fn default_version_fallback_attempts() -> usize {

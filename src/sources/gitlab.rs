@@ -29,7 +29,10 @@ impl ApkSource for GitlabSource {
             let gl_entry = app.sources.get("gitlab");
             let project = match gl_entry.and_then(|e| e.project.as_deref().or(e.repo.as_deref())) {
                 Some(p) => p,
-                None => return Ok(None),
+                None => {
+                    tracing::info!("gitlab skipped: not configured");
+                    return Ok(None);
+                }
             };
 
             let keyword = gl_entry.and_then(|e| e.keyword.as_deref());

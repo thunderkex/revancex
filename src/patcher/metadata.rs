@@ -316,11 +316,19 @@ pub fn check_app_version_compatibility(
     }
 }
 
-pub async fn validate_patch_compatibilities(cfg: &Config) -> Vec<String> {
+pub async fn validate_patch_compatibilities(
+    cfg: &Config,
+    targets: Option<&[String]>,
+) -> Vec<String> {
     let mut warnings = Vec::new();
     for (id, app) in &cfg.apps {
         if !app.enabled || app.patch_source == "none" || app.patch_source.is_empty() {
             continue;
+        }
+        if let Some(target_list) = targets {
+            if !target_list.iter().any(|t| t == id) {
+                continue;
+            }
         }
         let mpp_path = resolve_mpp_path(cfg, app);
         let is_auto = app

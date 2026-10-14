@@ -110,6 +110,21 @@ apk_sources:
   apkpure_api:
     enabled: true
     headers:
-      X-Pure-Api-Version: "3"
-      User-Agent: "APKPure/3.19.27 (Android 12; arm64-v8a)"
-      Accept: "application/json"
+      User-Agent: "Dalvik/2.1.0 (Linux; U; Android 13; Pixel 5 Build/TQ3A.230901.001); APKPure/3.20.34 (Aegon)"
+      Ual-Access-Businessid: "projecta"
+      Ual-Access-ProjectA: '{"device_info":{"abis":["x86_64","arm64-v8a","x86","armeabi-v7a","armeabi"],"android_id":"50f838123d9a9c94","brand":"google","country":"United States","country_code":"US","imei":"","language":"en-US","manufacturer":"Google","mode":"Pixel 5","os_ver":"33","os_ver_name":"13","platform":1,"product":"redfin","screen_height":1080,"screen_width":1920},"host_app_info":{"build_no":"468","channel":"","md5":"6756e53158d6f6c013650a40d8f1147b","pkg_name":"com.apkpure.aegon","sdk_ver":"3.20.34","version_code":3203427,"version_name":"3.20.34"}}'
+  apkeep:
+    acknowledge_dangers: false
+
+apk_source_order:
+  - apkeep
+  - github
+  - codeberg
+  - gitlab
+  - apkpure
+  - apkmirror
+  - uptodown
+  - aptoide
+  - apkfab
+  - apkcombo
+

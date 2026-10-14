@@ -63,14 +63,33 @@ pub async fn run_pipeline(
     mode: Option<&str>,
     force: bool,
     output_dir: &str,
+    patch_results: Option<&std::collections::BTreeMap<String, Result<String, String>>>,
 ) -> Result<BuildSummary> {
     let semaphore = Arc::new(Semaphore::new(cfg.build.workers));
     let cfg_arc = Arc::new(cfg.clone());
     let uptodown_cb = Arc::new(std::sync::atomic::AtomicU32::new(0));
     let mut handles: Vec<(String, _)> = Vec::new();
+    let mut built = Vec::new();
+    let mut failed = Vec::new();
+    let mut reports = std::collections::BTreeMap::new();
 
     for id in targets {
         if let Some(app) = cfg.apps.get(id) {
+            if let Some(res_map) = patch_results {
+                if !app.patch_source.is_empty() && app.patch_source != "none" {
+                    if let Some(Err(reason)) = res_map.get(&app.patch_source) {
+                        let err_msg = format!(
+                            "Patch bundle download failed for source '{}': {}",
+                            app.patch_source, reason
+                        );
+                        warn!("Skipping build for {id}: {err_msg}");
+                        failed.push((id.clone(), err_msg.clone()));
+                        reports.insert(id.clone(), AppBuildReport::failed(err_msg));
+                        continue;
+                    }
+                }
+            }
+
             let id_key = id.clone();
             let id = id.clone();
             let app = app.clone();
@@ -98,10 +117,6 @@ pub async fn run_pipeline(
             handles.push((id_key, handle));
         }
     }
-
-    let mut built = Vec::new();
-    let mut failed = Vec::new();
-    let mut reports = std::collections::BTreeMap::new();
     for (id, handle) in handles {
         match handle.await {
             Ok((Some(path), report)) => {

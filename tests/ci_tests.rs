@@ -1612,3 +1612,244 @@ fn test_failed_patch_ensures_no_output_in_release_dir() {
         "Failed app must not leave root APK in output dir"
     );
 }
+
+#[test]
+fn test_sources_registry_order_and_fallback() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let expected_order = vec![
+        "apkeep",
+        "github",
+        "codeberg",
+        "gitlab",
+        "apkpure",
+        "apkmirror",
+        "uptodown",
+        "aptoide",
+        "apkfab",
+        "apkcombo",
+    ];
+    assert_eq!(cfg.apk_source_order, expected_order);
+
+    let reg = revancex::sources::default_registry();
+    let reg_names: Vec<&str> = reg.iter().map(|s| s.name()).collect();
+    for name in &expected_order {
+        assert!(
+            reg_names.contains(name),
+            "Source {name} missing from default registry"
+        );
+    }
+}
+
+#[test]
+fn test_cloudflare_challenge_detection() {
+    let client = reqwest::Client::new();
+    let fetch_cfg = revancex::config::sources::FetchConfig::default();
+    let fetcher = revancex::net::Fetcher::new(client, fetch_cfg);
+
+    let mut cf_headers = reqwest::header::HeaderMap::new();
+    cf_headers.insert(
+        "server",
+        reqwest::header::HeaderValue::from_static("cloudflare"),
+    );
+    assert!(fetcher.is_challenge(
+        reqwest::StatusCode::FORBIDDEN,
+        &cf_headers,
+        "<html>access denied</html>"
+    ));
+
+    let mut ray_headers = reqwest::header::HeaderMap::new();
+    ray_headers.insert(
+        "cf-ray",
+        reqwest::header::HeaderValue::from_static("12345-SIN"),
+    );
+    assert!(fetcher.is_challenge(
+        reqwest::StatusCode::SERVICE_UNAVAILABLE,
+        &ray_headers,
+        "<html>service unavailable</html>"
+    ));
+
+    let plain_headers = reqwest::header::HeaderMap::new();
+    assert!(!fetcher.is_challenge(
+        reqwest::StatusCode::FORBIDDEN,
+        &plain_headers,
+        "<html>access denied</html>"
+    ));
+
+    assert!(!fetcher.is_challenge(reqwest::StatusCode::OK, &cf_headers, "<html>success</html>"));
+}
+
+#[test]
+fn test_apkpure_api_response_parsing() {
+    let json_top_level = serde_json::json!({
+        "version_list": [
+            {
+                "version_name": "1.0.0",
+                "asset": {
+                    "urls": ["https://d.apkpure.com/apk/arm64-v8a.apk"]
+                }
+            }
+        ]
+    });
+    let vl1 = json_top_level
+        .get("version_list")
+        .or_else(|| {
+            json_top_level
+                .get("data")
+                .and_then(|d| d.get("version_list"))
+        })
+        .and_then(|v| v.as_array());
+    assert!(vl1.is_some());
+    assert_eq!(vl1.unwrap().len(), 1);
+
+    let json_nested = serde_json::json!({
+        "data": {
+            "version_list": [
+                {
+                    "version_name": "2.0.0",
+                    "asset": {
+                        "urls": ["https://d.apkpure.com/apk/nested.apk"]
+                    }
+                }
+            ]
+        }
+    });
+    let vl2 = json_nested
+        .get("version_list")
+        .or_else(|| json_nested.get("data").and_then(|d| d.get("version_list")))
+        .and_then(|v| v.as_array());
+    assert!(vl2.is_some());
+    assert_eq!(vl2.unwrap().len(), 1);
+}
+
+#[test]
+fn test_apkeep_acknowledge_dangers_gating() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let ack = cfg
+        .apk_sources
+        .get("apkeep")
+        .map(|s| s.acknowledge_dangers)
+        .unwrap_or(false);
+    assert!(!ack, "apkeep.acknowledge_dangers must default to false");
+}
+
+#[test]
+fn test_gboard_config_integrity() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let gboard = cfg
+        .apps
+        .get("gboard")
+        .expect("gboard must exist in apps config");
+    assert!(
+        gboard.uptodown_url.is_none(),
+        "gboard uptodown_url must be removed (410 gone)"
+    );
+    assert_eq!(
+        gboard.apkmirror_url.as_deref(),
+        Some("https://www.apkmirror.com/apk/google-inc/gboard/"),
+        "gboard apkmirror_url must point to google-inc/gboard"
+    );
+    let apkfab = gboard
+        .sources
+        .get("apkfab")
+        .expect("gboard must have apkfab source configured");
+    assert_eq!(apkfab.slug.as_deref(), Some("gboard-the-google-keyboard"));
+    let apkcombo = gboard
+        .sources
+        .get("apkcombo")
+        .expect("gboard must have apkcombo source configured");
+    assert_eq!(
+        apkcombo.enabled,
+        Some(true),
+        "apkcombo must be enabled for gboard"
+    );
+}
+
+#[test]
+fn test_report_check_allow_build_failure() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+
+    let allow = cfg
+        .apps
+        .get("youtube")
+        .map(|a| a.allow_build_failure)
+        .unwrap_or(false);
+    assert!(!allow);
+
+    let mut fake_app = cfg.apps.get("youtube").unwrap().clone();
+    fake_app.allow_build_failure = true;
+    assert!(fake_app.allow_build_failure);
+}
+
+#[test]
+fn test_tool_sidecar_and_integrity() {
+    let tmp = tempfile::tempdir().unwrap();
+    let file_path = tmp.path().join("test_tool.jar");
+    let file_str = file_path.to_str().unwrap();
+
+    {
+        let file = std::fs::File::create(&file_path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("META-INF/MANIFEST.MF", opts).unwrap();
+        zip.write_all(&vec![0x20; 1200]).unwrap();
+        zip.finish().unwrap();
+    }
+
+    let sha256 = utils::compute_file_sha256(&file_path).unwrap();
+    let sidecar = utils::ToolSidecar {
+        repo: "test/repo".to_string(),
+        branch: None,
+        tag: "v1.0".to_string(),
+        asset_name: "test_tool.jar".to_string(),
+        sha256: sha256.clone(),
+        etag: Some("\"etag123\"".to_string()),
+        fetched_at: chrono::Utc::now().to_rfc3339(),
+    };
+
+    utils::save_tool_sidecar(file_str, &sidecar).unwrap();
+    assert!(tmp.path().join("test_tool.jar.meta.json").exists());
+
+    let (valid, loaded) = utils::check_sidecar_and_integrity(file_str);
+    assert!(valid);
+    assert_eq!(loaded.unwrap().sha256, sha256);
+
+    assert!(utils::is_sidecar_within_interval(&sidecar, 6));
+
+    std::fs::write(&file_path, b"corrupted bytes").unwrap();
+    let (tampered_valid, _) = utils::check_sidecar_and_integrity(file_str);
+    assert!(!tampered_valid, "Tampered file must fail integrity check");
+    assert!(!file_path.exists(), "Tampered file must be removed");
+    assert!(
+        !tmp.path().join("test_tool.jar.meta.json").exists(),
+        "Sidecar of tampered file must be removed"
+    );
+}
+
+#[test]
+fn test_clean_stale_tools() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cfg = config::load_config("./config").expect("Failed to load config");
+    cfg.build.tools_dir = tmp.path().to_str().unwrap().to_string();
+
+    let ref_tool = tmp.path().join("cli-all.jar");
+    let stale_tool = tmp.path().join("patches_obsolete_unreferenced.mpp");
+    let stale_sidecar = tmp
+        .path()
+        .join("patches_obsolete_unreferenced.mpp.meta.json");
+
+    std::fs::write(&ref_tool, b"valid content").unwrap();
+    std::fs::write(&stale_tool, b"stale content").unwrap();
+    std::fs::write(&stale_sidecar, b"{}").unwrap();
+
+    utils::clean_stale_tools(&cfg).expect("clean_stale_tools failed");
+
+    assert!(ref_tool.exists(), "Referenced tool must remain");
+    assert!(
+        !stale_tool.exists(),
+        "Stale unreferenced tool must be removed"
+    );
+    assert!(
+        !stale_sidecar.exists(),
+        "Stale tool sidecar must be removed"
+    );
+}

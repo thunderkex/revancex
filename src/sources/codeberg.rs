@@ -29,7 +29,10 @@ impl ApkSource for CodebergSource {
             let cb_entry = app.sources.get("codeberg");
             let repo = match cb_entry.and_then(|e| e.repo.as_deref()) {
                 Some(r) => r,
-                None => return Ok(None),
+                None => {
+                    tracing::info!("codeberg skipped: not configured");
+                    return Ok(None);
+                }
             };
 
             let domain = cb_entry

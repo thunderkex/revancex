@@ -20,6 +20,7 @@ impl ApkSource for ApkpureSource {
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
             if app.package.is_empty() {
+                tracing::info!("apkpure skipped: not configured");
                 return Ok(None);
             }
 
@@ -27,7 +28,7 @@ impl ApkSource for ApkpureSource {
             let api_enabled = api_entry.map(|e| e.enabled).unwrap_or(true);
             if api_enabled {
                 let api_headers = api_entry.map(|e| e.headers.clone()).unwrap_or_default();
-                if let Ok(url) = crate::builder::resolve_apkpure_api_url(
+                match crate::builder::resolve_apkpure_api_url(
                     ctx.client,
                     &app.package,
                     arch,
@@ -36,10 +37,17 @@ impl ApkSource for ApkpureSource {
                 )
                 .await
                 {
-                    let mut r = Resolved::simple(url, version.map(str::to_string), arch);
-                    r.trace.push("apkpure_api".into());
-                    return Ok(Some(r));
+                    Ok(url) => {
+                        let mut r = Resolved::simple(url, version.map(str::to_string), arch);
+                        r.trace.push("apkpure_api".into());
+                        return Ok(Some(r));
+                    }
+                    Err(e) => {
+                        tracing::warn!("apkpure_api resolve failed for {}: {e}", app.package);
+                    }
                 }
+            } else {
+                tracing::info!("apkpure_api disabled by config kill switch");
             }
 
             let page_url = app.apkpure_url.as_deref().unwrap_or(&app.package);
@@ -71,6 +79,7 @@ impl ApkSource for ApkpureSource {
                     dest,
                     &resolved.arch,
                     resolved.version_found.as_deref(),
+                    ctx.fetcher,
                 )
                 .await
                 .map_err(|e| anyhow::anyhow!("{e}"))?;
@@ -81,6 +90,7 @@ impl ApkSource for ApkpureSource {
                     dest,
                     &resolved.arch,
                     resolved.version_found.as_deref(),
+                    ctx.fetcher,
                 )
                 .await
                 .map_err(|e| anyhow::anyhow!("{e}"))?;

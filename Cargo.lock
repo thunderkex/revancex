@@ -1360,6 +1360,7 @@ dependencies = [
  "futures",
  "regex",
  "reqwest",
+ "ring",
  "scraper",
  "semver",
  "serde",

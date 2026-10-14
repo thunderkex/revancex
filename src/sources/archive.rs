@@ -20,6 +20,7 @@ impl ApkSource for ArchiveSource {
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
             if app.archive_url.is_none() {
+                tracing::info!("archive skipped: not configured");
                 return Ok(None);
             }
             let url = app.archive_url.as_deref().unwrap();

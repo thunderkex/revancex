@@ -106,6 +106,8 @@ pub struct ApkSourceEntry {
     pub enabled: bool,
     #[serde(default)]
     pub headers: HashMap<String, String>,
+    #[serde(default)]
+    pub acknowledge_dangers: bool,
 }
 
 fn default_true() -> bool {
@@ -119,6 +121,7 @@ impl Default for ApkSourceEntry {
             pattern: None,
             enabled: true,
             headers: HashMap::new(),
+            acknowledge_dangers: false,
         }
     }
 }

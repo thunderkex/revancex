@@ -199,7 +199,7 @@ impl Fetcher {
         }
     }
 
-    pub fn is_challenge(&self, _status: StatusCode, headers: &HeaderMap, body: &str) -> bool {
+    pub fn is_challenge(&self, status: StatusCode, headers: &HeaderMap, body: &str) -> bool {
         if let Some(cf_mitigated) = headers.get("cf-mitigated") {
             if cf_mitigated
                 .to_str()
@@ -208,6 +208,17 @@ impl Fetcher {
             {
                 return true;
             }
+        }
+
+        let is_cf = headers
+            .get("server")
+            .and_then(|v| v.to_str().ok())
+            .map(|v| v.eq_ignore_ascii_case("cloudflare"))
+            .unwrap_or(false)
+            || headers.contains_key("cf-ray");
+
+        if is_cf && (status == StatusCode::FORBIDDEN || status == StatusCode::SERVICE_UNAVAILABLE) {
+            return true;
         }
 
         let sample_len = body.len().min(5120);
@@ -284,11 +295,50 @@ impl Fetcher {
                     .map_err(|e| FetchError::Network(e.into()))?;
 
                 if self.is_challenge(status, &headers, &body) {
-                    debug!("Challenge detected on {url} (status: {status})");
+                    let server = headers
+                        .get("server")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("-");
+                    let cf_ray = headers
+                        .get("cf-ray")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("-");
+                    let cf_mitigated = headers
+                        .get("cf-mitigated")
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("-");
+                    let body_snippet: String = body.chars().take(200).collect();
+                    info!(
+                        "challenge detected on {url} (host={host}, status={status}, server={server}, cf-ray={cf_ray}, cf-mitigated={cf_mitigated})"
+                    );
+                    info!("challenge body snippet: {body_snippet}");
+                    if status == StatusCode::FORBIDDEN {
+                        info!(
+                            "403 details — status={status}, server={server}, cf-ray={cf_ray}, cf-mitigated={cf_mitigated}, body[:200]={body_snippet}"
+                        );
+                    }
                     // Proceed to browser bypass stages below
                 } else if status.is_success() {
                     return Ok(body);
                 } else {
+                    if status == StatusCode::FORBIDDEN {
+                        let server = headers
+                            .get("server")
+                            .and_then(|v| v.to_str().ok())
+                            .unwrap_or("-");
+                        let cf_ray = headers
+                            .get("cf-ray")
+                            .and_then(|v| v.to_str().ok())
+                            .unwrap_or("-");
+                        let cf_mitigated = headers
+                            .get("cf-mitigated")
+                            .and_then(|v| v.to_str().ok())
+                            .unwrap_or("-");
+                        let body_snippet: String = body.chars().take(200).collect();
+                        info!(
+                            "403 details — status={status}, server={server}, cf-ray={cf_ray}, cf-mitigated={cf_mitigated}, body[:200]={body_snippet}"
+                        );
+                    }
                     return Err(FetchError::Http {
                         status,
                         url: url.to_string(),
@@ -300,26 +350,45 @@ impl Fetcher {
             }
         }
 
-        // Browser bypass chain: FlareSolverr -> Trawl
         if self.flaresolverr_available.load(Ordering::SeqCst) {
+            let stage_start = std::time::Instant::now();
+            info!("bypass stage starting: host={host}, stage=flaresolverr");
             match self.solve_with_flaresolverr(url, &host).await {
                 Ok(sol) => {
+                    info!(
+                        "bypass stage completed: host={host}, stage=flaresolverr, ms={} — ok",
+                        stage_start.elapsed().as_millis()
+                    );
                     self.record_solved_host(&host, &sol);
                     return Ok(sol.html);
                 }
                 Err(e) => {
+                    info!(
+                        "bypass stage completed: host={host}, stage=flaresolverr, ms={} — failed",
+                        stage_start.elapsed().as_millis()
+                    );
                     warn!("FlareSolverr bypass failed for {url}: {e}");
                 }
             }
         }
 
         if self.trawl_available.load(Ordering::SeqCst) {
+            let stage_start = std::time::Instant::now();
+            info!("bypass stage starting: host={host}, stage=trawl");
             match self.solve_with_trawl(url, &host).await {
                 Ok(sol) => {
+                    info!(
+                        "bypass stage completed: host={host}, stage=trawl, ms={} — ok",
+                        stage_start.elapsed().as_millis()
+                    );
                     self.record_solved_host(&host, &sol);
                     return Ok(sol.html);
                 }
                 Err(e) => {
+                    info!(
+                        "bypass stage completed: host={host}, stage=trawl, ms={} — failed",
+                        stage_start.elapsed().as_millis()
+                    );
                     warn!("Trawl bypass failed for {url}: {e}");
                 }
             }

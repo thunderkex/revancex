@@ -24,6 +24,7 @@ pub struct SourceCtx<'a> {
     pub cfg: &'a Config,
     pub breakers: Arc<HashMap<String, Arc<AtomicU32>>>,
     pub cb_threshold: u32,
+    pub fetcher: Option<&'a crate::net::Fetcher>,
 }
 
 impl<'a> SourceCtx<'a> {
@@ -33,6 +34,22 @@ impl<'a> SourceCtx<'a> {
             cfg,
             breakers: Arc::new(HashMap::new()),
             cb_threshold,
+            fetcher: None,
+        }
+    }
+
+    pub fn with_fetcher(
+        client: &'a Client,
+        cfg: &'a Config,
+        cb_threshold: u32,
+        fetcher: &'a crate::net::Fetcher,
+    ) -> Self {
+        Self {
+            client,
+            cfg,
+            breakers: Arc::new(HashMap::new()),
+            cb_threshold,
+            fetcher: Some(fetcher),
         }
     }
 
@@ -41,6 +58,46 @@ impl<'a> SourceCtx<'a> {
             .get(name)
             .cloned()
             .unwrap_or_else(|| Arc::new(AtomicU32::new(0)))
+    }
+
+    pub async fn get_html(&self, url: &str) -> (String, reqwest::header::HeaderMap) {
+        if let Some(fetcher) = self.fetcher {
+            match fetcher.get(url).await {
+                Ok(body) => {
+                    return (body, reqwest::header::HeaderMap::new());
+                }
+                Err(crate::net::FetchError::Http { status, .. }) => {
+                    tracing::info!(
+                        "fetcher: non-challenge HTTP {} for {} — falling back to direct",
+                        status,
+                        url
+                    );
+                }
+                Err(e) => {
+                    tracing::debug!("fetcher get failed for {url}: {e} — falling back to direct");
+                }
+            }
+        }
+        match self.client.get(url).send().await {
+            Ok(resp) => {
+                let headers = resp.headers().clone();
+                let status = resp.status();
+                let body = resp.text().await.unwrap_or_default();
+                if !status.is_success() {
+                    tracing::info!(
+                        "direct GET {} returned {} ({} bytes)",
+                        url,
+                        status,
+                        body.len()
+                    );
+                }
+                (body, headers)
+            }
+            Err(e) => {
+                tracing::warn!("direct GET failed for {url}: {e}");
+                (String::new(), reqwest::header::HeaderMap::new())
+            }
+        }
     }
 }
 
@@ -162,16 +219,34 @@ pub async fn default_fetch(
     Ok(PathBuf::from(dest))
 }
 
+pub const DEFAULT_SOURCE_ORDER: &[&str] = &[
+    "apkeep",
+    "github",
+    "codeberg",
+    "gitlab",
+    "apkpure",
+    "apkmirror",
+    "uptodown",
+    "aptoide",
+    "apkfab",
+    "apkcombo",
+];
+
 pub fn source_order<'a>(
     registry: &'a [Box<dyn ApkSource>],
     app: &AppConfig,
-    _cfg: &Config,
+    cfg: &Config,
 ) -> Vec<&'a dyn ApkSource> {
-    let default_order: &[&str] = &["apkeep", "apkmirror", "uptodown", "apkpure", "aptoide"];
+    let cfg_order: Vec<&str> = if cfg.apk_source_order.is_empty() {
+        DEFAULT_SOURCE_ORDER.to_vec()
+    } else {
+        cfg.apk_source_order.iter().map(|s| s.as_str()).collect()
+    };
+
     let priority: Vec<&str> = if app.strict_sources {
         app.source_priority.iter().map(|s| s.as_str()).collect()
     } else if app.source_priority.is_empty() {
-        default_order.to_vec()
+        cfg_order
     } else {
         app.source_priority.iter().map(|s| s.as_str()).collect()
     };

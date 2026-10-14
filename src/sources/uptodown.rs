@@ -13,13 +13,23 @@ impl ApkSource for UptodownSource {
 
     fn resolve<'a>(
         &'a self,
-        _ctx: &'a SourceCtx<'a>,
+        ctx: &'a SourceCtx<'a>,
         app: &'a AppConfig,
         version: Option<&'a str>,
         arch: &'a str,
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
+            let cb = ctx.breaker("uptodown");
+            let cb_count = cb.load(std::sync::atomic::Ordering::SeqCst);
+            if cb_count >= ctx.cb_threshold {
+                tracing::warn!(
+                    "uptodown circuit-breaker open ({cb_count}/{} consecutive TurnstileBlocked) — skipping uptodown",
+                    ctx.cb_threshold
+                );
+                return Ok(None);
+            }
             if app.uptodown_url.is_none() {
+                tracing::info!("uptodown skipped: not configured");
                 return Ok(None);
             }
             let url = app.uptodown_url.as_deref().unwrap();
@@ -38,16 +48,32 @@ impl ApkSource for UptodownSource {
         dest: &'a str,
     ) -> Pin<Box<dyn std::future::Future<Output = Result<PathBuf>> + Send + 'a>> {
         Box::pin(async move {
-            crate::builder::fetch_uptodown(
+            let res = crate::builder::fetch_uptodown(
                 ctx.client,
                 &resolved.url,
                 &resolved.arch,
                 dest,
                 resolved.version_found.as_deref(),
+                ctx.fetcher,
             )
-            .await
-            .map_err(|e| anyhow::anyhow!("{e}"))?;
-            Ok(PathBuf::from(dest))
+            .await;
+            match res {
+                Ok(path) => {
+                    ctx.breaker("uptodown")
+                        .store(0, std::sync::atomic::Ordering::SeqCst);
+                    Ok(PathBuf::from(path))
+                }
+                Err(crate::builder::UptodownError::TurnstileBlocked) => {
+                    let cb = ctx.breaker("uptodown");
+                    let new_count = cb.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                    tracing::warn!(
+                        "uptodown TurnstileBlocked (circuit-breaker {new_count}/{})",
+                        ctx.cb_threshold
+                    );
+                    Err(anyhow::anyhow!("uptodown TurnstileBlocked"))
+                }
+                Err(e) => Err(anyhow::anyhow!("{e}")),
+            }
         })
     }
 }

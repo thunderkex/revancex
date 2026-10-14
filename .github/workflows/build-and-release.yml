@@ -88,7 +88,21 @@ jobs:
         with:
           shared-key: build-and-release
 
+      - name: Cache revancex CLI binary
+        id: cache_cli
+        uses: actions/cache@v4
+        with:
+          path: bin/revancex
+          key: revancex-cli-${{ runner.os }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'src/**') }}
+
+      - name: Add bin to PATH
+        if: steps.cache_cli.outputs.cache-hit == 'true'
+        run: |
+          chmod +x bin/revancex
+          echo "$PWD/bin" >> $GITHUB_PATH
+
       - name: Download CLI
+        if: steps.cache_cli.outputs.cache-hit != 'true'
         uses: ./.github/actions/download-cli
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -106,23 +120,34 @@ jobs:
           sudo chmod +x /usr/local/bin/apkeep
           apkeep --version
 
-      - name: Cache patch tools
-        id: cache_tools
-        uses: actions/cache@v6
+      - name: Restore patch tools cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             tools/
-          key: tools-${{ hashFiles('config/apps.yaml', 'config/sources.yaml') }}
+          key: tools-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            tools-
+            tools-${{ runner.os }}-
 
       - name: Download tools
-        run: revancex download-tools
+        id: tools
+        run: revancex download-tools --apps "${{ inputs.apps || 'all' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Clean stale tools
+        run: revancex clean --stale-tools
+
+      - name: Save patch tools cache
+        if: always() && steps.tools.outputs.tools_changed == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            tools/
+          key: tools-${{ runner.os }}-${{ github.run_id }}
+
       - name: Validate configuration
-        run: revancex validate --strict
+        run: revancex validate --strict --apps "${{ inputs.apps || 'all' }}"
 
       - name: Build apps
         run: |
@@ -168,26 +193,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Validate Build Report
-        run: |
-          if [ -f output/BUILD_REPORT.json ]; then
-            FAILED_OR_CONFLICT=$(python3 -c "
-          import json, sys
-          with open('output/BUILD_REPORT.json') as f:
-              data = json.load(f)
-          bad = []
-          for app, rep in data.items():
-              if rep.get('status') != 'success' or rep.get('version_conflict') is not None:
-                  bad.append(f'{app} (status={rep.get(\"status\")}, conflict={rep.get(\"version_conflict\") is not None})')
-          if bad:
-              print(', '.join(bad))
-              sys.exit(1)
-          " 2>&1)
-            if [ $? -ne 0 ]; then
-              echo "::error::Build report contains failed or version-conflicted apps: $FAILED_OR_CONFLICT"
-              exit 1
-            fi
-            echo "Build report validated: all apps succeeded with no conflicts."
-          fi
+        run: revancex report check output/BUILD_REPORT.json
 
       - name: Verify build produced output
         run: |

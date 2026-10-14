@@ -20,6 +20,7 @@ impl ApkSource for AptoideSource {
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
             if app.package.is_empty() {
+                tracing::info!("aptoide skipped: not configured");
                 return Ok(None);
             }
             let pseudo = format!("aptoide://{}", app.package);
@@ -48,6 +49,7 @@ impl ApkSource for AptoideSource {
                 dest,
                 &resolved.arch,
                 resolved.version_found.as_deref(),
+                ctx.fetcher,
             )
             .await?;
             Ok(PathBuf::from(dest))

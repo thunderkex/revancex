@@ -106,10 +106,14 @@ apps:
     package: com.google.android.inputmethod.latin
     patch_source: jasonwu
     cli_source: MorpheApp/morphe-cli
-    uptodown_url: https://gboard-go.en.uptodown.com/android
-    apkmirror_url: https://apkmirror.com/apk/google-inc/gboard
+    apkmirror_url: https://www.apkmirror.com/apk/google-inc/gboard/
     archive_url: https://archive.org/download/geologically/apks/com.google.android.inputmethod.latin
     aptoide_url: com.google.android.inputmethod.latin
+    sources:
+      apkfab:
+        slug: gboard-the-google-keyboard
+      apkcombo:
+        enabled: true
     architectures:
     - arm64-v8a
     mode: patch

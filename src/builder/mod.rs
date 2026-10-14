@@ -8,7 +8,7 @@ use regex::Regex;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering as AtomicOrdering};
+use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
@@ -79,6 +79,34 @@ pub fn is_turnstile_blocked(status: u16, headers: &reqwest::header::HeaderMap, b
         || snippet.contains("Checking your browser")
         || snippet.contains("cloudflare-static")
         || snippet.contains("verify you are human")
+}
+
+pub(crate) async fn fetch_page_html(
+    client: &Client,
+    url: &str,
+    fetcher: Option<&crate::net::Fetcher>,
+) -> Result<(String, reqwest::header::HeaderMap)> {
+    if let Some(f) = fetcher {
+        match f.get(url).await {
+            Ok(body) => {
+                return Ok((body, reqwest::header::HeaderMap::new()));
+            }
+            Err(crate::net::FetchError::Http { status, .. }) => {
+                tracing::debug!("fetcher: non-challenge HTTP {status} for {url} — direct fallback");
+            }
+            Err(e) => {
+                tracing::debug!("fetcher get failed for {url}: {e} — direct fallback");
+            }
+        }
+    }
+    let resp = client.get(url).send().await?;
+    let headers = resp.headers().clone();
+    let status = resp.status();
+    let body = resp.text().await?;
+    if !status.is_success() {
+        tracing::info!("direct GET {url} -> {status} ({} bytes)", body.len());
+    }
+    Ok((body, headers))
 }
 
 pub async fn resolve_all_patch_compatible_versions(
@@ -387,6 +415,8 @@ pub async fn fetch_apk(
 
     let client = crate::utils::make_browser_client(cfg)?;
 
+    let fetcher = Arc::new(crate::net::Fetcher::new(client.clone(), cfg.fetch.clone()));
+
     if let Some(url) = &app.apk_url {
         let final_url = if url.contains("github.com") && url.contains("/releases/") {
             resolve_github_asset_url(&client, url, arch, &cfg.build.asset_exclude_patterns)
@@ -412,33 +442,13 @@ pub async fn fetch_apk(
         }
     }
 
-    let supported_refs: Vec<&str> = patch_supported_versions
-        .iter()
-        .map(|s| s.as_str())
-        .collect();
-
-    let default_order: &[&str] = &["apkeep", "apkmirror", "uptodown", "apkpure", "aptoide"];
-    let priority: Vec<&str> = if app.strict_sources {
-        app.source_priority.iter().map(|s| s.as_str()).collect()
-    } else if app.source_priority.is_empty() {
-        default_order.to_vec()
-    } else {
-        app.source_priority.iter().map(|s| s.as_str()).collect()
-    };
-
     let cb_threshold: u32 = std::env::var("REVANCEX_UTD_CB_THRESHOLD")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(3);
 
-    let local_cb;
-    let cb = match &uptodown_cb {
-        Some(c) => c.as_ref(),
-        None => {
-            local_cb = Arc::new(AtomicU32::new(0));
-            &local_cb
-        }
-    };
+    let registry = crate::sources::default_registry();
+    let ordered = crate::sources::source_order(&registry, app, cfg);
 
     let candidates_to_try: Vec<Option<String>> = if candidate_versions.is_empty() {
         vec![target_ver.clone()]
@@ -454,160 +464,61 @@ pub async fn fetch_apk(
         |cur_target| {
             let client = &client;
             let dest = &dest;
-            let supported_refs = &supported_refs;
-            let priority = &priority;
-            let apk_sources = &cfg.apk_sources;
+            let ordered = &ordered;
+            let fetcher = fetcher.clone();
+            let uptodown_cb = uptodown_cb.clone();
             async move {
-                if let Some(url) = &app.archive_url {
-                    info!("{id}: checking archive.org source {url}");
-                    match fetch_archive_org(
-                        client,
-                        url,
-                        arch,
-                        dest,
-                        cur_target.as_deref(),
-                        supported_refs,
-                    )
-                    .await
-                    {
-                        Ok(path) => return Ok(path),
-                        Err(e) => warn!("{id}: archive.org failed: {e}"),
-                    }
+                let mut breakers = std::collections::HashMap::new();
+                if let Some(ref cb) = uptodown_cb {
+                    breakers.insert("uptodown".to_string(), cb.clone());
                 }
+                let ctx = crate::sources::SourceCtx {
+                    client,
+                    cfg,
+                    breakers: std::sync::Arc::new(breakers),
+                    cb_threshold,
+                    fetcher: Some(&fetcher),
+                };
 
                 let mut attempted: Vec<String> = Vec::new();
 
-                'sources: for source in priority {
-                    match *source {
-                        "apkmirror" => {
-                            if let Some(url) = &app.apkmirror_url {
-                                info!("{id}: checking apkmirror source {url}");
-                                attempted.push("apkmirror".into());
-                                match fetch_apkmirror(client, url, arch, dest, cur_target.as_deref()).await {
-                                    Ok(path) => {
-                                        info!("{id}: BUILD_REPORT resolved_source=apkmirror attempted={attempted:?}");
-                                        return Ok(path);
-                                    }
-                                    Err(e) => warn!("{id}: apkmirror failed: {e}"),
-                                }
-                            }
-                        }
-                        "uptodown" => {
-                            if let Some(url) = &app.uptodown_url {
-                                let cb_count = cb.load(AtomicOrdering::SeqCst);
-                                if cb_count >= cb_threshold {
-                                    warn!(
-                                        "{id}: uptodown circuit-breaker open ({cb_count}/{cb_threshold} consecutive TurnstileBlocked) — skipping uptodown for this app"
-                                    );
-                                    attempted.push("uptodown(skipped-cb)".into());
-                                    continue 'sources;
-                                }
-
-                                info!("{id}: checking uptodown source {url}");
-                                attempted.push("uptodown".into());
-                                match fetch_uptodown(client, url, arch, dest, cur_target.as_deref()).await {
-                                    Ok(path) => {
-                                        cb.store(0, AtomicOrdering::SeqCst);
-                                        info!("{id}: BUILD_REPORT resolved_source=uptodown attempted={attempted:?}");
-                                        return Ok(path);
-                                    }
-                                    Err(UptodownError::TurnstileBlocked) => {
-                                        let new_count = cb.fetch_add(1, AtomicOrdering::SeqCst) + 1;
-                                        warn!(
-                                            "{id}: uptodown TurnstileBlocked (circuit-breaker {new_count}/{cb_threshold})"
-                                        );
-                                        if new_count >= cb_threshold {
-                                            warn!(
-                                                "uptodown appears globally blocked this run, skipping it for remaining apps"
-                                            );
+                for src in ordered {
+                    let sname = src.name();
+                    info!("{id}: checking source {sname}");
+                    attempted.push(sname.to_string());
+                    match src.resolve(&ctx, app, cur_target.as_deref(), arch).await {
+                        Ok(Some(resolved)) => {
+                            match src.fetch(&ctx, &resolved, dest).await {
+                                Ok(path) => {
+                                    if let Some(ref expected_cert) = app.expected_cert_sha256 {
+                                        let p_str = path.to_string_lossy();
+                                        match crate::utils::keystore::verify_apk_cert_sha256(
+                                            &p_str,
+                                            expected_cert,
+                                        ) {
+                                            Ok(true) => {
+                                                info!("{id}: APK cert SHA-256 matches expected: {expected_cert}");
+                                            }
+                                            Ok(false) => {
+                                                warn!("{id}: APK cert SHA-256 mismatch for source {sname}, discarding and trying next source");
+                                                let _ = std::fs::remove_file(dest);
+                                                continue;
+                                            }
+                                            Err(e) => {
+                                                warn!("{id}: failed to verify APK cert for {sname}: {e}, trying next source");
+                                                let _ = std::fs::remove_file(dest);
+                                                continue;
+                                            }
                                         }
                                     }
-                                    Err(e) => warn!("{id}: uptodown failed: {e}"),
+                                    info!("{id}: BUILD_REPORT resolved_source={sname} attempted={attempted:?}");
+                                    return Ok(path.to_string_lossy().to_string());
                                 }
+                                Err(e) => warn!("{id}: {sname} fetch failed: {e}"),
                             }
                         }
-                        "apkpure" => {
-                            if !app.package.is_empty() {
-                                let api_entry = apk_sources.get("apkpure_api");
-                                let api_enabled = api_entry.map(|e| e.enabled).unwrap_or(true);
-                                if api_enabled {
-                                    info!("{id}: trying apkpure_api for package {}", app.package);
-                                    attempted.push("apkpure_api".into());
-                                    let api_headers = api_entry
-                                        .map(|e| e.headers.clone())
-                                        .unwrap_or_default();
-                                    match fetch_apkpure_api(
-                                        client,
-                                        &app.package,
-                                        dest,
-                                        arch,
-                                        cur_target.as_deref(),
-                                        &api_headers,
-                                    )
-                                    .await
-                                    {
-                                        Ok(path) => {
-                                            info!("{id}: BUILD_REPORT resolved_source=apkpure_api attempted={attempted:?}");
-                                            return Ok(path);
-                                        }
-                                        Err(e) => {
-                                            warn!("{id}: apkpure_api miss ({e}), falling back to page scraper");
-                                        }
-                                    }
-                                } else {
-                                    info!("{id}: apkpure_api disabled by config kill switch");
-                                }
-
-                                info!("{id}: trying apkpure page scraper for package {}", app.package);
-                                attempted.push("apkpure".into());
-                                let result = if let Some(base) = &app.apkpure_url {
-                                    fetch_apkpure_url(client, base, dest, arch, cur_target.as_deref()).await
-                                } else {
-                                    fetch_apkpure(client, &app.package, dest, arch, cur_target.as_deref())
-                                        .await
-                                };
-                                match result {
-                                    Ok(path) => {
-                                        info!("{id}: BUILD_REPORT resolved_source=apkpure attempted={attempted:?}");
-                                        return Ok(path);
-                                    }
-                                    Err(e) => warn!("{id}: apkpure failed: {e}"),
-                                }
-                            }
-                        }
-                        "aptoide" => {
-                            if !app.package.is_empty() {
-                                info!("{id}: trying aptoide for package {}", app.package);
-                                attempted.push("aptoide".into());
-                                match fetch_aptoide(client, &app.package, dest, arch, cur_target.as_deref()).await {
-                                    Ok(path) => {
-                                        info!(
-                                            "{id}: BUILD_REPORT resolved_source=aptoide attempted={attempted:?}"
-                                        );
-                                        return Ok(path);
-                                    }
-                                    Err(e) => warn!("{id}: aptoide failed: {e}"),
-                                }
-                            }
-                        }
-                        "apkeep" => {
-                            if !app.package.is_empty() {
-                                info!("{id}: trying apkeep for package {}", app.package);
-                                attempted.push("apkeep".into());
-                                match fetch_apkeep(&app.package, dest, cur_target.as_deref()).await {
-                                    Ok(path) => {
-                                        info!(
-                                            "{id}: BUILD_REPORT resolved_source=apkeep attempted={attempted:?}"
-                                        );
-                                        return Ok(path);
-                                    }
-                                    Err(e) => warn!("{id}: apkeep failed: {e}"),
-                                }
-                            }
-                        }
-                        other => {
-                            warn!("{id}: unknown source '{other}' in source_priority, skipping");
-                        }
+                        Ok(None) => {}
+                        Err(e) => warn!("{id}: {sname} resolve failed: {e}"),
                     }
                 }
 
@@ -783,10 +694,11 @@ pub(crate) async fn fetch_apkmirror(
     arch: &str,
     dest: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String> {
     info!("apkmirror: loading app page {app_url}");
     let base_origin = "https://www.apkmirror.com";
-    let app_html = client.get(app_url).send().await?.text().await?;
+    let (app_html, _hdrs) = fetch_page_html(client, app_url, fetcher).await?;
 
     let re_rel = Regex::new(r#"href="(/apk/[^"]+-release/)""#)?;
     let mut all_releases: Vec<String> = Vec::new();
@@ -825,7 +737,7 @@ pub(crate) async fn fetch_apkmirror(
 
     let release_url = format!("{base_origin}{release_path}");
     info!("apkmirror: loading release {release_url}");
-    let rel_html = client.get(&release_url).send().await?.text().await?;
+    let (rel_html, _hdrs) = fetch_page_html(client, &release_url, fetcher).await?;
 
     let re_var = Regex::new(r#"href="(/apk/[^"]+-android-apk-download/)""#)?;
     let mut variants: Vec<String> = Vec::new();
@@ -844,7 +756,7 @@ pub(crate) async fn fetch_apkmirror(
 
     let variant_url = format!("{base_origin}{variant_path}");
     info!("apkmirror: loading variant {variant_url}");
-    let var_html = client.get(&variant_url).send().await?.text().await?;
+    let (var_html, _hdrs) = fetch_page_html(client, &variant_url, fetcher).await?;
 
     let re_dl = Regex::new(r#"href="(/apk/[^"]+/download/\?key=[^"]+)""#)?;
     let dl_path = re_dl
@@ -854,7 +766,7 @@ pub(crate) async fn fetch_apkmirror(
 
     let dl_url = format!("{base_origin}{dl_path}");
     info!("apkmirror: loading download landing page {dl_url}");
-    let dl_html = client.get(&dl_url).send().await?.text().await?;
+    let (dl_html, _hdrs) = fetch_page_html(client, &dl_url, fetcher).await?;
 
     let re_php = Regex::new(r#"href="(/wp-content/themes/APKMirror/download\.php\?[^"]+)""#)?;
     let php_path = re_php
@@ -898,22 +810,33 @@ pub(crate) async fn fetch_uptodown(
     _arch: &str,
     dest: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String, UptodownError> {
     let versions_url = format!("{base_url}/versions");
     info!("uptodown: checking versions at {versions_url}");
 
-    let versions_resp = client
-        .get(&versions_url)
-        .send()
-        .await
-        .map_err(|e| UptodownError::Network(e.into()))?;
-
-    let versions_status = versions_resp.status().as_u16();
-    let versions_headers = versions_resp.headers().clone();
-    let html = versions_resp
-        .text()
-        .await
-        .map_err(|e| UptodownError::Network(e.into()))?;
+    let (html_bytes, versions_headers) = match fetcher {
+        Some(f) => match crate::builder::fetch_page_html(client, &versions_url, Some(f)).await {
+            Ok((body, hdrs)) => (body, hdrs),
+            Err(e) => return Err(UptodownError::Network(e)),
+        },
+        None => {
+            let resp = client
+                .get(&versions_url)
+                .send()
+                .await
+                .map_err(|e| UptodownError::Network(e.into()))?;
+            let hdrs = resp.headers().clone();
+            let body = resp
+                .text()
+                .await
+                .map_err(|e| UptodownError::Network(e.into()))?;
+            (body, hdrs)
+        }
+    };
+    let versions_status = 200u16;
+    let _ = versions_headers;
+    let html = html_bytes;
 
     if is_turnstile_blocked(versions_status, &versions_headers, &html) {
         warn!("uptodown: TurnstileBlocked on versions page (status={versions_status})");
@@ -986,23 +909,29 @@ pub(crate) async fn fetch_uptodown(
     );
 
     let dl_page = format!("{base_url}/download/{file_id}-x");
-    let dl_resp = client
-        .get(&dl_page)
-        .send()
-        .await
-        .map_err(|e| UptodownError::Network(e.into()))?;
+    let (dl_html, dl_headers) = match fetcher {
+        Some(f) => match crate::builder::fetch_page_html(client, &dl_page, Some(f)).await {
+            Ok((body, hdrs)) => (body, hdrs),
+            Err(e) => return Err(UptodownError::Network(e)),
+        },
+        None => {
+            let resp = client
+                .get(&dl_page)
+                .send()
+                .await
+                .map_err(|e| UptodownError::Network(e.into()))?;
+            let hdrs = resp.headers().clone();
+            let body = resp
+                .text()
+                .await
+                .map_err(|e| UptodownError::Network(e.into()))?;
+            (body, hdrs)
+        }
+    };
+    let dl_status = 200u16;
+    let _ = dl_status;
 
-    let dl_status = dl_resp.status().as_u16();
-    let dl_headers = dl_resp.headers().clone();
-    let dl_html = dl_resp
-        .text()
-        .await
-        .map_err(|e| UptodownError::Network(e.into()))?;
-
-    debug!(
-        "uptodown: download page {} bytes (status={dl_status})",
-        dl_html.len()
-    );
+    debug!("uptodown: download page {} bytes", dl_html.len());
 
     if is_turnstile_blocked(dl_status, &dl_headers, &dl_html) {
         warn!("uptodown: TurnstileBlocked on download page (status={dl_status})");
@@ -1096,18 +1025,29 @@ pub(crate) async fn fetch_apkeep(
     package: &str,
     dest: &str,
     target_version: Option<&str>,
+    arch: Option<&str>,
+    acknowledge_dangers: bool,
 ) -> Result<String> {
     let tmp_dir = tempfile::tempdir()?;
     let out_dir = tmp_dir.path().to_str().unwrap();
     let apkeep_cmd = resolve_apkeep_cmd();
 
+    let opt_arg = if let Some(a) = arch.filter(|a| !a.is_empty() && *a != "all") {
+        format!("acknowledge_dangers=true,arch={a}")
+    } else {
+        "acknowledge_dangers=true".to_string()
+    };
+
     if let Some(ver) = target_version {
         let app_arg = format!("{package}@{ver}");
         info!("apkeep: attempting targeted download {app_arg}");
-        let res = tokio::process::Command::new(&apkeep_cmd)
-            .args(["-a", &app_arg, "-d", "apk-pure", out_dir])
-            .status()
-            .await;
+        let mut cmd = tokio::process::Command::new(&apkeep_cmd);
+        cmd.args(["-a", &app_arg, "-d", "apk-pure"]);
+        if acknowledge_dangers {
+            cmd.args(["-o", &opt_arg]);
+        }
+        cmd.arg(out_dir);
+        let res = cmd.status().await;
         match res {
             Ok(st) if st.success() => {}
             Ok(st) => anyhow::bail!("apkeep: targeted download for {app_arg} failed (exit {st})"),
@@ -1115,11 +1055,13 @@ pub(crate) async fn fetch_apkeep(
         }
     } else {
         info!("apkeep: attempting download for {package} (latest)");
-        let status = tokio::process::Command::new(&apkeep_cmd)
-            .args(["-a", package, "-d", "apk-pure", out_dir])
-            .status()
-            .await
-            .context("Running apkeep")?;
+        let mut cmd = tokio::process::Command::new(&apkeep_cmd);
+        cmd.args(["-a", package, "-d", "apk-pure"]);
+        if acknowledge_dangers {
+            cmd.args(["-o", &opt_arg]);
+        }
+        cmd.arg(out_dir);
+        let status = cmd.status().await.context("Running apkeep")?;
         if !status.success() {
             anyhow::bail!("apkeep exited with status {status}");
         }
@@ -1204,6 +1146,7 @@ pub(crate) async fn fetch_aptoide(
     dest: &str,
     arch: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String> {
     use base64::{engine::general_purpose::STANDARD, Engine as _};
     const BASE: &str = "https://ws75.aptoide.com/api/7/";
@@ -1234,36 +1177,40 @@ pub(crate) async fn fetch_aptoide(
 
     if let Some(ref tgt) = target_norm {
         let site_url = format!("https://en.aptoide.com/app/{package}");
-        if let Ok(resp) = client.get(&site_url).send().await {
-            if resp.status().is_success() {
-                if let Ok(html) = resp.text().await {
-                    if let Some(start) = html.find("{\"props\"") {
-                        let json_str = &html[start..];
-                        let end = json_str.find("</script>").unwrap_or(json_str.len());
-                        if let Ok(props) =
-                            serde_json::from_str::<serde_json::Value>(&json_str[..end])
-                        {
-                            if let Some(versions) = props["pageProps"]["versions"].as_array() {
-                                for ver_entry in versions {
-                                    let vername = ver_entry["vername"].as_str().unwrap_or("");
-                                    if normalize(vername) == *tgt {
-                                        if let Some(path) = ver_entry["file"]["path"].as_str() {
-                                            if !path.is_empty() {
-                                                info!("aptoide website: found {package} v{vername}, downloading {path}");
-                                                download_and_extract_if_bundle(
-                                                    client,
-                                                    path,
-                                                    dest,
-                                                    Some("https://aptoide.com/"),
-                                                )
-                                                .await?;
-                                                return Ok(dest.to_string());
-                                            }
-                                        }
-                                        info!("aptoide website: v{vername} found but no download URL (older version)");
-                                        break;
+        let html_res = match fetcher {
+            Some(f) => fetch_page_html(client, &site_url, Some(f))
+                .await
+                .map(|(b, _)| b),
+            None => match client.get(&site_url).send().await {
+                Ok(resp) if resp.status().is_success() => resp.text().await.map_err(Into::into),
+                Ok(resp) => anyhow::bail!("status {}", resp.status()),
+                Err(e) => Err(e.into()),
+            },
+        };
+        if let Ok(html) = html_res {
+            if let Some(start) = html.find("{\"props\"") {
+                let json_str = &html[start..];
+                let end = json_str.find("</script>").unwrap_or(json_str.len());
+                if let Ok(props) = serde_json::from_str::<serde_json::Value>(&json_str[..end]) {
+                    if let Some(versions) = props["pageProps"]["versions"].as_array() {
+                        for ver_entry in versions {
+                            let vername = ver_entry["vername"].as_str().unwrap_or("");
+                            if normalize(vername) == *tgt {
+                                if let Some(path) = ver_entry["file"]["path"].as_str() {
+                                    if !path.is_empty() {
+                                        info!("aptoide website: found {package} v{vername}, downloading {path}");
+                                        download_and_extract_if_bundle(
+                                            client,
+                                            path,
+                                            dest,
+                                            Some("https://aptoide.com/"),
+                                        )
+                                        .await?;
+                                        return Ok(dest.to_string());
                                     }
                                 }
+                                info!("aptoide website: v{vername} found but no download URL (older version)");
+                                break;
                             }
                         }
                     }
@@ -1343,84 +1290,6 @@ pub(crate) async fn fetch_aptoide(
     Ok(dest.to_string())
 }
 
-async fn fetch_apkpure_api(
-    client: &Client,
-    package: &str,
-    dest: &str,
-    arch: &str,
-    target_version: Option<&str>,
-    extra_headers: &std::collections::HashMap<String, String>,
-) -> Result<String> {
-    let url =
-        format!("https://tapi.pureapk.com/v3/get_app_his_version?package_name={package}&hl=en");
-    info!("apkpure_api: querying {url}");
-
-    let mut req = client.get(&url);
-    for (k, v) in extra_headers {
-        req = req.header(k.as_str(), v.as_str());
-    }
-    if !extra_headers.contains_key("X-Pure-Api-Version") {
-        req = req.header("X-Pure-Api-Version", "3");
-    }
-    if !extra_headers.contains_key("User-Agent") {
-        req = req.header("User-Agent", "APKPure/3.19.27 (Android 12; arm64-v8a)");
-    }
-    if !extra_headers.contains_key("Accept") {
-        req = req.header("Accept", "application/json");
-    }
-    let resp = req.send().await.context("apkpure_api: request failed")?;
-
-    if !resp.status().is_success() {
-        anyhow::bail!("apkpure_api: HTTP {} for {package}", resp.status());
-    }
-
-    let body: serde_json::Value = resp
-        .json()
-        .await
-        .context("apkpure_api: JSON parse failed")?;
-
-    let version_list = body["data"]["version_list"]
-        .as_array()
-        .ok_or_else(|| anyhow::anyhow!("apkpure_api: no version_list for {package}"))?;
-
-    if version_list.is_empty() {
-        anyhow::bail!("apkpure_api: empty version_list for {package}");
-    }
-
-    let entry = if let Some(ver) = target_version {
-        version_list.iter().find(|e| {
-            let vn = e["version_name"].as_str().unwrap_or("");
-            vn == ver || crate::utils::version::versions_match(vn, ver)
-        })
-    } else {
-        version_list.first()
-    };
-
-    let entry = match entry {
-        Some(e) => e,
-        None => {
-            anyhow::bail!(
-                "apkpure_api: version {:?} not in the ~20 newest entries for {package} — miss",
-                target_version
-            );
-        }
-    };
-
-    let asset_url = entry["asset"]["urls"]
-        .as_array()
-        .and_then(|arr| {
-            arr.iter()
-                .find(|u| u.as_str().map(|s| s.contains(arch)).unwrap_or(false))
-                .or_else(|| arr.first())
-        })
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| anyhow::anyhow!("apkpure_api: no asset URL in entry for {package}"))?;
-
-    info!("apkpure_api: downloading {package} from {asset_url}");
-    download_and_extract_if_bundle(client, asset_url, dest, Some("https://apkpure.com/")).await?;
-    Ok(dest.to_string())
-}
-
 /// Resolve-only variant: returns the asset URL without downloading.
 /// Used by `src/sources/apkpure.rs` to populate `Resolved` ahead of time.
 pub(crate) async fn resolve_apkpure_api_url(
@@ -1437,27 +1306,38 @@ pub(crate) async fn resolve_apkpure_api_url(
     for (k, v) in extra_headers {
         req = req.header(k.as_str(), v.as_str());
     }
-    if !extra_headers.contains_key("X-Pure-Api-Version") {
-        req = req.header("X-Pure-Api-Version", "3");
-    }
-    if !extra_headers.contains_key("User-Agent") {
-        req = req.header("User-Agent", "APKPure/3.19.27 (Android 12; arm64-v8a)");
-    }
-    if !extra_headers.contains_key("Accept") {
-        req = req.header("Accept", "application/json");
-    }
-    let resp = req.send().await.context("apkpure_api: request failed")?;
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(e) => {
+            warn!("apkpure_api: request failed for {package}: {e}");
+            return Err(e).context("apkpure_api: request failed");
+        }
+    };
+
     if !resp.status().is_success() {
+        warn!("apkpure_api: HTTP {} for {package}", resp.status());
         anyhow::bail!("apkpure_api: HTTP {} for {package}", resp.status());
     }
-    let body: serde_json::Value = resp
-        .json()
-        .await
-        .context("apkpure_api: JSON parse failed")?;
-    let version_list = body["data"]["version_list"]
-        .as_array()
-        .ok_or_else(|| anyhow::anyhow!("apkpure_api: no version_list for {package}"))?;
+
+    let body: serde_json::Value = match resp.json().await {
+        Ok(b) => b,
+        Err(e) => {
+            warn!("apkpure_api: JSON parse failed for {package}: {e}");
+            return Err(e).context("apkpure_api: JSON parse failed");
+        }
+    };
+
+    let version_list = body
+        .get("version_list")
+        .or_else(|| body.get("data").and_then(|d| d.get("version_list")))
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| {
+            warn!("apkpure_api: no version_list for {package}");
+            anyhow::anyhow!("apkpure_api: no version_list for {package}")
+        })?;
+
     if version_list.is_empty() {
+        warn!("apkpure_api: empty version_list for {package}");
         anyhow::bail!("apkpure_api: empty version_list for {package}");
     }
     let entry = if let Some(ver) = target_version {
@@ -1492,8 +1372,9 @@ pub(crate) async fn fetch_apkpure_url_pub(
     dest: &str,
     arch: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String, ApkpureError> {
-    fetch_apkpure_url(client, base_url, dest, arch, target_version).await
+    fetch_apkpure_url(client, base_url, dest, arch, target_version, fetcher).await
 }
 
 pub(crate) async fn fetch_apkpure_pub(
@@ -1502,8 +1383,9 @@ pub(crate) async fn fetch_apkpure_pub(
     dest: &str,
     arch: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String, ApkpureError> {
-    fetch_apkpure(client, package_or_url, dest, arch, target_version).await
+    fetch_apkpure(client, package_or_url, dest, arch, target_version, fetcher).await
 }
 
 pub(crate) async fn fetch_apkpure_url(
@@ -1512,6 +1394,7 @@ pub(crate) async fn fetch_apkpure_url(
     dest: &str,
     arch: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String, ApkpureError> {
     if base_url.starts_with("http") && (base_url.ends_with(".apk") || base_url.ends_with(".xapk")) {
         info!("apkpure: using explicit direct URL override {base_url}");
@@ -1528,7 +1411,7 @@ pub(crate) async fn fetch_apkpure_url(
             })?;
         return Ok(dest.to_string());
     }
-    fetch_apkpure(client, base_url, dest, arch, target_version).await
+    fetch_apkpure(client, base_url, dest, arch, target_version, fetcher).await
 }
 
 async fn resolve_apkpure_cdn_url(url: &str, referer: Option<&str>) -> String {
@@ -1582,6 +1465,7 @@ pub(crate) async fn fetch_apkpure(
     dest: &str,
     arch: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String, ApkpureError> {
     info!("apkpure: resolving download for {package_or_url}");
     let (app_url, package) = if package_or_url.starts_with("http") {
@@ -1598,28 +1482,43 @@ pub(crate) async fn fetch_apkpure(
         )
     };
 
-    let app_resp = client
-        .get(&app_url)
-        .header("Referer", "https://apkpure.com/")
-        .send()
-        .await;
-
-    let canonical_url = match app_resp {
-        Ok(r) if r.status().is_success() => {
-            let u = r.url().as_str().trim_end_matches('/').to_string();
-            info!("apkpure: canonical app URL is {u}");
-            Some(u)
+    let canonical_url: Option<String> = if let Some(f) = fetcher {
+        match crate::builder::fetch_page_html(client, &app_url, Some(f)).await {
+            Ok((_body, _hdrs)) => {
+                let u = app_url.trim_end_matches('/').to_string();
+                info!("apkpure: canonical app URL is {u} (fetcher)");
+                Some(u)
+            }
+            Err(e) => {
+                warn!(
+                    "apkpure: app page {app_url} fetcher error: {e}, proceeding direct endpoints"
+                );
+                None
+            }
         }
-        Ok(r) => {
-            warn!(
-                "apkpure: app page {app_url} returned status {}, proceeding to direct endpoints",
-                r.status()
-            );
-            None
-        }
-        Err(e) => {
-            warn!("apkpure: app page {app_url} request error: {e}, proceeding to direct endpoints");
-            None
+    } else {
+        let app_resp = client
+            .get(&app_url)
+            .header("Referer", "https://apkpure.com/")
+            .send()
+            .await;
+        match app_resp {
+            Ok(r) if r.status().is_success() => {
+                let u = r.url().as_str().trim_end_matches('/').to_string();
+                info!("apkpure: canonical app URL is {u}");
+                Some(u)
+            }
+            Ok(r) => {
+                warn!(
+                    "apkpure: app page {app_url} returned status {}, proceeding to direct endpoints",
+                    r.status()
+                );
+                None
+            }
+            Err(e) => {
+                warn!("apkpure: app page {app_url} request error: {e}, proceeding to direct endpoints");
+                None
+            }
         }
     };
 
@@ -1645,33 +1544,42 @@ pub(crate) async fn fetch_apkpure(
 
     for dl_page in &dl_pages {
         info!("apkpure: inspecting download page {dl_page}");
-        let referer_header = canonical_url.as_deref().unwrap_or("https://apkpure.com/");
-        let resp = match client
-            .get(dl_page)
-            .header("Referer", referer_header)
-            .send()
-            .await
-        {
-            Ok(r) => r,
-            Err(e) => {
-                warn!("apkpure: download page {dl_page} error: {e}");
+        let html = if let Some(f) = fetcher {
+            match crate::builder::fetch_page_html(client, dl_page, Some(f)).await {
+                Ok((body, _hdrs)) => body,
+                Err(e) => {
+                    warn!("apkpure: download page {dl_page} fetcher error: {e}");
+                    continue;
+                }
+            }
+        } else {
+            let referer_header = canonical_url.as_deref().unwrap_or("https://apkpure.com/");
+            let resp = match client
+                .get(dl_page)
+                .header("Referer", referer_header)
+                .send()
+                .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    warn!("apkpure: download page {dl_page} error: {e}");
+                    continue;
+                }
+            };
+            if !resp.status().is_success() {
+                warn!(
+                    "apkpure: download page {dl_page} returned status {}",
+                    resp.status()
+                );
                 continue;
+            }
+            match resp.text().await {
+                Ok(h) => h,
+                Err(_) => continue,
             }
         };
 
-        if !resp.status().is_success() {
-            warn!(
-                "apkpure: download page {dl_page} returned status {}",
-                resp.status()
-            );
-            continue;
-        }
-
         last_page_url = dl_page.clone();
-        let html = match resp.text().await {
-            Ok(h) => h,
-            Err(_) => continue,
-        };
 
         for cap in re_dl_link.captures_iter(&html) {
             let link = cap[1].replace("&amp;", "&");

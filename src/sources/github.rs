@@ -29,7 +29,10 @@ impl ApkSource for GithubSource {
             let gh_entry = app.sources.get("github");
             let repo = match gh_entry.and_then(|e| e.repo.as_deref()) {
                 Some(r) => r,
-                None => return Ok(None),
+                None => {
+                    tracing::info!("github skipped: not configured");
+                    return Ok(None);
+                }
             };
 
             let asset_pattern = gh_entry

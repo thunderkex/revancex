@@ -24,18 +24,22 @@ impl ApkSource for ApkfabSource {
         Box::pin(async move {
             let mut trace = vec![format!("Resolving from apkfab for {}", app.package)];
 
-            let slug = app
-                .sources
-                .get("apkfab")
-                .and_then(|e| e.slug.as_deref())
-                .unwrap_or(&app.package);
+            let slug = match app.sources.get("apkfab").and_then(|e| e.slug.as_deref()) {
+                Some(s) => s,
+                None => {
+                    tracing::info!("apkfab skipped: not configured");
+                    return Ok(None);
+                }
+            };
 
             let versions_url = format!("https://apkfab.com/{}/{}/versions", slug, app.package);
             trace.push(format!("GET {}", versions_url));
 
-            let html_text = match ctx.client.get(&versions_url).send().await {
-                Ok(r) if r.status().is_success() => r.text().await.unwrap_or_default(),
-                _ => return Ok(None),
+            let (html_text, _hdrs) = ctx.get_html(&versions_url).await;
+            let html_text = if !html_text.is_empty() {
+                html_text
+            } else {
+                return Ok(None);
             };
 
             let mut matched_sha1: Option<String> = None;
@@ -94,9 +98,11 @@ impl ApkSource for ApkfabSource {
                 slug, app.package, sha1
             );
 
-            let dl_html = match ctx.client.get(&download_page).send().await {
-                Ok(r) if r.status().is_success() => r.text().await.unwrap_or_default(),
-                _ => return Ok(None),
+            let (dl_html, _hdrs) = ctx.get_html(&download_page).await;
+            let dl_html = if !dl_html.is_empty() {
+                dl_html
+            } else {
+                return Ok(None);
             };
 
             let direct_url = {

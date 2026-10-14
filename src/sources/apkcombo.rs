@@ -22,14 +22,20 @@ impl ApkSource for ApkcomboSource {
         arch: &'a str,
     ) -> Pin<Box<dyn Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
+            if app.package.is_empty() {
+                tracing::info!("apkcombo skipped: not configured");
+                return Ok(None);
+            }
             let mut trace = vec![format!("Resolving from apkcombo for {}", app.package)];
 
             let search_url = format!("https://apkcombo.com/search/{}/download", app.package);
             trace.push(format!("GET {}", search_url));
 
-            let html_text = match ctx.client.get(&search_url).send().await {
-                Ok(r) if r.status().is_success() => r.text().await.unwrap_or_default(),
-                _ => return Ok(None),
+            let (html_text, _hdrs) = ctx.get_html(&search_url).await;
+            let html_text = if !html_text.is_empty() {
+                html_text
+            } else {
+                return Ok(None);
             };
 
             let mut found_url: Option<String> = None;
@@ -86,9 +92,11 @@ impl ApkSource for ApkcomboSource {
 
             trace.push(format!("Fetching download page {}", dl_page));
 
-            let dl_html = match ctx.client.get(&dl_page).send().await {
-                Ok(r) if r.status().is_success() => r.text().await.unwrap_or_default(),
-                _ => return Ok(None),
+            let (dl_html, _hdrs) = ctx.get_html(&dl_page).await;
+            let dl_html = if !dl_html.is_empty() {
+                dl_html
+            } else {
+                return Ok(None);
             };
 
             let mut final_url = None;

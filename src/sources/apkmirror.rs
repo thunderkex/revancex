@@ -20,6 +20,7 @@ impl ApkSource for ApkmirrorSource {
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
             if app.apkmirror_url.is_none() {
+                tracing::info!("apkmirror skipped: not configured");
                 return Ok(None);
             }
             let url = app.apkmirror_url.as_deref().unwrap();
@@ -44,6 +45,7 @@ impl ApkSource for ApkmirrorSource {
                 &resolved.arch,
                 dest,
                 resolved.version_found.as_deref(),
+                ctx.fetcher,
             )
             .await?;
             Ok(PathBuf::from(dest))

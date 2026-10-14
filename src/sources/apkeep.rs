@@ -13,13 +13,24 @@ impl ApkSource for ApkeepSource {
 
     fn resolve<'a>(
         &'a self,
-        _ctx: &'a SourceCtx<'a>,
+        ctx: &'a SourceCtx<'a>,
         app: &'a AppConfig,
         version: Option<&'a str>,
         arch: &'a str,
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
             if app.package.is_empty() {
+                tracing::info!("apkeep skipped: not configured");
+                return Ok(None);
+            }
+            let apkeep_ack = ctx
+                .cfg
+                .apk_sources
+                .get("apkeep")
+                .map(|e| e.acknowledge_dangers)
+                .unwrap_or(false);
+            if !apkeep_ack {
+                tracing::info!("apkeep skipped: acknowledge_dangers is false");
                 return Ok(None);
             }
             let pseudo_url = format!("apkeep://{}/{}", app.package, version.unwrap_or("latest"));
@@ -33,7 +44,7 @@ impl ApkSource for ApkeepSource {
 
     fn fetch<'a>(
         &'a self,
-        _ctx: &'a SourceCtx<'a>,
+        ctx: &'a SourceCtx<'a>,
         resolved: &'a Resolved,
         dest: &'a str,
     ) -> Pin<Box<dyn std::future::Future<Output = Result<PathBuf>> + Send + 'a>> {
@@ -44,7 +55,14 @@ impl ApkSource for ApkeepSource {
                 .strip_prefix("apkeep://")
                 .and_then(|s| s.split('/').next())
                 .unwrap_or("");
-            crate::builder::fetch_apkeep(pkg, dest, version).await?;
+            let apkeep_ack = ctx
+                .cfg
+                .apk_sources
+                .get("apkeep")
+                .map(|e| e.acknowledge_dangers)
+                .unwrap_or(false);
+            crate::builder::fetch_apkeep(pkg, dest, version, Some(&resolved.arch), apkeep_ack)
+                .await?;
             Ok(PathBuf::from(dest))
         })
     }

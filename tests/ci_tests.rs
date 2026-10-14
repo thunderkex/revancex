@@ -1853,3 +1853,16 @@ fn test_clean_stale_tools() {
         "Stale tool sidecar must be removed"
     );
 }
+
+#[tokio::test]
+async fn test_validate_patch_compatibilities_offline_when_no_mpp_files() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cfg = config::load_config("./config").expect("Failed to load config");
+    cfg.build.tools_dir = tmp.path().to_str().unwrap().to_string();
+
+    let warnings = revancex::patcher::metadata::validate_patch_compatibilities(&cfg, None).await;
+    assert!(
+        warnings.is_empty(),
+        "Expected 0 warnings when tools directory has no .mpp files, got: {warnings:?}"
+    );
+}

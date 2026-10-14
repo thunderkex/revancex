@@ -320,6 +320,22 @@ pub async fn validate_patch_compatibilities(
     cfg: &Config,
     targets: Option<&[String]>,
 ) -> Vec<String> {
+    let has_any_mpp = std::path::Path::new(&cfg.build.tools_dir)
+        .read_dir()
+        .map(|entries| {
+            entries.filter_map(Result::ok).any(|e| {
+                e.path()
+                    .extension()
+                    .map(|ext| ext == "mpp")
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false);
+
+    if !has_any_mpp {
+        return Vec::new();
+    }
+
     let mut warnings = Vec::new();
     for (id, app) in &cfg.apps {
         if !app.enabled || app.patch_source == "none" || app.patch_source.is_empty() {

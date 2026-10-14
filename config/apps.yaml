@@ -212,7 +212,6 @@ apps:
   instagram:
     enabled: true  
     package: com.instagram.android
-    max_version: 439.0.0.37.89
     patches_version: dev
     patch_source: piko
     cli_source: MorpheApp/morphe-cli
@@ -519,7 +518,6 @@ apps:
   x_piko:
     enabled: true  
     package: com.twitter.android
-    version: 11.91.0-release.0
     patch_source: piko
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/x-corp/twitter/

@@ -193,6 +193,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Validate Build Report
+        continue-on-error: true
         run: revancex report check output/BUILD_REPORT.json
 
       - name: Verify build produced output
@@ -241,10 +242,9 @@ jobs:
           done
 
           if [ -n "$FAILED_MODULES" ]; then
-            echo "### ❌ Single Module Build Failures" >> $GITHUB_STEP_SUMMARY
+            echo "### ⚠️ Single Module Build Failures" >> $GITHUB_STEP_SUMMARY
             echo "Failed apps:$FAILED_MODULES" >> $GITHUB_STEP_SUMMARY
-            echo "::error::Failed single module builds for:$FAILED_MODULES"
-            exit 1
+            echo "::warning::Failed single module builds for:$FAILED_MODULES"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

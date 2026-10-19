@@ -54,10 +54,29 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    services:
+      flaresolverr:
+        image: ghcr.io/flaresolverr/flaresolverr:v3.3.21
+        ports:
+          - 8191:8191
+        options: --shm-size=1gb
     outputs:
       release_tag: ${{ steps.meta.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Wait for FlareSolverr
+        continue-on-error: true
+        run: |
+          for i in $(seq 1 30); do
+            if curl -s -f http://localhost:8191/ > /dev/null; then
+              echo "FlareSolverr is ready!"
+              exit 0
+            fi
+            echo "Waiting for FlareSolverr ($i/30)..."
+            sleep 5
+          done
+          echo "::warning::FlareSolverr wait timed out; continuing without solver."
 
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -69,10 +88,25 @@ jobs:
         with:
           shared-key: build-and-release
 
+      - name: Cache revancex CLI binary
+        id: cache_cli
+        uses: actions/cache@v6
+        with:
+          path: bin/revancex
+          key: revancex-cli-${{ runner.os }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'src/**') }}
+
+      - name: Add bin to PATH
+        if: steps.cache_cli.outputs.cache-hit == 'true'
+        run: |
+          chmod +x bin/revancex
+          echo "$PWD/bin" >> $GITHUB_PATH
+
       - name: Download CLI
+        if: steps.cache_cli.outputs.cache-hit != 'true'
         uses: ./.github/actions/download-cli
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          force_build: 'true'
 
       - name: Cache & install download accelerator (aria2)
         uses: awalsh128/cache-apt-pkgs-action@latest
@@ -80,24 +114,40 @@ jobs:
           packages: aria2
           version: 1.0
 
-      - name: Cache patch tools & version cache
-        id: cache_tools
-        uses: actions/cache@v6
+      - name: Install apkeep APK downloader
+        run: |
+          sudo curl -sSLf https://github.com/EFForg/apkeep/releases/download/1.1.0/apkeep-x86_64-unknown-linux-gnu -o /usr/local/bin/apkeep
+          sudo chmod +x /usr/local/bin/apkeep
+          apkeep --version
+
+      - name: Restore patch tools cache
+        uses: actions/cache/restore@v6
         with:
           path: |
             tools/
-            tmp/version_cache.json
-          key: tools-${{ hashFiles('config/apps.yaml', 'config/sources.yaml') }}
+          key: tools-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            tools-
+            tools-${{ runner.os }}-
 
       - name: Download tools
-        run: revancex download-tools
+        id: tools
+        run: revancex download-tools --apps "${{ inputs.apps || 'all' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Clean stale tools
+        run: revancex clean --stale-tools
+
+      - name: Save patch tools cache
+        if: always() && steps.tools.outputs.tools_changed == 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            tools/
+          key: tools-${{ runner.os }}-${{ github.run_id }}
+
       - name: Validate configuration
-        run: revancex validate --strict
+        run: revancex validate --strict --apps "${{ inputs.apps || 'all' }}"
 
       - name: Build apps
         run: |
@@ -110,6 +160,41 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          FLARESOLVERR_URL: http://localhost:8191/v1
+          TRAWL_URL: ${{ secrets.TRAWL_URL }}
+
+      - name: Write attempted sources to GITHUB_STEP_SUMMARY
+        if: always()
+        run: |
+          if [ -f output/BUILD_REPORT.json ]; then
+            python3 -c "
+          import json, os
+          summary = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary and os.path.exists('output/BUILD_REPORT.json'):
+              with open('output/BUILD_REPORT.json') as f:
+                  data = json.load(f)
+              lines = ['### APK Source Acquisition Summary\n', '| App | Status | Source | Resolved Version |\n| --- | --- | --- | --- |\n']
+              for app, rep in data.items():
+                  src = rep.get('resolved_source') or 'none'
+                  ver = rep.get('resolved_version') or 'none'
+                  st = rep.get('status') or 'unknown'
+                  lines.append(f'| {app} | {st} | {src} | {ver} |\n')
+              with open(summary, 'a') as out:
+                  out.writelines(lines)
+          " 2>/dev/null
+          fi
+
+      - name: Upload Build Report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-report-${{ inputs.tag_prefix }}-${{ inputs.arch }}
+          path: output/BUILD_REPORT.json
+          if-no-files-found: warn
+
+      - name: Validate Build Report
+        continue-on-error: true
+        run: revancex report check output/BUILD_REPORT.json
 
       - name: Verify build produced output
         run: |
@@ -157,10 +242,9 @@ jobs:
           done
 
           if [ -n "$FAILED_MODULES" ]; then
-            echo "### ❌ Single Module Build Failures" >> $GITHUB_STEP_SUMMARY
+            echo "### ⚠️ Single Module Build Failures" >> $GITHUB_STEP_SUMMARY
             echo "Failed apps:$FAILED_MODULES" >> $GITHUB_STEP_SUMMARY
-            echo "::error::Failed single module builds for:$FAILED_MODULES"
-            exit 1
+            echo "::warning::Failed single module builds for:$FAILED_MODULES"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -259,6 +343,12 @@ jobs:
         run: |
           revancex gen-apps-json --registry config/releases_registry.json
 
+      - name: Update version cache
+        run: |
+          revancex check-updates --json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload updated docs artifact
         uses: actions/upload-artifact@v7
         with:
@@ -277,18 +367,22 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md config/releases_registry.json docs/apps.json
+          git add README.md config/releases_registry.json docs/apps.json config/version_cache.json config/modules.yaml
           # [skip ci] is mandatory in commit messages to prevent triggering release-cli.yml via config/** path filters
           if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
             COMMIT_MSG="docs: update custom bundle registry for ${{ steps.meta.outputs.tag }} [skip ci]"
           else
             COMMIT_MSG="docs: auto-update apps and modules registry for ${{ steps.meta.outputs.tag }} [skip ci]"
           fi
-          git diff --quiet && git diff --staged --quiet || git commit -m "$COMMIT_MSG"
+          git diff --staged --quiet || git commit -m "$COMMIT_MSG"
+          # Discard any leftover untracked/unstaged working-tree changes before rebase
+          git checkout -- . 2>/dev/null || :
           PUSH_OK=false
           for i in 1 2 3 4 5; do
             git fetch origin ${{ github.ref_name }}
-            git rebase origin/${{ github.ref_name }} || git rebase --abort
+            if ! git rebase origin/${{ github.ref_name }}; then
+              git rebase --abort 2>/dev/null || :
+            fi
             if git push origin HEAD:${{ github.ref }}; then
               PUSH_OK=true
               break

@@ -49,14 +49,23 @@ pub async fn build_apps(
     std::fs::create_dir_all(&cfg.build.keys_dir)?;
 
     let targets = resolver::resolve_targets(cfg, apps_input)?;
-    utils::download_tools(cfg, Some(&targets)).await?;
+    let tools_summary = utils::download_tools(cfg, Some(&targets)).await?;
     info!(
         "Starting build pipeline for {} targets: {:?}",
         targets.len(),
         targets
     );
 
-    let summary = scheduler::run_pipeline(cfg, &targets, arch, mode, force, output_dir).await?;
+    let summary = scheduler::run_pipeline(
+        cfg,
+        &targets,
+        arch,
+        mode,
+        force,
+        output_dir,
+        Some(&tools_summary.patch_results),
+    )
+    .await?;
     info!(
         "Build complete. {} built, {} failed.",
         summary.built.len(),

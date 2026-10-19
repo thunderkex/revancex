@@ -3,14 +3,12 @@ pub mod lite;
 
 use crate::config::{AppConfig, Config};
 use crate::patcher::metadata;
-use crate::utils::semver::{compare_version_parts, parse_version_numbers};
 use anyhow::{Context, Result};
 use regex::Regex;
 use reqwest::header::{HeaderMap, HeaderValue, USER_AGENT};
 use reqwest::Client;
-use std::cmp::Ordering;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicU32, Ordering as AtomicOrdering};
+use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
@@ -50,10 +48,7 @@ impl std::fmt::Display for ApkpureError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ApkpureError::Forbidden { url } => {
-                write!(
-                    f,
-                    "apkpure: 403 pada {url} — kemungkinan Referer salah / rate-limit / IP diblokir"
-                )
+                write!(f, "apkpure: 403 pada {url}")
             }
             ApkpureError::Other(e) => write!(f, "apkpure: {e}"),
         }
@@ -63,28 +58,68 @@ impl std::fmt::Display for ApkpureError {
 impl std::error::Error for ApkpureError {}
 
 pub fn is_turnstile_blocked(status: u16, headers: &reqwest::header::HeaderMap, body: &str) -> bool {
-    if headers.contains_key("cf-mitigated") {
+    let _ = status;
+    if headers
+        .get("cf-mitigated")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.contains("challenge"))
+        .unwrap_or(false)
+    {
         return true;
     }
-    if (status == 403 || status == 503) && headers.contains_key("cf-ray") {
-        return true;
-    }
-    body.contains("cf-turnstile")
-        || body.contains("challenges.cloudflare.com")
-        || body.contains("cf_chl_opt")
+    let snippet = &body[..body.len().min(5120)];
+    snippet.contains("cf-turnstile")
+        || snippet.contains("challenges.cloudflare.com")
+        || snippet.contains("cf_chl_opt")
+        || snippet.contains("Just a moment...")
+        || snippet.contains("cf-chl-bypass")
+        || snippet.contains("Checking your browser")
+        || snippet.contains("cloudflare-static")
+        || snippet.contains("verify you are human")
 }
 
-pub async fn resolve_all_patch_compatible_versions(cfg: &Config, app: &AppConfig) -> Vec<String> {
+pub(crate) async fn fetch_page_html(
+    client: &Client,
+    url: &str,
+    fetcher: Option<&crate::net::Fetcher>,
+) -> Result<(String, reqwest::header::HeaderMap)> {
+    if let Some(f) = fetcher {
+        match f.get(url).await {
+            Ok(body) => {
+                return Ok((body, reqwest::header::HeaderMap::new()));
+            }
+            Err(crate::net::FetchError::Http { status, .. }) => {
+                tracing::debug!("fetcher: non-challenge HTTP {status} for {url} — direct fallback");
+            }
+            Err(e) => {
+                tracing::debug!("fetcher get failed for {url}: {e} — direct fallback");
+            }
+        }
+    }
+    let resp = client.get(url).send().await?;
+    let headers = resp.headers().clone();
+    let status = resp.status();
+    let body = resp.text().await?;
+    if !status.is_success() {
+        tracing::info!("direct GET {url} -> {status} ({} bytes)", body.len());
+    }
+    Ok((body, headers))
+}
+
+pub async fn resolve_all_patch_compatible_versions(
+    cfg: &Config,
+    app: &AppConfig,
+) -> metadata::CompatibleVersions {
     let Some(mpp_path) = metadata::resolve_mpp_path(cfg, app) else {
-        return Vec::new();
+        return metadata::CompatibleVersions::Unknown;
     };
     let cli_jar = format!("{}/morphe-cli.jar", cfg.build.tools_dir);
     if !Path::new(&cli_jar).exists() {
-        return Vec::new();
+        return metadata::CompatibleVersions::Unknown;
     }
     let patches = match metadata::load(cfg, &mpp_path).await {
         Ok(p) => p,
-        Err(_) => return Vec::new(),
+        Err(_) => return metadata::CompatibleVersions::Unknown,
     };
     let enabled = app
         .included_patches
@@ -92,11 +127,23 @@ pub async fn resolve_all_patch_compatible_versions(cfg: &Config, app: &AppConfig
         .chain(app.patches.iter())
         .cloned()
         .collect::<Vec<_>>();
-    metadata::resolve_compatible_versions(&patches, &app.package, &enabled)
+    metadata::resolve_compatible_versions(&patches, &app.package, &enabled, &app.excluded_patches)
 }
 
 pub async fn resolve_patch_compatible_version(cfg: &Config, app: &AppConfig) -> Option<String> {
-    crate::utils::semver::max_version(resolve_all_patch_compatible_versions(cfg, app).await)
+    match resolve_all_patch_compatible_versions(cfg, app).await {
+        metadata::CompatibleVersions::Intersection(v) => crate::utils::semver::max_version(&v),
+        metadata::CompatibleVersions::Conflict { patch_versions } => {
+            let smallest = patch_versions
+                .iter()
+                .filter(|(_, v)| !v.is_empty())
+                .min_by_key(|(_, v)| v.len())
+                .map(|(_, v)| v.as_slice())
+                .unwrap_or(&[]);
+            crate::utils::semver::max_version(smallest)
+        }
+        metadata::CompatibleVersions::Unconstrained | metadata::CompatibleVersions::Unknown => None,
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -203,7 +250,7 @@ pub fn resolve_app_version_and_strategy(
     id: &str,
     app: &AppConfig,
     patch_meta: Option<&[metadata::PatchMeta]>,
-    patch_supported_versions: &[String],
+    patch_supported: &metadata::CompatibleVersions,
 ) -> (Option<String>, Vec<String>, String) {
     let configured_pin = app
         .version
@@ -220,6 +267,27 @@ pub fn resolve_app_version_and_strategy(
                 .filter(|v| !v.eq_ignore_ascii_case("auto"))
         });
 
+    let available_versions = match patch_supported {
+        metadata::CompatibleVersions::Intersection(v) => v.clone(),
+        metadata::CompatibleVersions::Conflict { patch_versions } => {
+            let conflict_str = patch_versions
+                .iter()
+                .map(|(p, vs)| format!("{p}: [{}]", vs.join(", ")))
+                .collect::<Vec<_>>()
+                .join("; ");
+            warn!("{id}: conflicting patch version constraints: {conflict_str}");
+            patch_versions
+                .iter()
+                .filter(|(_, v)| !v.is_empty())
+                .min_by_key(|(_, v)| v.len())
+                .map(|(_, v)| v.clone())
+                .unwrap_or_default()
+        }
+        metadata::CompatibleVersions::Unconstrained | metadata::CompatibleVersions::Unknown => {
+            Vec::new()
+        }
+    };
+
     if let Some(pin) = configured_pin {
         let is_stale = if let Some(meta) = patch_meta {
             metadata::check_app_version_compatibility(id, app, meta).is_some()
@@ -228,9 +296,9 @@ pub fn resolve_app_version_and_strategy(
         };
 
         if is_stale {
-            if app.version_pin_strict {
+            if app.version_pin_strict || available_versions.is_empty() {
                 warn!(
-                    "{id}: pinned version v{pin} falls outside compatible patch range, but version_pin_strict=true — honoring pin"
+                    "{id}: pinned version v{pin} falls outside compatible patch range, but version_pin_strict=true (or no compatible versions available) — honoring pin"
                 );
                 (
                     Some(pin.to_string()),
@@ -241,8 +309,8 @@ pub fn resolve_app_version_and_strategy(
                 warn!(
                     "{id}: pinned version v{pin} falls outside compatible patch range and version_pin_strict=false — auto-correcting to compatible version"
                 );
-                let auto_ver = crate::utils::semver::max_version(patch_supported_versions);
-                let mut candidates: Vec<String> = patch_supported_versions.to_vec();
+                let auto_ver = crate::utils::semver::max_version(&available_versions);
+                let mut candidates: Vec<String> = available_versions;
                 candidates.reverse();
                 (
                     auto_ver,
@@ -258,8 +326,8 @@ pub fn resolve_app_version_and_strategy(
             )
         }
     } else {
-        let auto_ver = crate::utils::semver::max_version(patch_supported_versions);
-        let mut candidates: Vec<String> = patch_supported_versions.to_vec();
+        let auto_ver = crate::utils::semver::max_version(&available_versions);
+        let mut candidates: Vec<String> = available_versions;
         candidates.reverse();
         (auto_ver, candidates, "auto".to_string())
     }
@@ -319,7 +387,8 @@ pub async fn fetch_apk(
     let all_dest = format!("{}/{id}-all-input.apk", cfg.build.temp_dir);
     let legacy_dest = format!("{}/{id}-input.apk", cfg.build.temp_dir);
 
-    let patch_supported_versions = resolve_all_patch_compatible_versions(cfg, app).await;
+    let patch_compat = resolve_all_patch_compatible_versions(cfg, app).await;
+    let patch_supported_versions = patch_compat.to_vec();
     let mpp_path = metadata::resolve_mpp_path(cfg, app);
     let patch_meta = if let Some(ref p) = mpp_path {
         metadata::load(cfg, p).await.ok()
@@ -331,7 +400,7 @@ pub async fn fetch_apk(
         id,
         app,
         patch_meta.as_deref().map(|v| v.as_slice()),
-        &patch_supported_versions,
+        &patch_compat,
     );
 
     let cache_candidates = [&dest[..], &all_dest[..], &legacy_dest[..]];
@@ -342,6 +411,8 @@ pub async fn fetch_apk(
     }
 
     let client = crate::utils::make_browser_client(cfg)?;
+
+    let fetcher = Arc::new(crate::net::Fetcher::new(client.clone(), cfg.fetch.clone()));
 
     if let Some(url) = &app.apk_url {
         let final_url = if url.contains("github.com") && url.contains("/releases/") {
@@ -368,31 +439,13 @@ pub async fn fetch_apk(
         }
     }
 
-    let supported_refs: Vec<&str> = patch_supported_versions
-        .iter()
-        .map(|s| s.as_str())
-        .collect();
-
-    let default_order: &[&str] = &["apkmirror", "uptodown", "apkpure", "apkeep"];
-    let priority: Vec<&str> = if app.source_priority.is_empty() {
-        default_order.to_vec()
-    } else {
-        app.source_priority.iter().map(|s| s.as_str()).collect()
-    };
-
     let cb_threshold: u32 = std::env::var("REVANCEX_UTD_CB_THRESHOLD")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(3);
 
-    let local_cb;
-    let cb = match &uptodown_cb {
-        Some(c) => c.as_ref(),
-        None => {
-            local_cb = Arc::new(AtomicU32::new(0));
-            &local_cb
-        }
-    };
+    let registry = crate::sources::default_registry();
+    let ordered = crate::sources::source_order(&registry, app, cfg);
 
     let candidates_to_try: Vec<Option<String>> = if candidate_versions.is_empty() {
         vec![target_ver.clone()]
@@ -408,114 +461,70 @@ pub async fn fetch_apk(
         |cur_target| {
             let client = &client;
             let dest = &dest;
-            let supported_refs = &supported_refs;
-            let priority = &priority;
+            let ordered = &ordered;
+            let fetcher = fetcher.clone();
+            let uptodown_cb = uptodown_cb.clone();
             async move {
-                if let Some(url) = &app.archive_url {
-                    info!("{id}: checking archive.org source {url}");
-                    match fetch_archive_org(
-                        client,
-                        url,
-                        arch,
-                        dest,
-                        cur_target.as_deref(),
-                        supported_refs,
-                    )
-                    .await
-                    {
-                        Ok(path) => return Ok(path),
-                        Err(e) => warn!("{id}: archive.org failed: {e}"),
-                    }
+                let mut breakers = std::collections::HashMap::new();
+                if let Some(ref cb) = uptodown_cb {
+                    breakers.insert("uptodown".to_string(), cb.clone());
                 }
+                let ctx = crate::sources::SourceCtx {
+                    client,
+                    cfg,
+                    breakers: std::sync::Arc::new(breakers),
+                    cb_threshold,
+                    fetcher: Some(&fetcher),
+                };
 
                 let mut attempted: Vec<String> = Vec::new();
 
-                'sources: for source in priority {
-                    match *source {
-                        "apkmirror" => {
-                            if let Some(url) = &app.apkmirror_url {
-                                info!("{id}: checking apkmirror source {url}");
-                                attempted.push("apkmirror".into());
-                                match fetch_apkmirror(client, url, arch, dest, cur_target.as_deref()).await {
-                                    Ok(path) => {
-                                        info!("{id}: BUILD_REPORT resolved_source=apkmirror attempted={attempted:?}");
-                                        return Ok(path);
-                                    }
-                                    Err(e) => warn!("{id}: apkmirror failed: {e}"),
-                                }
-                            }
-                        }
-                        "uptodown" => {
-                            if let Some(url) = &app.uptodown_url {
-                                let cb_count = cb.load(AtomicOrdering::SeqCst);
-                                if cb_count >= cb_threshold {
-                                    warn!(
-                                        "{id}: uptodown circuit-breaker open ({cb_count}/{cb_threshold} consecutive TurnstileBlocked) — skipping uptodown for this app"
-                                    );
-                                    attempted.push("uptodown(skipped-cb)".into());
-                                    continue 'sources;
-                                }
-
-                                info!("{id}: checking uptodown source {url}");
-                                attempted.push("uptodown".into());
-                                match fetch_uptodown(client, url, arch, dest, cur_target.as_deref()).await {
-                                    Ok(path) => {
-                                        cb.store(0, AtomicOrdering::SeqCst);
-                                        info!("{id}: BUILD_REPORT resolved_source=uptodown attempted={attempted:?}");
-                                        return Ok(path);
-                                    }
-                                    Err(UptodownError::TurnstileBlocked) => {
-                                        let new_count = cb.fetch_add(1, AtomicOrdering::SeqCst) + 1;
-                                        warn!(
-                                            "{id}: uptodown TurnstileBlocked (circuit-breaker {new_count}/{cb_threshold})"
-                                        );
-                                        if new_count >= cb_threshold {
-                                            warn!(
-                                                "uptodown appears globally blocked this run, skipping it for remaining apps"
-                                            );
+                for src in ordered {
+                    let sname = src.name();
+                    info!("{id}: checking source {sname}");
+                    attempted.push(sname.to_string());
+                    match src.resolve(&ctx, app, cur_target.as_deref(), arch).await {
+                        Ok(Some(resolved)) => {
+                            match src.fetch(&ctx, &resolved, dest).await {
+                                Ok(path) => {
+                                    let p_str = path.to_string_lossy();
+                                    if arch != "all" && arch != "universal" && !arch.is_empty() {
+                                        let has_any = arch::apk_has_any_native_libs(&p_str).unwrap_or(false);
+                                        let has_target = arch::apk_has_arch(&p_str, arch).unwrap_or(false);
+                                        if has_any && !has_target {
+                                            warn!("{id}: APK from {sname} has native libs but none for requested arch '{arch}', discarding and trying next source");
+                                            let _ = std::fs::remove_file(dest);
+                                            continue;
                                         }
                                     }
-                                    Err(e) => warn!("{id}: uptodown failed: {e}"),
-                                }
-                            }
-                        }
-                        "apkpure" => {
-                            if !app.package.is_empty() {
-                                info!("{id}: trying apkpure for package {}", app.package);
-                                attempted.push("apkpure".into());
-                                let result = if let Some(base) = &app.apkpure_url {
-                                    fetch_apkpure_url(client, base, dest, arch, cur_target.as_deref()).await
-                                } else {
-                                    fetch_apkpure(client, &app.package, dest, arch, cur_target.as_deref())
-                                        .await
-                                };
-                                match result {
-                                    Ok(path) => {
-                                        info!("{id}: BUILD_REPORT resolved_source=apkpure attempted={attempted:?}");
-                                        return Ok(path);
+                                    if let Some(ref expected_cert) = app.expected_cert_sha256 {
+                                        match crate::utils::keystore::verify_apk_cert_sha256(
+                                            &p_str,
+                                            expected_cert,
+                                        ) {
+                                            Ok(true) => {
+                                                info!("{id}: APK cert SHA-256 matches expected: {expected_cert}");
+                                            }
+                                            Ok(false) => {
+                                                warn!("{id}: APK cert SHA-256 mismatch for source {sname}, discarding and trying next source");
+                                                let _ = std::fs::remove_file(dest);
+                                                continue;
+                                            }
+                                            Err(e) => {
+                                                warn!("{id}: failed to verify APK cert for {sname}: {e}, trying next source");
+                                                let _ = std::fs::remove_file(dest);
+                                                continue;
+                                            }
+                                        }
                                     }
-                                    Err(e) => warn!("{id}: apkpure failed: {e}"),
+                                    info!("{id}: BUILD_REPORT resolved_source={sname} attempted={attempted:?}");
+                                    return Ok(path.to_string_lossy().to_string());
                                 }
+                                Err(e) => warn!("{id}: {sname} fetch failed: {e}"),
                             }
                         }
-                        "apkeep" => {
-                            if !app.package.is_empty() {
-                                info!("{id}: trying apkeep for package {}", app.package);
-                                attempted.push("apkeep".into());
-                                match fetch_apkeep(&app.package, dest, cur_target.as_deref()).await {
-                                    Ok(path) => {
-                                        info!(
-                                            "{id}: BUILD_REPORT resolved_source=apkeep attempted={attempted:?}"
-                                        );
-                                        return Ok(path);
-                                    }
-                                    Err(e) => warn!("{id}: apkeep failed: {e}"),
-                                }
-                            }
-                        }
-                        other => {
-                            warn!("{id}: unknown source '{other}' in source_priority, skipping");
-                        }
+                        Ok(None) => {}
+                        Err(e) => warn!("{id}: {sname} resolve failed: {e}"),
                     }
                 }
 
@@ -524,6 +533,36 @@ pub async fn fetch_apk(
         },
     )
     .await?;
+
+    if let Ok(actual_ver) = crate::utils::apk::get_apk_version_name(&dest) {
+        let actual_parts = crate::utils::semver::parse_version_numbers(&actual_ver);
+        if let Some(ref target) = target_ver {
+            let target_parts = crate::utils::semver::parse_version_numbers(target);
+            if &actual_ver != target && (actual_parts.is_empty() || actual_parts != target_parts) {
+                let _ = std::fs::remove_file(&dest);
+                let _ = std::fs::remove_file(format!("{dest}.version"));
+                let _ = std::fs::remove_file(format!("{dest}.strategy"));
+                anyhow::bail!(
+                    "{id}: downloaded APK version v{actual_ver} does not match target v{target} — discarded"
+                );
+            }
+        } else if !patch_supported_versions.is_empty() {
+            let is_supported = patch_supported_versions.iter().any(|v| {
+                v == &actual_ver
+                    || (!actual_parts.is_empty()
+                        && crate::utils::semver::parse_version_numbers(v) == actual_parts)
+            });
+            if !is_supported {
+                let _ = std::fs::remove_file(&dest);
+                let _ = std::fs::remove_file(format!("{dest}.version"));
+                let _ = std::fs::remove_file(format!("{dest}.strategy"));
+                anyhow::bail!(
+                    "{id}: downloaded APK version v{actual_ver} is not compatible with any enabled patch (supported: {:?}) — discarded",
+                    patch_supported_versions
+                );
+            }
+        }
+    }
 
     let v_write = target_ver
         .as_deref()
@@ -542,26 +581,7 @@ fn is_beta_or_alpha(s: &str) -> bool {
     lower.contains("beta") || lower.contains("alpha")
 }
 
-fn extract_version_from_filename(filename: &str) -> String {
-    let stem = filename.trim_end_matches(".apkm").trim_end_matches(".apk");
-    let mut parts = stem.split('-');
-    let _ = parts.next();
-    for part in parts {
-        if part.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-            let ver: String = part
-                .split('-')
-                .take_while(|s| s.chars().next().is_some_and(|c| c.is_ascii_digit()))
-                .collect::<Vec<_>>()
-                .join(".");
-            if !ver.is_empty() {
-                return ver;
-            }
-        }
-    }
-    String::new()
-}
-
-async fn fetch_archive_org(
+pub(crate) async fn fetch_archive_org(
     client: &Client,
     url: &str,
     arch: &str,
@@ -648,50 +668,10 @@ async fn fetch_archive_org(
             if let Some(sm) = supported_match {
                 info!("archive.org: exact version {ver} not found, matched supported version in archive: {sm}");
                 sm
-            } else if supported_versions.is_empty() {
-                let target_parts = parse_version_numbers(ver);
-                let mut best: Option<&String> = None;
-                let mut best_parts: Vec<u64> = Vec::new();
-                for f in &clean_candidates {
-                    let file_ver = extract_version_from_filename(f);
-                    if file_ver.is_empty() {
-                        continue;
-                    }
-                    let fparts = parse_version_numbers(&file_ver);
-                    if compare_version_parts(&fparts, &target_parts) != Ordering::Greater {
-                        if compare_version_parts(&fparts, &best_parts) == Ordering::Greater
-                            || best.is_none()
-                        {
-                            best = Some(f);
-                            best_parts = fparts;
-                        } else if compare_version_parts(&fparts, &best_parts) == Ordering::Equal
-                            && (f.contains(arch) || f.contains("-all.") || f.contains("_all."))
-                        {
-                            best = Some(f);
-                        }
-                    }
-                }
-                best.ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "archive.org: version {ver} not found and no older version available"
-                    )
-                })?
             } else {
-                let fallback = clean_candidates
-                    .iter()
-                    .rfind(|f| {
-                        f.contains(arch)
-                            || f.contains("-all.")
-                            || f.contains("_all.")
-                            || f.contains("universal")
-                    })
-                    .or_else(|| clean_candidates.last());
-                if let Some(fb) = fallback {
-                    warn!("archive.org: exact version {ver} and supported versions not found, falling back to newest available candidate in archive: {fb}");
-                    fb
-                } else {
-                    anyhow::bail!("archive.org: version {ver} and supported versions not found in archive candidates");
-                }
+                anyhow::bail!(
+                    "archive.org: exact version {ver} and supported versions not found in archive candidates"
+                );
             }
         }
     } else {
@@ -714,16 +694,17 @@ async fn fetch_archive_org(
     Ok(dest.to_string())
 }
 
-async fn fetch_apkmirror(
+pub(crate) async fn fetch_apkmirror(
     client: &Client,
     app_url: &str,
     arch: &str,
     dest: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String> {
     info!("apkmirror: loading app page {app_url}");
     let base_origin = "https://www.apkmirror.com";
-    let app_html = client.get(app_url).send().await?.text().await?;
+    let (app_html, _hdrs) = fetch_page_html(client, app_url, fetcher).await?;
 
     let re_rel = Regex::new(r#"href="(/apk/[^"]+-release/)""#)?;
     let mut all_releases: Vec<String> = Vec::new();
@@ -751,15 +732,18 @@ async fn fetch_apkmirror(
         releases
             .iter()
             .find(|r| r.contains(&hyphen_ver) || r.contains(&base_hyphen) || r.contains(ver))
-            .or_else(|| releases.first())
-            .unwrap()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "apkmirror: version {ver} not found in recent releases on {app_url}"
+                )
+            })?
     } else {
         releases.first().unwrap()
     };
 
     let release_url = format!("{base_origin}{release_path}");
     info!("apkmirror: loading release {release_url}");
-    let rel_html = client.get(&release_url).send().await?.text().await?;
+    let (rel_html, _hdrs) = fetch_page_html(client, &release_url, fetcher).await?;
 
     let re_var = Regex::new(r#"href="(/apk/[^"]+-android-apk-download/)""#)?;
     let mut variants: Vec<String> = Vec::new();
@@ -778,7 +762,7 @@ async fn fetch_apkmirror(
 
     let variant_url = format!("{base_origin}{variant_path}");
     info!("apkmirror: loading variant {variant_url}");
-    let var_html = client.get(&variant_url).send().await?.text().await?;
+    let (var_html, _hdrs) = fetch_page_html(client, &variant_url, fetcher).await?;
 
     let re_dl = Regex::new(r#"href="(/apk/[^"]+/download/\?key=[^"]+)""#)?;
     let dl_path = re_dl
@@ -788,7 +772,7 @@ async fn fetch_apkmirror(
 
     let dl_url = format!("{base_origin}{dl_path}");
     info!("apkmirror: loading download landing page {dl_url}");
-    let dl_html = client.get(&dl_url).send().await?.text().await?;
+    let (dl_html, _hdrs) = fetch_page_html(client, &dl_url, fetcher).await?;
 
     let re_php = Regex::new(r#"href="(/wp-content/themes/APKMirror/download\.php\?[^"]+)""#)?;
     let php_path = re_php
@@ -826,28 +810,39 @@ async fn fetch_apkmirror(
     Ok(dest.to_string())
 }
 
-async fn fetch_uptodown(
+pub(crate) async fn fetch_uptodown(
     client: &Client,
     base_url: &str,
     _arch: &str,
     dest: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String, UptodownError> {
     let versions_url = format!("{base_url}/versions");
     info!("uptodown: checking versions at {versions_url}");
 
-    let versions_resp = client
-        .get(&versions_url)
-        .send()
-        .await
-        .map_err(|e| UptodownError::Network(e.into()))?;
-
-    let versions_status = versions_resp.status().as_u16();
-    let versions_headers = versions_resp.headers().clone();
-    let html = versions_resp
-        .text()
-        .await
-        .map_err(|e| UptodownError::Network(e.into()))?;
+    let (html_bytes, versions_headers) = match fetcher {
+        Some(f) => match crate::builder::fetch_page_html(client, &versions_url, Some(f)).await {
+            Ok((body, hdrs)) => (body, hdrs),
+            Err(e) => return Err(UptodownError::Network(e)),
+        },
+        None => {
+            let resp = client
+                .get(&versions_url)
+                .send()
+                .await
+                .map_err(|e| UptodownError::Network(e.into()))?;
+            let hdrs = resp.headers().clone();
+            let body = resp
+                .text()
+                .await
+                .map_err(|e| UptodownError::Network(e.into()))?;
+            (body, hdrs)
+        }
+    };
+    let versions_status = 200u16;
+    let _ = versions_headers;
+    let html = html_bytes;
 
     if is_turnstile_blocked(versions_status, &versions_headers, &html) {
         warn!("uptodown: TurnstileBlocked on versions page (status={versions_status})");
@@ -897,17 +892,10 @@ async fn fetch_uptodown(
 
     let chosen_item = if let Some(ver) = target_version {
         let base_ver = ver.split('-').next().unwrap_or(ver);
-        data.iter()
-            .find(|item| {
-                let v = item["version"].as_str().unwrap_or("");
-                (allow_beta || !is_beta_or_alpha(v)) && (v.contains(ver) || v.contains(base_ver))
-            })
-            .or_else(|| {
-                data.iter().find(|item| {
-                    let v = item["version"].as_str().unwrap_or("");
-                    allow_beta || !is_beta_or_alpha(v)
-                })
-            })
+        data.iter().find(|item| {
+            let v = item["version"].as_str().unwrap_or("");
+            (allow_beta || !is_beta_or_alpha(v)) && (v.contains(ver) || v.contains(base_ver))
+        })
     } else {
         data.iter().find(|item| {
             let v = item["version"].as_str().unwrap_or("");
@@ -927,23 +915,29 @@ async fn fetch_uptodown(
     );
 
     let dl_page = format!("{base_url}/download/{file_id}-x");
-    let dl_resp = client
-        .get(&dl_page)
-        .send()
-        .await
-        .map_err(|e| UptodownError::Network(e.into()))?;
+    let (dl_html, dl_headers) = match fetcher {
+        Some(f) => match crate::builder::fetch_page_html(client, &dl_page, Some(f)).await {
+            Ok((body, hdrs)) => (body, hdrs),
+            Err(e) => return Err(UptodownError::Network(e)),
+        },
+        None => {
+            let resp = client
+                .get(&dl_page)
+                .send()
+                .await
+                .map_err(|e| UptodownError::Network(e.into()))?;
+            let hdrs = resp.headers().clone();
+            let body = resp
+                .text()
+                .await
+                .map_err(|e| UptodownError::Network(e.into()))?;
+            (body, hdrs)
+        }
+    };
+    let dl_status = 200u16;
+    let _ = dl_status;
 
-    let dl_status = dl_resp.status().as_u16();
-    let dl_headers = dl_resp.headers().clone();
-    let dl_html = dl_resp
-        .text()
-        .await
-        .map_err(|e| UptodownError::Network(e.into()))?;
-
-    debug!(
-        "uptodown: download page {} bytes (status={dl_status})",
-        dl_html.len()
-    );
+    debug!("uptodown: download page {} bytes", dl_html.len());
 
     if is_turnstile_blocked(dl_status, &dl_headers, &dl_html) {
         warn!("uptodown: TurnstileBlocked on download page (status={dl_status})");
@@ -1018,34 +1012,62 @@ async fn resolve_github_asset_url(
     Ok(url.to_string())
 }
 
-async fn fetch_apkeep(package: &str, dest: &str, target_version: Option<&str>) -> Result<String> {
+fn resolve_apkeep_cmd() -> String {
+    if crate::utils::is_command_available("apkeep") {
+        return "apkeep".to_string();
+    }
+    let local = if cfg!(windows) {
+        "tools/apkeep.exe"
+    } else {
+        "tools/apkeep"
+    };
+    if std::path::Path::new(local).exists() {
+        return local.to_string();
+    }
+    "apkeep".to_string()
+}
+
+pub(crate) async fn fetch_apkeep(
+    package: &str,
+    dest: &str,
+    target_version: Option<&str>,
+    arch: Option<&str>,
+    acknowledge_dangers: bool,
+) -> Result<String> {
     let tmp_dir = tempfile::tempdir()?;
     let out_dir = tmp_dir.path().to_str().unwrap();
+    let apkeep_cmd = resolve_apkeep_cmd();
 
-    let mut success = false;
+    let opt_arg = if let Some(a) = arch.filter(|a| !a.is_empty() && *a != "all") {
+        format!("acknowledge_dangers=true,arch={a}")
+    } else {
+        "acknowledge_dangers=true".to_string()
+    };
+
     if let Some(ver) = target_version {
         let app_arg = format!("{package}@{ver}");
         info!("apkeep: attempting targeted download {app_arg}");
-        let res = tokio::process::Command::new("apkeep")
-            .args(["-a", &app_arg, "-d", "apk-pure", out_dir])
-            .status()
-            .await;
-        if let Ok(st) = res {
-            if st.success() {
-                success = true;
-            } else {
-                warn!("apkeep: targeted download for {app_arg} failed (exit {st}), falling back to latest");
-            }
+        let mut cmd = tokio::process::Command::new(&apkeep_cmd);
+        cmd.args(["-a", &app_arg, "-d", "apk-pure"]);
+        if acknowledge_dangers {
+            cmd.args(["-o", &opt_arg]);
         }
-    }
-
-    if !success {
+        cmd.arg(out_dir);
+        let res = cmd.status().await;
+        match res {
+            Ok(st) if st.success() => {}
+            Ok(st) => anyhow::bail!("apkeep: targeted download for {app_arg} failed (exit {st})"),
+            Err(e) => anyhow::bail!("apkeep: targeted download for {app_arg} failed to run: {e}"),
+        }
+    } else {
         info!("apkeep: attempting download for {package} (latest)");
-        let status = tokio::process::Command::new("apkeep")
-            .args(["-a", package, "-d", "apk-pure", out_dir])
-            .status()
-            .await
-            .context("Running apkeep")?;
+        let mut cmd = tokio::process::Command::new(&apkeep_cmd);
+        cmd.args(["-a", package, "-d", "apk-pure"]);
+        if acknowledge_dangers {
+            cmd.args(["-o", &opt_arg]);
+        }
+        cmd.arg(out_dir);
+        let status = cmd.status().await.context("Running apkeep")?;
         if !status.success() {
             anyhow::bail!("apkeep exited with status {status}");
         }
@@ -1124,12 +1146,273 @@ pub async fn download_and_extract_if_bundle(
     Ok(())
 }
 
-async fn fetch_apkpure_url(
+pub(crate) async fn fetch_aptoide(
+    client: &Client,
+    package: &str,
+    dest: &str,
+    arch: &str,
+    target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
+) -> Result<String> {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    const BASE: &str = "https://ws75.aptoide.com/api/7/";
+
+    let q_suffix = match arch {
+        "arm64-v8a" => {
+            let raw = "myCPU=arm64-v8a,armeabi-v7a,armeabi&leanback=0";
+            format!("&q={}", STANDARD.encode(raw))
+        }
+        "armeabi-v7a" => {
+            let raw = "myCPU=armeabi-v7a,armeabi&leanback=0";
+            format!("&q={}", STANDARD.encode(raw))
+        }
+        "x86_64" => {
+            let raw = "myCPU=x86_64,x86&leanback=0";
+            format!("&q={}", STANDARD.encode(raw))
+        }
+        "x86" => {
+            let raw = "myCPU=x86&leanback=0";
+            format!("&q={}", STANDARD.encode(raw))
+        }
+        _ => String::new(),
+    };
+
+    let normalize = crate::utils::version::normalize_version;
+
+    let target_norm = target_version.map(normalize);
+
+    if let Some(ref tgt) = target_norm {
+        let site_url = format!("https://en.aptoide.com/app/{package}");
+        let html_res = match fetcher {
+            Some(f) => fetch_page_html(client, &site_url, Some(f))
+                .await
+                .map(|(b, _)| b),
+            None => match client.get(&site_url).send().await {
+                Ok(resp) if resp.status().is_success() => resp.text().await.map_err(Into::into),
+                Ok(resp) => anyhow::bail!("status {}", resp.status()),
+                Err(e) => Err(e.into()),
+            },
+        };
+        if let Ok(html) = html_res {
+            if let Some(start) = html.find("{\"props\"") {
+                let json_str = &html[start..];
+                let end = json_str.find("</script>").unwrap_or(json_str.len());
+                if let Ok(props) = serde_json::from_str::<serde_json::Value>(&json_str[..end]) {
+                    if let Some(versions) = props["pageProps"]["versions"].as_array() {
+                        for ver_entry in versions {
+                            let vername = ver_entry["vername"].as_str().unwrap_or("");
+                            if normalize(vername) == *tgt {
+                                if let Some(path) = ver_entry["file"]["path"].as_str() {
+                                    if !path.is_empty() {
+                                        info!("aptoide website: found {package} v{vername}, downloading {path}");
+                                        download_and_extract_if_bundle(
+                                            client,
+                                            path,
+                                            dest,
+                                            Some("https://aptoide.com/"),
+                                        )
+                                        .await?;
+                                        if arch != "all" && arch != "universal" && !arch.is_empty()
+                                        {
+                                            let has_any = arch::apk_has_any_native_libs(dest)
+                                                .unwrap_or(false);
+                                            let has_target =
+                                                arch::apk_has_arch(dest, arch).unwrap_or(false);
+                                            if has_any && !has_target {
+                                                info!("aptoide website: APK for v{vername} has native libs but none for '{arch}', checking next entry");
+                                                let _ = std::fs::remove_file(dest);
+                                                continue;
+                                            }
+                                        }
+                                        return Ok(dest.to_string());
+                                    }
+                                }
+                                info!("aptoide website: v{vername} found but no download URL (older version)");
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let download_path = if let Some(ref tgt) = target_norm {
+        let list_url = format!("{BASE}listAppVersions?package_name={package}&limit=100{q_suffix}");
+        info!("aptoide: listing versions from {list_url}");
+        let resp: serde_json::Value = client
+            .get(&list_url)
+            .send()
+            .await?
+            .json()
+            .await
+            .context("aptoide: failed to parse listAppVersions JSON")?;
+
+        let list = resp["datalist"]["list"]
+            .as_array()
+            .ok_or_else(|| anyhow::anyhow!("aptoide: no version list for {package}"))?;
+
+        let entry = list.iter().find(|item| {
+            let vn = item["file"]["vername"].as_str().unwrap_or("");
+            normalize(vn) == *tgt
+        });
+
+        let vercode = entry
+            .and_then(|item| item["file"]["vercode"].as_i64())
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "aptoide: version {:?} (normalized: {tgt}) not found for {package}",
+                    target_version
+                )
+            })?;
+
+        let meta_url =
+            format!("{BASE}getAppMeta?package_name={package}&vercode={vercode}{q_suffix}");
+        info!("aptoide: fetching meta from {meta_url}");
+        let meta: serde_json::Value = client
+            .get(&meta_url)
+            .send()
+            .await?
+            .json()
+            .await
+            .context("aptoide: failed to parse getAppMeta JSON")?;
+
+        meta["data"]["file"]["path"]
+            .as_str()
+            .ok_or_else(|| {
+                anyhow::anyhow!("aptoide: no download path in meta for {package} v{tgt}")
+            })?
+            .to_string()
+    } else {
+        // Latest — API search (no specific version requested).
+        let search_url =
+            format!("{BASE}apps/search?query={package}&limit=1&trusted=true{q_suffix}");
+        info!("aptoide: searching latest via {search_url}");
+        let resp: serde_json::Value = client
+            .get(&search_url)
+            .send()
+            .await?
+            .json()
+            .await
+            .context("aptoide: failed to parse search JSON")?;
+
+        resp["datalist"]["list"][0]["file"]["path"]
+            .as_str()
+            .ok_or_else(|| anyhow::anyhow!("aptoide: no result for {package}"))?
+            .to_string()
+    };
+
+    info!("aptoide: downloading from {download_path}");
+    download_and_extract_if_bundle(client, &download_path, dest, Some("https://aptoide.com/"))
+        .await?;
+    Ok(dest.to_string())
+}
+
+/// Resolve-only variant: returns the asset URL without downloading.
+/// Used by `src/sources/apkpure.rs` to populate `Resolved` ahead of time.
+pub(crate) async fn resolve_apkpure_api_url(
+    client: &Client,
+    package: &str,
+    arch: &str,
+    target_version: Option<&str>,
+    extra_headers: &std::collections::HashMap<String, String>,
+) -> Result<String> {
+    let url =
+        format!("https://tapi.pureapk.com/v3/get_app_his_version?package_name={package}&hl=en");
+
+    let mut req = client.get(&url);
+    for (k, v) in extra_headers {
+        req = req.header(k.as_str(), v.as_str());
+    }
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(e) => {
+            warn!("apkpure_api: request failed for {package}: {e}");
+            return Err(e).context("apkpure_api: request failed");
+        }
+    };
+
+    if !resp.status().is_success() {
+        warn!("apkpure_api: HTTP {} for {package}", resp.status());
+        anyhow::bail!("apkpure_api: HTTP {} for {package}", resp.status());
+    }
+
+    let body: serde_json::Value = match resp.json().await {
+        Ok(b) => b,
+        Err(e) => {
+            warn!("apkpure_api: JSON parse failed for {package}: {e}");
+            return Err(e).context("apkpure_api: JSON parse failed");
+        }
+    };
+
+    let version_list = body
+        .get("version_list")
+        .or_else(|| body.get("data").and_then(|d| d.get("version_list")))
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| {
+            warn!("apkpure_api: no version_list for {package}");
+            anyhow::anyhow!("apkpure_api: no version_list for {package}")
+        })?;
+
+    if version_list.is_empty() {
+        warn!("apkpure_api: empty version_list for {package}");
+        anyhow::bail!("apkpure_api: empty version_list for {package}");
+    }
+    let entry = if let Some(ver) = target_version {
+        version_list.iter().find(|e| {
+            let vn = e["version_name"].as_str().unwrap_or("");
+            vn == ver || crate::utils::version::versions_match(vn, ver)
+        })
+    } else {
+        version_list.first()
+    };
+    let entry = entry.ok_or_else(|| {
+        anyhow::anyhow!(
+            "apkpure_api: version {:?} not in the ~20 newest entries for {package} — miss",
+            target_version
+        )
+    })?;
+    let asset_url = entry["asset"]["urls"]
+        .as_array()
+        .and_then(|arr| {
+            arr.iter()
+                .find(|u| u.as_str().map(|s| s.contains(arch)).unwrap_or(false))
+                .or_else(|| arr.first())
+        })
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("apkpure_api: no asset URL in entry for {package}"))?;
+    Ok(asset_url.to_string())
+}
+
+pub(crate) async fn fetch_apkpure_url_pub(
     client: &Client,
     base_url: &str,
     dest: &str,
     arch: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
+) -> Result<String, ApkpureError> {
+    fetch_apkpure_url(client, base_url, dest, arch, target_version, fetcher).await
+}
+
+pub(crate) async fn fetch_apkpure_pub(
+    client: &Client,
+    package_or_url: &str,
+    dest: &str,
+    arch: &str,
+    target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
+) -> Result<String, ApkpureError> {
+    fetch_apkpure(client, package_or_url, dest, arch, target_version, fetcher).await
+}
+
+pub(crate) async fn fetch_apkpure_url(
+    client: &Client,
+    base_url: &str,
+    dest: &str,
+    arch: &str,
+    target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String, ApkpureError> {
     if base_url.starts_with("http") && (base_url.ends_with(".apk") || base_url.ends_with(".xapk")) {
         info!("apkpure: using explicit direct URL override {base_url}");
@@ -1146,7 +1429,7 @@ async fn fetch_apkpure_url(
             })?;
         return Ok(dest.to_string());
     }
-    fetch_apkpure(client, base_url, dest, arch, target_version).await
+    fetch_apkpure(client, base_url, dest, arch, target_version, fetcher).await
 }
 
 async fn resolve_apkpure_cdn_url(url: &str, referer: Option<&str>) -> String {
@@ -1194,12 +1477,13 @@ async fn resolve_apkpure_cdn_url(url: &str, referer: Option<&str>) -> String {
     url.to_string()
 }
 
-async fn fetch_apkpure(
+pub(crate) async fn fetch_apkpure(
     client: &Client,
     package_or_url: &str,
     dest: &str,
     arch: &str,
     target_version: Option<&str>,
+    fetcher: Option<&crate::net::Fetcher>,
 ) -> Result<String, ApkpureError> {
     info!("apkpure: resolving download for {package_or_url}");
     let (app_url, package) = if package_or_url.starts_with("http") {
@@ -1216,28 +1500,43 @@ async fn fetch_apkpure(
         )
     };
 
-    let app_resp = client
-        .get(&app_url)
-        .header("Referer", "https://apkpure.com/")
-        .send()
-        .await;
-
-    let canonical_url = match app_resp {
-        Ok(r) if r.status().is_success() => {
-            let u = r.url().as_str().trim_end_matches('/').to_string();
-            info!("apkpure: canonical app URL is {u}");
-            Some(u)
+    let canonical_url: Option<String> = if let Some(f) = fetcher {
+        match crate::builder::fetch_page_html(client, &app_url, Some(f)).await {
+            Ok((_body, _hdrs)) => {
+                let u = app_url.trim_end_matches('/').to_string();
+                info!("apkpure: canonical app URL is {u} (fetcher)");
+                Some(u)
+            }
+            Err(e) => {
+                warn!(
+                    "apkpure: app page {app_url} fetcher error: {e}, proceeding direct endpoints"
+                );
+                None
+            }
         }
-        Ok(r) => {
-            warn!(
-                "apkpure: app page {app_url} returned status {}, proceeding to direct endpoints",
-                r.status()
-            );
-            None
-        }
-        Err(e) => {
-            warn!("apkpure: app page {app_url} request error: {e}, proceeding to direct endpoints");
-            None
+    } else {
+        let app_resp = client
+            .get(&app_url)
+            .header("Referer", "https://apkpure.com/")
+            .send()
+            .await;
+        match app_resp {
+            Ok(r) if r.status().is_success() => {
+                let u = r.url().as_str().trim_end_matches('/').to_string();
+                info!("apkpure: canonical app URL is {u}");
+                Some(u)
+            }
+            Ok(r) => {
+                warn!(
+                    "apkpure: app page {app_url} returned status {}, proceeding to direct endpoints",
+                    r.status()
+                );
+                None
+            }
+            Err(e) => {
+                warn!("apkpure: app page {app_url} request error: {e}, proceeding to direct endpoints");
+                None
+            }
         }
     };
 
@@ -1246,8 +1545,9 @@ async fn fetch_apkpure(
         if let Some(ver) = target_version {
             let ver_clean = ver.replace(' ', "-");
             dl_pages.push(format!("{can_url}/download/{ver_clean}"));
+        } else {
+            dl_pages.push(format!("{can_url}/download"));
         }
-        dl_pages.push(format!("{can_url}/download"));
     }
 
     let re_dl_link = Regex::new(
@@ -1262,33 +1562,42 @@ async fn fetch_apkpure(
 
     for dl_page in &dl_pages {
         info!("apkpure: inspecting download page {dl_page}");
-        let referer_header = canonical_url.as_deref().unwrap_or("https://apkpure.com/");
-        let resp = match client
-            .get(dl_page)
-            .header("Referer", referer_header)
-            .send()
-            .await
-        {
-            Ok(r) => r,
-            Err(e) => {
-                warn!("apkpure: download page {dl_page} error: {e}");
+        let html = if let Some(f) = fetcher {
+            match crate::builder::fetch_page_html(client, dl_page, Some(f)).await {
+                Ok((body, _hdrs)) => body,
+                Err(e) => {
+                    warn!("apkpure: download page {dl_page} fetcher error: {e}");
+                    continue;
+                }
+            }
+        } else {
+            let referer_header = canonical_url.as_deref().unwrap_or("https://apkpure.com/");
+            let resp = match client
+                .get(dl_page)
+                .header("Referer", referer_header)
+                .send()
+                .await
+            {
+                Ok(r) => r,
+                Err(e) => {
+                    warn!("apkpure: download page {dl_page} error: {e}");
+                    continue;
+                }
+            };
+            if !resp.status().is_success() {
+                warn!(
+                    "apkpure: download page {dl_page} returned status {}",
+                    resp.status()
+                );
                 continue;
+            }
+            match resp.text().await {
+                Ok(h) => h,
+                Err(_) => continue,
             }
         };
 
-        if !resp.status().is_success() {
-            warn!(
-                "apkpure: download page {dl_page} returned status {}",
-                resp.status()
-            );
-            continue;
-        }
-
         last_page_url = dl_page.clone();
-        let html = match resp.text().await {
-            Ok(h) => h,
-            Err(_) => continue,
-        };
 
         for cap in re_dl_link.captures_iter(&html) {
             let link = cap[1].replace("&amp;", "&");
@@ -1309,28 +1618,11 @@ async fn fetch_apkpure(
             found_dl_links.push(format!(
                 "https://d.apkpure.com/b/XAPK/{package}?versionName={ver_encoded}"
             ));
+        } else {
             found_dl_links.push(format!(
-                "https://d.apkpure.com/b/APK/{package}?versionName={ver_encoded}"
-            ));
-            found_dl_links.push(format!(
-                "https://d.apkpure.net/b/XAPK/{package}?versionName={ver_encoded}"
-            ));
-            found_dl_links.push(format!(
-                "https://d.apkpure.net/b/APK/{package}?versionName={ver_encoded}"
+                "https://d.apkpure.com/b/XAPK/{package}?version=latest"
             ));
         }
-        found_dl_links.push(format!(
-            "https://d.apkpure.com/b/XAPK/{package}?version=latest"
-        ));
-        found_dl_links.push(format!(
-            "https://d.apkpure.com/b/APK/{package}?version=latest"
-        ));
-        found_dl_links.push(format!(
-            "https://d.apkpure.net/b/XAPK/{package}?version=latest"
-        ));
-        found_dl_links.push(format!(
-            "https://d.apkpure.net/b/APK/{package}?version=latest"
-        ));
     }
 
     found_dl_links.sort_by_key(|link| {

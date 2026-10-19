@@ -70,7 +70,7 @@ build:
   workers: 4
   download_retries: 3
   download_timeout_secs: 120
-  version_cache: ./tmp/version_cache.json
+  version_cache: ./config/version_cache.json
 
   bundle:
     max_bytes: 1800000000

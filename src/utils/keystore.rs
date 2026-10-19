@@ -130,6 +130,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
     let app_dummy = crate::config::apps::AppConfig {
         enabled: true,
         package: String::new(),
+        sources: std::collections::HashMap::new(),
         patch_source: String::new(),
         patch_branch: None,
         cli_source: String::new(),
@@ -137,7 +138,11 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         apkmirror_url: None,
         archive_url: None,
         apkpure_url: None,
+        aptoide_url: None,
         source_priority: vec![],
+        strict_sources: false,
+        allow_build_failure: false,
+        expected_cert_sha256: None,
         apk_source: String::new(),
         apk_url: None,
         architectures: vec![],
@@ -152,6 +157,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         keystore: None,
         module: None,
         dependencies: crate::config::apps::AppDependencies::default(),
+        on_unknown_compat: None,
         description: None,
         min_version: None,
         max_version: None,
@@ -194,6 +200,73 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
     }
 
     Ok(())
+}
+
+pub fn verify_apk_cert_sha256(apk_path: &str, expected_cert_sha256: &str) -> Result<bool> {
+    let expected_norm: String = expected_cert_sha256
+        .chars()
+        .filter(|c| c.is_ascii_hexdigit())
+        .collect::<String>()
+        .to_ascii_lowercase();
+
+    if expected_norm.is_empty() {
+        return Ok(true);
+    }
+
+    if let Ok(out) = std::process::Command::new("apksigner")
+        .args(["verify", "--print-certs", apk_path])
+        .output()
+    {
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        let stderr = String::from_utf8_lossy(&out.stderr);
+        let combined = format!("{stdout}\n{stderr}");
+        for line in combined.lines() {
+            if line.contains("SHA-256 digest:") || line.contains("SHA256:") {
+                let actual_norm: String = line
+                    .split(':')
+                    .next_back()
+                    .unwrap_or("")
+                    .chars()
+                    .filter(|c| c.is_ascii_hexdigit())
+                    .collect::<String>()
+                    .to_ascii_lowercase();
+                if actual_norm == expected_norm {
+                    return Ok(true);
+                }
+            }
+        }
+        if out.status.success() {
+            return Ok(false);
+        }
+    }
+
+    if let Ok(kt_out) = std::process::Command::new("keytool")
+        .args(["-printcert", "-jarfile", apk_path])
+        .output()
+    {
+        let text = String::from_utf8_lossy(&kt_out.stdout);
+        for line in text.lines() {
+            if line.trim_start().starts_with("SHA256:") {
+                let actual_norm: String = line
+                    .split(':')
+                    .skip(1)
+                    .collect::<Vec<_>>()
+                    .join("")
+                    .chars()
+                    .filter(|c| c.is_ascii_hexdigit())
+                    .collect::<String>()
+                    .to_ascii_lowercase();
+                if actual_norm == expected_norm {
+                    return Ok(true);
+                }
+            }
+        }
+        if kt_out.status.success() {
+            return Ok(false);
+        }
+    }
+
+    Ok(false)
 }
 
 fn base64_decode(s: &str) -> Result<Vec<u8>> {

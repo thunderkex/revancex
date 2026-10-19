@@ -1,9 +1,11 @@
 pub mod apk;
 pub mod cache;
 pub mod doctor;
+pub mod forge;
 pub mod github;
 pub mod keystore;
 pub mod semver;
+pub mod version;
 pub mod zip;
 
 use crate::config::Config;
@@ -79,70 +81,110 @@ pub fn make_browser_client(cfg: &Config) -> Result<Client> {
         .map_err(Into::into)
 }
 
-pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<()> {
-    let client = make_github_client(cfg)?;
-    let mut version_cache = cache::load_version_cache(&cfg.build.version_cache);
-    let mut cache_modified = false;
+pub fn is_command_available(cmd: &str) -> bool {
+    if let Ok(path_var) = std::env::var("PATH") {
+        for dir in std::env::split_paths(&path_var) {
+            let p = dir.join(cmd);
+            if p.is_file() {
+                return true;
+            }
+            if cfg!(windows) && dir.join(format!("{cmd}.exe")).is_file() {
+                return true;
+            }
+        }
+    }
+    false
+}
 
-    let cli_dest = format!("{}/morphe-cli.jar", cfg.build.tools_dir);
-    if !cfg.cli_repo.is_empty() {
-        let cli_tag_res = github::get_latest_release(&client, &cfg.cli_repo, None).await;
-        let cli_upstream_tag = cli_tag_res.as_ref().map(|r| r.tag_name.clone()).ok();
-        let cached_cli_tag = version_cache.patch_source_tags.get("cli").cloned();
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ToolSidecar {
+    pub repo: String,
+    pub branch: Option<String>,
+    pub tag: String,
+    pub asset_name: String,
+    pub sha256: String,
+    pub etag: Option<String>,
+    pub fetched_at: String,
+}
 
-        let cli_needs_download = if !is_valid_jar_or_bundle(&cli_dest) {
-            true
-        } else if let (Some(ref upstream), Some(ref cached)) = (&cli_upstream_tag, &cached_cli_tag)
-        {
-            upstream != cached
-        } else {
-            false
-        };
+#[derive(Debug, Clone, Default)]
+pub struct DownloadToolsSummary {
+    pub tools_changed: bool,
+    pub needed: usize,
+    pub downloaded: usize,
+    pub api_calls: u32,
+    pub patch_results: std::collections::BTreeMap<String, Result<String, String>>,
+}
 
-        if cli_needs_download {
-            let url = github::resolve_asset_url(&client, &cfg.cli_repo, &cfg.cli_pattern, None)
-                .await
-                .with_context(|| format!("fetching CLI from {}", cfg.cli_repo))?;
-            download_file_with_client(&client, &url, &cli_dest, cfg.build.download_retries, None)
-                .await?;
-            if let Some(tag) = cli_upstream_tag {
-                version_cache
-                    .patch_source_tags
-                    .insert("cli".to_string(), tag);
-                cache_modified = true;
+pub fn compute_file_sha256<P: AsRef<std::path::Path>>(path: P) -> Result<String> {
+    let bytes = std::fs::read(path)?;
+    let hash = ring::digest::digest(&ring::digest::SHA256, &bytes);
+    let mut s = String::with_capacity(64);
+    for b in hash.as_ref() {
+        use std::fmt::Write;
+        let _ = write!(s, "{:02x}", b);
+    }
+    Ok(s)
+}
+
+pub fn load_tool_sidecar(file_path: &str) -> Option<ToolSidecar> {
+    let sidecar_p = format!("{file_path}.meta.json");
+    let content = std::fs::read_to_string(sidecar_p).ok()?;
+    serde_json::from_str(&content).ok()
+}
+
+pub fn save_tool_sidecar(file_path: &str, sidecar: &ToolSidecar) -> Result<()> {
+    let sidecar_p = format!("{file_path}.meta.json");
+    let json = serde_json::to_string_pretty(sidecar)?;
+    std::fs::write(sidecar_p, json)?;
+    Ok(())
+}
+
+pub fn check_sidecar_and_integrity(file_path: &str) -> (bool, Option<ToolSidecar>) {
+    let sidecar = load_tool_sidecar(file_path);
+    if !is_valid_jar_or_bundle(file_path) {
+        let _ = std::fs::remove_file(file_path);
+        let _ = std::fs::remove_file(format!("{file_path}.meta.json"));
+        return (false, None);
+    }
+    if let Some(ref sc) = sidecar {
+        if let Ok(actual_sha) = compute_file_sha256(file_path) {
+            if actual_sha != sc.sha256 {
+                tracing::warn!(
+                    "SHA-256 mismatch for {file_path} against sidecar; removing file and sidecar"
+                );
+                let _ = std::fs::remove_file(file_path);
+                let _ = std::fs::remove_file(format!("{file_path}.meta.json"));
+                return (false, None);
             }
         } else {
-            info!("CLI up to date, skipping: {cli_dest}");
+            return (false, None);
         }
     }
+    (true, sidecar)
+}
 
-    let apkeditor_dest = format!("{}/APKEditor.jar", cfg.build.tools_dir);
-    if !cfg.cli_repo.is_empty() && !is_valid_jar_or_bundle(&apkeditor_dest) {
-        let url =
-            "https://github.com/REAndroid/APKEditor/releases/download/V1.4.9/APKEditor-1.4.9.jar";
-        if let Err(e) = download_file_with_client(
-            &client,
-            url,
-            &apkeditor_dest,
-            cfg.build.download_retries,
-            None,
-        )
-        .await
-        {
-            tracing::warn!("APKEditor download failed, split-bundle merging unavailable: {e}");
-        }
+pub fn is_sidecar_within_interval(sidecar: &ToolSidecar, interval_hours: u64) -> bool {
+    if interval_hours == 0 {
+        return false;
+    }
+    if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(&sidecar.fetched_at) {
+        let age_hours = (chrono::Utc::now() - parsed.with_timezone(&chrono::Utc)).num_hours();
+        age_hours >= 0 && (age_hours as u64) < interval_hours
+    } else {
+        false
+    }
+}
+
+pub fn clean_stale_tools(cfg: &Config) -> Result<()> {
+    let tools_dir = std::path::Path::new(&cfg.build.tools_dir);
+    if !tools_dir.exists() {
+        return Ok(());
     }
 
-    let mut repo_branches: std::collections::HashMap<String, Option<String>> =
-        std::collections::HashMap::new();
-
-    let target_apps: Vec<&crate::config::AppConfig> = match targets {
-        Some(tlist) => tlist.iter().filter_map(|id| cfg.apps.get(id)).collect(),
-        None => cfg.apps.values().collect(),
-    };
-
-    for app in target_apps {
-        if !app.patch_source.is_empty() && app.patch_source != "none" {
+    let mut referenced_stems: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for app in cfg.apps.values() {
+        if app.enabled && !app.patch_source.is_empty() && app.patch_source != "none" {
             let (repo, source_branch) = cfg
                 .patch_sources
                 .get(&app.patch_source)
@@ -152,23 +194,299 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
             if repo.is_empty() {
                 continue;
             }
-
+            let safe_name = repo.replace('/', "_");
             let branch = app
                 .patches_version
                 .clone()
                 .or(app.patch_branch.clone())
                 .or(source_branch);
 
-            match repo_branches.get(&repo) {
-                Some(Some(_)) => {}
-                _ => {
-                    repo_branches.insert(repo, branch);
+            referenced_stems.insert(format!("patches_{safe_name}"));
+            if let Some(ref b) = branch {
+                referenced_stems.insert(format!("patches_{safe_name}_{b}"));
+            }
+        }
+    }
+
+    for entry in std::fs::read_dir(tools_dir)? {
+        let entry = entry?;
+        let p = entry.path();
+        if !p.is_file() {
+            continue;
+        }
+        let fname = match p.file_name().and_then(|f| f.to_str()) {
+            Some(f) => f,
+            None => continue,
+        };
+
+        if fname.starts_with("patches_") || fname.starts_with("patches-") {
+            let stem = if fname.ends_with(".mpp.meta.json") {
+                fname.strip_suffix(".mpp.meta.json").unwrap()
+            } else if fname.ends_with(".mpp") {
+                fname.strip_suffix(".mpp").unwrap()
+            } else if fname.ends_with(".jar.meta.json") {
+                fname.strip_suffix(".jar.meta.json").unwrap()
+            } else if fname.ends_with(".jar") {
+                fname.strip_suffix(".jar").unwrap()
+            } else {
+                continue;
+            };
+
+            if !referenced_stems.contains(stem) {
+                tracing::info!("clean: removing stale tool bundle {}", p.display());
+                let _ = std::fs::remove_file(&p);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn download_tools(
+    cfg: &Config,
+    targets: Option<&[String]>,
+) -> Result<DownloadToolsSummary> {
+    let client = make_github_client(cfg)?;
+    let mut total_needed = 0usize;
+    let mut total_downloaded = 0usize;
+    let mut api_calls = 0u32;
+    let mut tools_changed = false;
+    let mut patch_results: std::collections::BTreeMap<String, Result<String, String>> =
+        std::collections::BTreeMap::new();
+
+    let cli_dest = format!("{}/morphe-cli.jar", cfg.build.tools_dir);
+    if !cfg.cli_repo.is_empty() {
+        total_needed += 1;
+        let (valid, sidecar) = check_sidecar_and_integrity(&cli_dest);
+        let within_interval = valid
+            && sidecar
+                .as_ref()
+                .map(|s| is_sidecar_within_interval(s, cfg.build.tools_check_interval_hours))
+                .unwrap_or(false);
+
+        if within_interval {
+            let tag = sidecar
+                .as_ref()
+                .map(|s| s.tag.as_str())
+                .unwrap_or("unknown");
+            println!("patches: {}@{} skipped(interval)", cfg.cli_repo, tag);
+        } else {
+            api_calls += 1;
+            let if_none_match = sidecar.as_ref().and_then(|s| s.etag.as_deref());
+            let rel_check =
+                github::get_latest_release_conditional(&client, &cfg.cli_repo, None, if_none_match)
+                    .await;
+            match rel_check {
+                Ok(github::ReleaseCheck::NotModified) => {
+                    let tag = sidecar
+                        .as_ref()
+                        .map(|s| s.tag.as_str())
+                        .unwrap_or("unknown");
+                    println!("patches: {}@{} cached", cfg.cli_repo, tag);
+                    if let Some(mut sc) = sidecar {
+                        sc.fetched_at = chrono::Utc::now().to_rfc3339();
+                        let _ = save_tool_sidecar(&cli_dest, &sc);
+                    }
+                }
+                Ok(github::ReleaseCheck::Modified { release, etag }) => {
+                    if let Some(asset) = github::pick_asset(&release, &cfg.cli_pattern) {
+                        let is_same_tag =
+                            valid && sidecar.as_ref().map(|s| &s.tag) == Some(&release.tag_name);
+                        if is_same_tag {
+                            println!("patches: {}@{} cached", cfg.cli_repo, release.tag_name);
+                            if let Some(mut sc) = sidecar {
+                                sc.etag = etag;
+                                sc.fetched_at = chrono::Utc::now().to_rfc3339();
+                                let _ = save_tool_sidecar(&cli_dest, &sc);
+                            }
+                        } else {
+                            match download_file_with_client(
+                                &client,
+                                &asset.browser_download_url,
+                                &cli_dest,
+                                cfg.build.download_retries,
+                                None,
+                            )
+                            .await
+                            {
+                                Ok(_) if is_valid_jar_or_bundle(&cli_dest) => {
+                                    if let Ok(sha256) = compute_file_sha256(&cli_dest) {
+                                        let sc = ToolSidecar {
+                                            repo: cfg.cli_repo.clone(),
+                                            branch: None,
+                                            tag: release.tag_name.clone(),
+                                            asset_name: asset.name.clone(),
+                                            sha256,
+                                            etag,
+                                            fetched_at: chrono::Utc::now().to_rfc3339(),
+                                        };
+                                        let _ = save_tool_sidecar(&cli_dest, &sc);
+                                        total_downloaded += 1;
+                                        tools_changed = true;
+                                        println!(
+                                            "patches: {}@{} downloaded",
+                                            cfg.cli_repo, release.tag_name
+                                        );
+                                    } else {
+                                        println!(
+                                            "patches: {}@{} failed",
+                                            cfg.cli_repo, release.tag_name
+                                        );
+                                    }
+                                }
+                                Ok(_) => {
+                                    let _ = std::fs::remove_file(&cli_dest);
+                                    println!(
+                                        "patches: {}@{} failed",
+                                        cfg.cli_repo, release.tag_name
+                                    );
+                                }
+                                Err(_) => {
+                                    println!(
+                                        "patches: {}@{} failed",
+                                        cfg.cli_repo, release.tag_name
+                                    );
+                                }
+                            }
+                        }
+                    } else {
+                        println!("patches: {}@{} failed", cfg.cli_repo, release.tag_name);
+                    }
+                }
+                Err(github::FetchReleaseError::RateLimited) => {
+                    eprintln!(
+                        "GitHub API rate limit exceeded for {}. Set GITHUB_TOKEN to increase the limit.",
+                        cfg.cli_repo
+                    );
+                    if valid {
+                        let tag = sidecar
+                            .as_ref()
+                            .map(|s| s.tag.as_str())
+                            .unwrap_or("unknown");
+                        println!("patches: {}@{} cached", cfg.cli_repo, tag);
+                    } else {
+                        println!("patches: {}@unknown failed", cfg.cli_repo);
+                    }
+                }
+                Err(_) => {
+                    if valid {
+                        let tag = sidecar
+                            .as_ref()
+                            .map(|s| s.tag.as_str())
+                            .unwrap_or("unknown");
+                        println!("patches: {}@{} cached", cfg.cli_repo, tag);
+                    } else {
+                        println!("patches: {}@unknown failed", cfg.cli_repo);
+                    }
                 }
             }
         }
     }
 
-    for (repo, branch) in repo_branches {
+    let apkeditor_dest = format!("{}/APKEditor.jar", cfg.build.tools_dir);
+    if !cfg.cli_repo.is_empty() {
+        total_needed += 1;
+        if !is_valid_jar_or_bundle(&apkeditor_dest) {
+            let url =
+                "https://github.com/REAndroid/APKEditor/releases/download/V1.4.9/APKEditor-1.4.9.jar";
+            if download_file_with_client(
+                &client,
+                url,
+                &apkeditor_dest,
+                cfg.build.download_retries,
+                None,
+            )
+            .await
+            .is_ok()
+                && is_valid_jar_or_bundle(&apkeditor_dest)
+            {
+                if let Ok(sha256) = compute_file_sha256(&apkeditor_dest) {
+                    let sc = ToolSidecar {
+                        repo: "REAndroid/APKEditor".to_string(),
+                        branch: None,
+                        tag: "V1.4.9".to_string(),
+                        asset_name: "APKEditor-1.4.9.jar".to_string(),
+                        sha256,
+                        etag: None,
+                        fetched_at: chrono::Utc::now().to_rfc3339(),
+                    };
+                    let _ = save_tool_sidecar(&apkeditor_dest, &sc);
+                    total_downloaded += 1;
+                    tools_changed = true;
+                }
+            }
+        }
+    }
+
+    let apkeep_filename = if cfg!(windows) {
+        "apkeep.exe"
+    } else {
+        "apkeep"
+    };
+    let apkeep_dest = format!("{}/{apkeep_filename}", cfg.build.tools_dir);
+    if !is_command_available("apkeep") && !std::path::Path::new(&apkeep_dest).exists() {
+        total_needed += 1;
+        let apkeep_url = if cfg!(windows) {
+            "https://github.com/EFForg/apkeep/releases/download/1.1.0/apkeep-x86_64-pc-windows-msvc.exe"
+        } else {
+            "https://github.com/EFForg/apkeep/releases/download/1.1.0/apkeep-x86_64-unknown-linux-gnu"
+        };
+        if download_file_with_client(
+            &client,
+            apkeep_url,
+            &apkeep_dest,
+            cfg.build.download_retries,
+            None,
+        )
+        .await
+        .is_ok()
+        {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let _ =
+                    std::fs::set_permissions(&apkeep_dest, std::fs::Permissions::from_mode(0o755));
+            }
+            total_downloaded += 1;
+            tools_changed = true;
+        }
+    }
+
+    let mut repo_branches: std::collections::BTreeMap<(String, Option<String>), String> =
+        std::collections::BTreeMap::new();
+
+    let target_apps: Vec<&crate::config::AppConfig> = match targets {
+        Some(tlist) => tlist.iter().filter_map(|id| cfg.apps.get(id)).collect(),
+        None => cfg.apps.values().collect(),
+    };
+
+    for app in target_apps {
+        if !app.enabled || app.patch_source.is_empty() || app.patch_source == "none" {
+            continue;
+        }
+        let (repo, source_branch) = cfg
+            .patch_sources
+            .get(&app.patch_source)
+            .map(|p| (p.repo.clone(), p.branch.clone()))
+            .unwrap_or_else(|| (app.patch_source.clone(), None));
+
+        if repo.is_empty() {
+            continue;
+        }
+
+        let branch = app
+            .patches_version
+            .clone()
+            .or(app.patch_branch.clone())
+            .or(source_branch);
+
+        repo_branches
+            .entry((repo, branch))
+            .or_insert_with(|| app.patch_source.clone());
+    }
+
+    for ((repo, branch), source_alias) in repo_branches {
+        total_needed += 1;
         let safe_name = repo.replace('/', "_");
         let dest = format!("{}/patches_{safe_name}.mpp", cfg.build.tools_dir);
         let versioned_dest = branch
@@ -176,68 +494,202 @@ pub async fn download_tools(cfg: &Config, targets: Option<&[String]>) -> Result<
             .map(|b| format!("{}/patches_{safe_name}_{b}.mpp", cfg.build.tools_dir));
         let primary_dest = versioned_dest.as_ref().unwrap_or(&dest);
 
-        let upstream_rel = github::get_latest_release(&client, &repo, branch.as_deref())
-            .await
-            .ok();
-        let upstream_tag = upstream_rel.as_ref().map(|r| r.tag_name.clone());
-        let cached_tag = version_cache.patch_source_tags.get(&repo).cloned();
+        let (valid, sidecar) = check_sidecar_and_integrity(primary_dest);
+        let within_interval = valid
+            && sidecar
+                .as_ref()
+                .map(|s| is_sidecar_within_interval(s, cfg.build.tools_check_interval_hours))
+                .unwrap_or(false);
 
-        let needs_download = if !is_valid_jar_or_bundle(primary_dest) {
-            true
-        } else if let (Some(ref up_tag), Some(ref c_tag)) = (&upstream_tag, &cached_tag) {
-            up_tag != c_tag
-        } else {
-            false
-        };
-
-        if !needs_download {
+        if within_interval {
+            let tag = sidecar
+                .as_ref()
+                .map(|s| s.tag.as_str())
+                .unwrap_or("unknown");
+            println!("patches: {repo}@{tag} skipped(interval)");
             if let Some(ref vdest) = versioned_dest {
                 if !is_valid_jar_or_bundle(&dest) {
                     let _ = std::fs::copy(vdest, &dest);
                 }
             }
-            info!("Patches up to date, skipping: {primary_dest}");
+            patch_results.insert(source_alias, Ok(primary_dest.to_string()));
             continue;
         }
 
-        match github::resolve_asset_url(&client, &repo, "*.mpp", branch.as_deref()).await {
-            Ok(url) => {
-                if let Some(ref vdest) = versioned_dest {
-                    download_file_with_client(
-                        &client,
-                        &url,
-                        vdest,
-                        cfg.build.download_retries,
-                        None,
-                    )
-                    .await?;
-                    let _ = std::fs::copy(vdest, &dest);
-                } else {
-                    download_file_with_client(
-                        &client,
-                        &url,
-                        &dest,
-                        cfg.build.download_retries,
-                        None,
-                    )
-                    .await?;
+        api_calls += 1;
+        let if_none_match = sidecar.as_ref().and_then(|s| s.etag.as_deref());
+        let rel_check = github::get_latest_release_conditional(
+            &client,
+            &repo,
+            branch.as_deref(),
+            if_none_match,
+        )
+        .await;
+
+        match rel_check {
+            Ok(github::ReleaseCheck::NotModified) => {
+                let tag = sidecar
+                    .as_ref()
+                    .map(|s| s.tag.as_str())
+                    .unwrap_or("unknown");
+                println!("patches: {repo}@{tag} cached");
+                if let Some(mut sc) = sidecar {
+                    sc.fetched_at = chrono::Utc::now().to_rfc3339();
+                    let _ = save_tool_sidecar(primary_dest, &sc);
                 }
-                if let Some(tag) = upstream_tag {
-                    version_cache.patch_source_tags.insert(repo.clone(), tag);
-                    cache_modified = true;
+                if let Some(ref vdest) = versioned_dest {
+                    if !is_valid_jar_or_bundle(&dest) {
+                        let _ = std::fs::copy(vdest, &dest);
+                    }
+                }
+                patch_results.insert(source_alias, Ok(primary_dest.to_string()));
+            }
+            Ok(github::ReleaseCheck::Modified { release, etag }) => {
+                let pattern = cfg
+                    .patch_sources
+                    .get(&source_alias)
+                    .map(|p| p.asset_pattern.as_str())
+                    .unwrap_or("*.mpp");
+                if let Some(asset) = github::pick_asset(&release, pattern) {
+                    let is_same_tag =
+                        valid && sidecar.as_ref().map(|s| &s.tag) == Some(&release.tag_name);
+                    if is_same_tag {
+                        println!("patches: {repo}@{} cached", release.tag_name);
+                        if let Some(mut sc) = sidecar {
+                            sc.etag = etag;
+                            sc.fetched_at = chrono::Utc::now().to_rfc3339();
+                            let _ = save_tool_sidecar(primary_dest, &sc);
+                        }
+                        if let Some(ref vdest) = versioned_dest {
+                            if !is_valid_jar_or_bundle(&dest) {
+                                let _ = std::fs::copy(vdest, &dest);
+                            }
+                        }
+                        patch_results.insert(source_alias, Ok(primary_dest.to_string()));
+                    } else {
+                        match download_file_with_client(
+                            &client,
+                            &asset.browser_download_url,
+                            primary_dest,
+                            cfg.build.download_retries,
+                            None,
+                        )
+                        .await
+                        {
+                            Ok(_) if is_valid_jar_or_bundle(primary_dest) => {
+                                match compute_file_sha256(primary_dest) {
+                                    Ok(sha256) => {
+                                        let sc = ToolSidecar {
+                                            repo: repo.clone(),
+                                            branch: branch.clone(),
+                                            tag: release.tag_name.clone(),
+                                            asset_name: asset.name.clone(),
+                                            sha256,
+                                            etag,
+                                            fetched_at: chrono::Utc::now().to_rfc3339(),
+                                        };
+                                        let _ = save_tool_sidecar(primary_dest, &sc);
+                                        if let Some(ref vdest) = versioned_dest {
+                                            let _ = std::fs::copy(vdest, &dest);
+                                        }
+                                        total_downloaded += 1;
+                                        tools_changed = true;
+                                        println!("patches: {repo}@{} downloaded", release.tag_name);
+                                        patch_results
+                                            .insert(source_alias, Ok(primary_dest.to_string()));
+                                    }
+                                    Err(e) => {
+                                        let _ = std::fs::remove_file(primary_dest);
+                                        println!("patches: {repo}@{} failed", release.tag_name);
+                                        patch_results.insert(
+                                            source_alias,
+                                            Err(format!("sha256 calculation failed: {e}")),
+                                        );
+                                    }
+                                }
+                            }
+                            Ok(_) => {
+                                let _ = std::fs::remove_file(primary_dest);
+                                println!("patches: {repo}@{} failed", release.tag_name);
+                                patch_results.insert(
+                                    source_alias,
+                                    Err("Downloaded file is not a valid JAR/bundle".to_string()),
+                                );
+                            }
+                            Err(e) => {
+                                println!("patches: {repo}@{} failed", release.tag_name);
+                                patch_results
+                                    .insert(source_alias, Err(format!("Download failed: {e}")));
+                            }
+                        }
+                    }
+                } else {
+                    println!("patches: {repo}@{} failed", release.tag_name);
+                    patch_results.insert(
+                        source_alias,
+                        Err(format!(
+                            "No asset matching pattern '{pattern}' found in release"
+                        )),
+                    );
+                }
+            }
+            Err(github::FetchReleaseError::RateLimited) => {
+                eprintln!(
+                    "GitHub API rate limit exceeded for {repo}. Set GITHUB_TOKEN to increase the limit."
+                );
+                if valid {
+                    let tag = sidecar
+                        .as_ref()
+                        .map(|s| s.tag.as_str())
+                        .unwrap_or("unknown");
+                    println!("patches: {repo}@{tag} cached");
+                    if let Some(ref vdest) = versioned_dest {
+                        if !is_valid_jar_or_bundle(&dest) {
+                            let _ = std::fs::copy(vdest, &dest);
+                        }
+                    }
+                    patch_results.insert(source_alias, Ok(primary_dest.to_string()));
+                } else {
+                    println!("patches: {repo}@unknown failed");
+                    patch_results.insert(
+                        source_alias,
+                        Err("Rate limited and no valid cached bundle".to_string()),
+                    );
                 }
             }
             Err(e) => {
-                tracing::warn!("Could not download patches from {repo}: {e}");
+                if valid {
+                    let tag = sidecar
+                        .as_ref()
+                        .map(|s| s.tag.as_str())
+                        .unwrap_or("unknown");
+                    println!("patches: {repo}@{tag} cached");
+                    if let Some(ref vdest) = versioned_dest {
+                        if !is_valid_jar_or_bundle(&dest) {
+                            let _ = std::fs::copy(vdest, &dest);
+                        }
+                    }
+                    patch_results.insert(source_alias, Ok(primary_dest.to_string()));
+                } else {
+                    println!("patches: {repo}@unknown failed");
+                    patch_results.insert(source_alias, Err(format!("GitHub release error: {e}")));
+                }
             }
         }
     }
 
-    if cache_modified {
-        cache::save_version_cache(&cfg.build.version_cache, &version_cache);
-    }
+    println!(
+        "tools: {} needed, {} downloaded, {} api calls",
+        total_needed, total_downloaded, api_calls
+    );
 
-    Ok(())
+    Ok(DownloadToolsSummary {
+        tools_changed,
+        needed: total_needed,
+        downloaded: total_downloaded,
+        api_calls,
+        patch_results,
+    })
 }
 
 pub fn random_user_agent() -> &'static str {
@@ -543,44 +995,10 @@ pub fn parse_java_major_version(output: &str) -> Option<u32> {
 }
 
 pub fn write_build_report(summary: &BuildSummary, path: &str) -> Result<()> {
-    let ts = chrono::Utc::now().to_rfc3339();
-    let version = env!("CARGO_PKG_VERSION");
-
-    let built: Vec<serde_json::Value> = summary
-        .built
-        .iter()
-        .map(|p| {
-            serde_json::json!({
-                "status": "success",
-                "artifact": p
-            })
-        })
-        .collect();
-
-    let failed: Vec<serde_json::Value> = summary
-        .failed
-        .iter()
-        .map(|(id, err)| {
-            serde_json::json!({
-                "status": "failed",
-                "app_id": id,
-                "error": err
-            })
-        })
-        .collect();
-
-    let report = serde_json::json!({
-        "build_timestamp": ts,
-        "revancex_version": version,
-        "summary": {
-            "built_count": summary.built.len(),
-            "failed_count": summary.failed.len()
-        },
-        "built": built,
-        "failed": failed
-    });
-
-    let json = serde_json::to_string_pretty(&report)?;
+    if let Some(parent) = std::path::Path::new(path).parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let json = serde_json::to_string_pretty(&summary.reports)?;
     std::fs::write(path, &json).with_context(|| format!("Writing build report to {path}"))?;
     info!("Build report written to {path}");
     Ok(())

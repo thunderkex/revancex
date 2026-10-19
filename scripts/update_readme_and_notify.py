@@ -220,6 +220,27 @@ def main():
                     "updated_at": now_iso
                 }
 
+    modules_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "modules.yaml")
+    modules_cfg = {}
+    valid_single_modules = None
+    if _YAML_AVAILABLE and os.path.exists(modules_yaml_path):
+        try:
+            with open(modules_yaml_path, "r", encoding="utf-8") as f:
+                y = yaml.safe_load(f)
+                if y:
+                    if "modules" in y:
+                        modules_cfg = y["modules"]
+                    if "single_modules" in y and isinstance(y["single_modules"], list):
+                        valid_single_modules = set(y["single_modules"])
+        except Exception as e:
+            print(f"[modules.yaml] Failed to load, bundle table will use fallback: {e}")
+
+    if valid_single_modules is not None:
+        registry["single_modules"] = {
+            k: v for k, v in registry.get("single_modules", {}).items()
+            if k in valid_single_modules
+        }
+
     with open(RELEASES_REGISTRY_PATH, "w", encoding="utf-8") as f:
         json.dump(registry, f, indent=2)
 
@@ -255,17 +276,6 @@ def main():
     if len(stock_module_table) == 2:
         stock_module_table.append("| _None yet_ | — | — | — | — |")
 
-    modules_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "modules.yaml")
-    modules_cfg = {}
-    if _YAML_AVAILABLE and os.path.exists(modules_yaml_path):
-        try:
-            with open(modules_yaml_path, "r", encoding="utf-8") as f:
-                y = yaml.safe_load(f)
-                if y and "modules" in y:
-                    modules_cfg = y["modules"]
-        except Exception as e:
-            print(f"[modules.yaml] Failed to load, bundle table will use fallback: {e}")
-
     bundle_table = [
         "| Bundle Name | Included Apps & Payload Files | Download Link | Release Tag | Updated At |",
         "| :--- | :--- | :--- | :--- | :--- |"
@@ -296,13 +306,13 @@ def main():
 
     content_parts = [
         START_MARKER,
-        "### 📱 Stock Apps & Single Root Modules",
+        '### <i class="fa-solid fa-mobile-screen"></i> Stock Apps & Single Root Modules',
         "\n".join(stock_module_table),
         "",
-        "### 📦 Bundle Modules (Multi-App)",
+        '### <i class="fa-solid fa-box-archive"></i> Bundle Modules (Multi-App)',
         "\n".join(bundle_table),
         "",
-        "### 🛠️ Custom Bundle Modules",
+        '### <i class="fa-solid fa-screwdriver-wrench"></i> Custom Bundle Modules',
         "\n".join(custom_table),
         END_MARKER
     ]

@@ -18,7 +18,7 @@ build:
   download_timeout_secs: 120
   version_fallback_attempts: 3
 
-  version_cache: ./tmp/version_cache.json
+  version_cache: ./config/version_cache.json
   asset_exclude_patterns:
     - "hw-"
 
@@ -33,6 +33,11 @@ build:
           - contains: "change app icon"
           - contains: "gmscore"
           - contains: "microg"
+          - equals: "GmsCore support"
+          - equals: "Change package name"
+          - equals: "MicroG support"
+          - contains: "gmscore support"
+          - contains: "microg support"
       nonroot:
         exclude:
           - contains: "custom branding"

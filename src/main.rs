@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use revancex::{builder, config, module, orchestrator, pages, patcher, testing, utils};
 use tracing_subscriber::EnvFilter;
@@ -93,14 +93,23 @@ enum Commands {
     Validate {
         #[arg(short, long)]
         strict: bool,
+        #[arg(long)]
+        online: bool,
+        #[arg(short, long)]
+        apps: Option<String>,
     },
 
     Clean {
         #[arg(long)]
         all: bool,
+        #[arg(long)]
+        stale_tools: bool,
     },
 
-    DownloadTools,
+    DownloadTools {
+        #[arg(short, long, default_value = "all")]
+        apps: String,
+    },
 
     GenAppsJson {
         #[arg(long, default_value = "config/releases_registry.json")]
@@ -162,6 +171,32 @@ enum Commands {
     },
 
     Doctor,
+
+    Sources {
+        #[command(subcommand)]
+        sub: SourcesSubcommand,
+    },
+
+    Report {
+        #[command(subcommand)]
+        sub: ReportSubcommand,
+    },
+}
+
+#[derive(Subcommand)]
+enum ReportSubcommand {
+    Check { path: std::path::PathBuf },
+}
+
+#[derive(Subcommand)]
+enum SourcesSubcommand {
+    Probe {
+        app: String,
+        #[arg(long, default_value = "arm64-v8a")]
+        arch: String,
+        #[arg(long)]
+        version: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -211,12 +246,35 @@ async fn main() -> Result<()> {
             )
             .await?;
 
-            let report_path = report.unwrap_or_else(|| "BUILD_REPORT.json".to_string());
+            let report_path = report.unwrap_or_else(|| format!("{output_dir}/BUILD_REPORT.json"));
             utils::write_build_report(&summary, &report_path)?;
 
-            if !summary.failed.is_empty() {
+            let has_failures = summary.failed.iter().any(|(id, _)| {
+                !config
+                    .apps
+                    .get(id)
+                    .map(|a| a.allow_build_failure)
+                    .unwrap_or(false)
+            }) || summary.reports.iter().any(|(id, r)| {
+                r.status != "success"
+                    && !config
+                        .apps
+                        .get(id)
+                        .map(|a| a.allow_build_failure)
+                        .unwrap_or(false)
+            });
+
+            if has_failures {
                 for (id, err) in &summary.failed {
                     eprintln!("FAILED: {id}: {err}");
+                }
+                for (id, r) in &summary.reports {
+                    if r.status != "success" && !summary.failed.iter().any(|(fid, _)| fid == id) {
+                        eprintln!(
+                            "FAILED: {id}: {}",
+                            r.error.as_deref().unwrap_or("status is not success")
+                        );
+                    }
                 }
                 if !keep_going {
                     std::process::exit(1);
@@ -248,23 +306,117 @@ async fn main() -> Result<()> {
             orchestrator::generate_matrix(&config, &apps, &arch, &mode).await?;
         }
 
-        Commands::Validate { strict } => {
+        Commands::Validate {
+            strict,
+            online,
+            apps,
+        } => {
             config::validate_yaml_duplicates(&cli.config_dir)?;
             let config = config::sync_and_reload_modules(&cli.config_dir, config)?;
             config::validate_config(&config, strict)?;
-            let warnings = patcher::metadata::validate_patch_compatibilities(&config).await;
-            for w in warnings {
+            let target_apps = apps
+                .as_deref()
+                .map(|a| orchestrator::resolver::resolve_targets(&config, a))
+                .transpose()?;
+            let warnings =
+                patcher::metadata::validate_patch_compatibilities(&config, target_apps.as_deref())
+                    .await;
+            for w in &warnings {
                 eprintln!("Warning: {w}");
+            }
+            if strict && !warnings.is_empty() {
+                anyhow::bail!("Strict validation failed: {} warning(s)", warnings.len());
+            }
+            if online {
+                let client = utils::make_browser_client(&config)?;
+                let mut failures = Vec::new();
+                for (id, app) in &config.apps {
+                    if !app.enabled {
+                        continue;
+                    }
+                    if let Some(ref targets) = target_apps {
+                        if !targets.iter().any(|t| t == id) {
+                            continue;
+                        }
+                    }
+                    if let Some(ref url) = app.uptodown_url {
+                        println!("Validating uptodown_url for {id}: {url}");
+                        match client.head(url).send().await {
+                            Ok(resp) => {
+                                let st = resp.status();
+                                if st == reqwest::StatusCode::NOT_FOUND
+                                    || st == reqwest::StatusCode::GONE
+                                {
+                                    failures.push(format!(
+                                        "App '{id}' uptodown_url {url} returned {st}"
+                                    ));
+                                }
+                            }
+                            Err(e) => {
+                                failures.push(format!(
+                                    "App '{id}' uptodown_url {url} request failed: {e}"
+                                ));
+                            }
+                        }
+                    }
+                    if let Some(ref url) = app.apkmirror_url {
+                        println!("Validating apkmirror_url for {id}: {url}");
+                        match client.head(url).send().await {
+                            Ok(resp) => {
+                                let st = resp.status();
+                                if st == reqwest::StatusCode::NOT_FOUND
+                                    || st == reqwest::StatusCode::GONE
+                                {
+                                    failures.push(format!(
+                                        "App '{id}' apkmirror_url {url} returned {st}"
+                                    ));
+                                }
+                            }
+                            Err(e) => {
+                                failures.push(format!(
+                                    "App '{id}' apkmirror_url {url} request failed: {e}"
+                                ));
+                            }
+                        }
+                    }
+                }
+                if !failures.is_empty() {
+                    for f in &failures {
+                        eprintln!("Online validation error: {f}");
+                    }
+                    anyhow::bail!(
+                        "Online URL validation failed with {} error(s)",
+                        failures.len()
+                    );
+                }
+                println!("Online URL validation passed.");
             }
         }
 
-        Commands::Clean { all } => {
-            utils::cache::clean_cache(&config, all)?;
+        Commands::Clean { all, stale_tools } => {
+            if stale_tools {
+                utils::clean_stale_tools(&config)?;
+            } else {
+                utils::cache::clean_cache(&config, all)?;
+            }
         }
 
-        Commands::DownloadTools => {
+        Commands::DownloadTools { apps } => {
             utils::check_java_version(config.build.java_min_version)?;
-            utils::download_tools(&config, None).await?;
+            let targets = orchestrator::resolver::resolve_targets(&config, &apps)?;
+            let summary = utils::download_tools(&config, Some(&targets)).await?;
+            if summary.tools_changed {
+                if let Ok(path) = std::env::var("GITHUB_OUTPUT") {
+                    if let Ok(mut file) = std::fs::OpenOptions::new()
+                        .create(true)
+                        .append(true)
+                        .open(path)
+                    {
+                        use std::io::Write;
+                        let _ = writeln!(file, "tools_changed=true");
+                    }
+                }
+            }
         }
 
         Commands::GenAppsJson { registry } => {
@@ -407,6 +559,118 @@ async fn main() -> Result<()> {
         Commands::Doctor => {
             utils::doctor::run_doctor(&config).await?;
         }
+
+        Commands::Sources { sub } => match sub {
+            SourcesSubcommand::Probe { app, arch, version } => {
+                let app_cfg = config
+                    .apps
+                    .get(&app)
+                    .ok_or_else(|| anyhow::anyhow!("App '{app}' not found in configuration"))?;
+
+                let client = utils::make_browser_client(&config)?;
+                let ctx = revancex::sources::SourceCtx::new(&client, &config, 5);
+                let registry = revancex::sources::default_registry();
+                let ordered = revancex::sources::source_order(&registry, app_cfg, &config);
+
+                println!(
+                    "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | REASON/TRACE",
+                    "SOURCE", "OUTCOME", "VERSION", "HOST", "MS"
+                );
+                println!(
+                    "{:-<14}-+-{:-<8}-+-{:-<16}-+-{:-<25}-+-{:-<6}-+-----------------------",
+                    "", "", "", "", ""
+                );
+
+                let mut any_resolved = false;
+                for src in ordered {
+                    let start = std::time::Instant::now();
+                    let outcome = src.resolve(&ctx, app_cfg, version.as_deref(), &arch).await;
+                    let elapsed_ms = start.elapsed().as_millis();
+
+                    match outcome {
+                        Ok(Some(res)) => {
+                            any_resolved = true;
+                            let host = reqwest::Url::parse(&res.url)
+                                .ok()
+                                .and_then(|u| u.host_str().map(|h| h.to_string()))
+                                .unwrap_or_else(|| "-".to_string());
+                            let ver = res.version_found.unwrap_or_else(|| "-".to_string());
+                            println!(
+                                "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | OK",
+                                src.name(),
+                                "hit",
+                                ver,
+                                host,
+                                elapsed_ms
+                            );
+                        }
+                        Ok(None) => {
+                            println!(
+                                "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | not found",
+                                src.name(),
+                                "miss",
+                                "-",
+                                "-",
+                                elapsed_ms
+                            );
+                        }
+                        Err(e) => {
+                            println!(
+                                "{:<14} | {:<8} | {:<16} | {:<25} | {:<6} | {e}",
+                                src.name(),
+                                "error",
+                                "-",
+                                "-",
+                                elapsed_ms
+                            );
+                        }
+                    }
+                }
+
+                if !any_resolved {
+                    std::process::exit(1);
+                }
+            }
+        },
+
+        Commands::Report { sub } => match sub {
+            ReportSubcommand::Check { path } => {
+                if !path.exists() {
+                    anyhow::bail!("Build report not found: {}", path.display());
+                }
+                let content = std::fs::read_to_string(&path)
+                    .with_context(|| format!("Failed to read {}", path.display()))?;
+                let data: std::collections::HashMap<String, serde_json::Value> =
+                    serde_json::from_str(&content)
+                        .with_context(|| format!("Failed to parse JSON in {}", path.display()))?;
+
+                let mut bad = Vec::new();
+                for (app, rep) in &data {
+                    let status = rep
+                        .get("status")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("unknown");
+                    let has_conflict = rep.get("version_conflict").is_some_and(|v| !v.is_null());
+                    let allow_failure = config
+                        .apps
+                        .get(app)
+                        .map(|a| a.allow_build_failure)
+                        .unwrap_or(false);
+
+                    if (status != "success" || has_conflict) && !allow_failure {
+                        bad.push(format!("{app} (status={status}, conflict={has_conflict})"));
+                    }
+                }
+
+                if !bad.is_empty() {
+                    anyhow::bail!(
+                        "Build report contains failed or version-conflicted apps: {}",
+                        bad.join(", ")
+                    );
+                }
+                println!("Build report validated: all apps succeeded with no conflicts.");
+            }
+        },
     }
 
     Ok(())

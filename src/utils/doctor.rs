@@ -34,9 +34,35 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
     }
 
     check_tool("aria2c", "optional, accelerates downloads");
+    check_tool("apkeep", "optional, direct playstore/apkeep download");
     check_tool("zipalign", "optional, post-patch APK alignment");
     check_tool("python", "optional, post-patch hooks");
     check_tool("keytool", "required for keystore generation/info");
+
+    println!("\n--- Bypass & Network Services ---");
+    let fs_url =
+        std::env::var("FLARESOLVERR_URL").unwrap_or_else(|_| cfg.fetch.flaresolverr.url.clone());
+    check_http_service("FlareSolverr", &fs_url).await;
+
+    let trawl_url = std::env::var("TRAWL_URL").unwrap_or_else(|_| cfg.fetch.trawl.url.clone());
+    if !trawl_url.is_empty() {
+        check_http_service("Trawl", &trawl_url).await;
+    } else {
+        println!("{:<16}[UNCONFIGURED] (TRAWL_URL not set)", "Trawl");
+    }
+
+    print!("{:<16}", "GITHUB_TOKEN");
+    match std::env::var("GITHUB_TOKEN") {
+        Ok(t) if !t.is_empty() => {
+            let masked = if t.len() > 8 {
+                format!("{}...{}", &t[..4], &t[t.len() - 4..])
+            } else {
+                "PRESENT".to_string()
+            };
+            println!("[OK] ({masked})");
+        }
+        _ => println!("[MISSING] (Rate limit: 60 req/hr unauthenticated)"),
+    }
 
     println!("\n--- Dependency Graph ---");
     let lock_path = Path::new("Cargo.lock");
@@ -50,6 +76,7 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
     let dummy_app = crate::config::apps::AppConfig {
         enabled: true,
         package: String::new(),
+        sources: std::collections::HashMap::new(),
         patch_source: String::new(),
         patch_branch: None,
         cli_source: String::new(),
@@ -57,7 +84,11 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
         apkmirror_url: None,
         archive_url: None,
         apkpure_url: None,
+        aptoide_url: None,
         source_priority: vec![],
+        strict_sources: false,
+        allow_build_failure: false,
+        expected_cert_sha256: None,
         apk_source: String::new(),
         apk_url: None,
         architectures: vec![],
@@ -75,6 +106,7 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
         description: None,
         min_version: None,
         max_version: None,
+        on_unknown_compat: None,
         post_patch_hooks: vec![],
         display_name: None,
         bundle_priority: 100,
@@ -118,6 +150,21 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
 
     println!("\nDoctor check complete.");
     Ok(())
+}
+
+async fn check_http_service(name: &str, url: &str) {
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(3))
+        .build()
+        .unwrap_or_default();
+    match client.get(url).send().await {
+        Ok(r) => {
+            println!("{:<16}[OK] (Status: {}, URL: {})", name, r.status(), url);
+        }
+        Err(_) => {
+            println!("{:<16}[UNREACHABLE] (URL: {})", name, url);
+        }
+    }
 }
 
 fn check_tool(name: &str, purpose: &str) {

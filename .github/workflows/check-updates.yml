@@ -2,7 +2,7 @@ name: Check Patch Updates
 
 on:
   schedule:
-    - cron: '0 */3 * * *'  # Run every 3 hours
+    - cron: '0 */23 * * *' 
   workflow_dispatch:
     inputs:
       force_build:
@@ -48,15 +48,6 @@ jobs:
             echo "CLI downloaded quickly from pre-built GitHub Release asset." >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Cache patch tools & version cache
-        uses: actions/cache@v6
-        with:
-          path: |
-            tools/
-            tmp/version_cache.json
-          key: tools-${{ hashFiles('config/apps.yaml', 'config/sources.yaml') }}
-          restore-keys: |
-            tools-
 
       - name: Poll patch repositories for updates
         id: poll

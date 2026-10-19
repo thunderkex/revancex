@@ -64,6 +64,12 @@ pub struct BuildConfig {
     pub asset_exclude_patterns: Vec<String>,
     #[serde(default = "default_version_fallback_attempts")]
     pub version_fallback_attempts: usize,
+    #[serde(default = "default_tools_check_interval_hours")]
+    pub tools_check_interval_hours: u64,
+}
+
+fn default_tools_check_interval_hours() -> u64 {
+    6
 }
 
 fn default_version_fallback_attempts() -> usize {
@@ -140,7 +146,7 @@ fn default_timeout() -> u64 {
     180
 }
 fn default_cache() -> String {
-    "./tmp/version_cache.json".to_string()
+    "./config/version_cache.json".to_string()
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -312,8 +318,11 @@ pub struct Config {
     pub modules: BTreeMap<String, ModuleDefinition>,
     pub cli_repo: String,
     pub cli_pattern: String,
+    pub cli_provider: String,
     pub patch_sources: BTreeMap<String, PatchSourceEntry>,
     pub apk_sources: BTreeMap<String, ApkSourceEntry>,
+    pub apk_source_order: Vec<String>,
+    pub fetch: crate::config::sources::FetchConfig,
     pub build: BuildConfig,
     pub module_meta: ModuleMetaConfig,
 }
@@ -331,6 +340,10 @@ struct SourcesFile {
     patch_sources: BTreeMap<String, PatchSourceEntry>,
     #[serde(default)]
     apk_sources: BTreeMap<String, ApkSourceEntry>,
+    #[serde(default)]
+    apk_source_order: Vec<String>,
+    #[serde(default)]
+    fetch: crate::config::sources::FetchConfig,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -364,7 +377,7 @@ pub fn sync_modules_file(config_dir: &str, cfg: &Config) -> Result<ModulesFile> 
         let mut disabled = Vec::new();
         for a in all_apps {
             if let Some(app_cfg) = cfg.apps.get(&a) {
-                if app_cfg.enabled {
+                if app_cfg.enabled && app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
                     active.push(a);
                 } else {
                     disabled.push(a);
@@ -417,11 +430,12 @@ pub fn load_config(config_dir: &str) -> Result<Config> {
         Err(_) => ModuleMetaFile::default(),
     };
 
-    let (cli_repo, cli_pattern) = match sources.cli {
-        Some(c) => (c.repo, c.asset_pattern),
+    let (cli_repo, cli_pattern, cli_provider) = match sources.cli {
+        Some(c) => (c.repo, c.asset_pattern, c.provider),
         None => (
             "MorpheApp/morphe-desktop".to_string(),
             "morphe-*-all.jar".to_string(),
+            "github".to_string(),
         ),
     };
 
@@ -430,8 +444,11 @@ pub fn load_config(config_dir: &str) -> Result<Config> {
         modules: modules.modules,
         cli_repo,
         cli_pattern,
+        cli_provider,
         patch_sources: sources.patch_sources,
         apk_sources: sources.apk_sources,
+        apk_source_order: sources.apk_source_order,
+        fetch: sources.fetch,
         build: build_file.build,
         module_meta: module_meta_file.module,
     })
@@ -450,6 +467,19 @@ pub fn validate_config(cfg: &Config, strict: bool) -> Result<()> {
     }
 
     if strict {
+        for (id, app) in &cfg.apps {
+            if app.enabled
+                && !app.patch_source.is_empty()
+                && app.patch_source != "none"
+                && !cfg.patch_sources.contains_key(&app.patch_source)
+            {
+                anyhow::bail!(
+                    "App '{id}' has patch_source '{}' which does not exist in patch_sources",
+                    app.patch_source
+                );
+            }
+        }
+
         for (module_name, module_def) in &cfg.modules {
             let mut pkg_map: HashMap<String, Vec<String>> = HashMap::new();
             for app_id in &module_def.apps {

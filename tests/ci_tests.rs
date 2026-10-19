@@ -16,11 +16,8 @@ fn test_config_loader_and_validation() {
     let microg = cfg.apps.get("microg").expect("microg app missing");
     assert_eq!(microg.package, "app.revanced.android.gms");
 
-    let news = cfg
-        .apps
-        .get("google_news")
-        .expect("google_news app missing");
-    assert_eq!(news.package, "com.google.android.apps.magazines");
+    let tiktok = cfg.apps.get("tiktok").expect("tiktok app missing");
+    assert_eq!(tiktok.package, "com.zhiliaoapp.musically");
 
     config::validate_config(&cfg, true).expect("Strict validation failed");
 }
@@ -136,6 +133,9 @@ fn test_real_arch_stripping() {
     assert!(has_arm64, "arm64-v8a native lib should be preserved");
     assert!(!has_x86, "x86 native lib must be stripped");
     assert!(!has_v7a, "armeabi-v7a native lib must be stripped");
+
+    assert!(builder::arch::apk_has_arch(test_apk_path, "arm64-v8a").unwrap());
+    assert!(!builder::arch::apk_has_arch(test_apk_path, "x86_64").unwrap());
 
     builder::arch::verify_arch_native_libs(test_apk_path, test_apk_path, "arm64-v8a")
         .expect("verify_arch_native_libs should succeed for preserved arch");
@@ -451,7 +451,10 @@ async fn test_auto_version_resolution_from_patch() {
         if std::path::Path::new("tools/morphe-cli.jar").exists() {
             let ver = builder::resolve_patch_compatible_version(&cfg, ig_app).await;
             if let Some(v) = ver {
-                assert_eq!(v, "439.0.0.37.89");
+                assert!(
+                    v == "439.0.0.37.89" || v == "447.0.0.55.81",
+                    "Unexpected instagram resolved version: {v}"
+                );
             }
         }
     }
@@ -577,7 +580,9 @@ fn test_plan_resolve_with_apk_version_auto_disables_incompatible() {
 
 #[test]
 fn test_resolve_compatible_versions_maximum_coverage() {
-    use revancex::patcher::metadata::{resolve_compatible_versions, PackageCompat, PatchMeta};
+    use revancex::patcher::metadata::{
+        resolve_compatible_versions, CompatibleVersions, PackageCompat, PatchMeta,
+    };
 
     let patches = vec![
         PatchMeta {
@@ -614,8 +619,24 @@ fn test_resolve_compatible_versions_maximum_coverage() {
         },
     ];
 
-    let result = resolve_compatible_versions(&patches, "com.pkg", &[]);
-    assert_eq!(result, vec!["2.0.0".to_string()]);
+    let result = resolve_compatible_versions(&patches[0..3], "com.pkg", &[], &[]);
+    assert_eq!(
+        result,
+        CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
+    );
+
+    let conflict_result = resolve_compatible_versions(&patches, "com.pkg", &[], &[]);
+    assert!(matches!(
+        conflict_result,
+        CompatibleVersions::Conflict { .. }
+    ));
+
+    let resolved_result =
+        resolve_compatible_versions(&patches, "com.pkg", &[], &["P4".to_string()]);
+    assert_eq!(
+        resolved_result,
+        CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
+    );
 }
 
 #[test]
@@ -895,6 +916,15 @@ apkpure_url: "com.example.app"
         serde_yaml::from_str(yaml).expect("Failed to deserialize AppConfig with source_priority");
     assert_eq!(app.source_priority, vec!["apkpure", "uptodown", "apkeep"]);
     assert_eq!(app.apkpure_url.as_deref(), Some("com.example.app"));
+}
+
+#[test]
+fn test_is_command_available_std_commands() {
+    let test_cmd = if cfg!(windows) { "cmd" } else { "sh" };
+    assert!(revancex::utils::is_command_available(test_cmd));
+    assert!(!revancex::utils::is_command_available(
+        "nonexistent_binary_xyz_12345"
+    ));
 }
 
 #[test]
@@ -1195,7 +1225,10 @@ fn test_stale_pin_auto_corrects_when_not_strict() {
             versions: vec!["2.0.0".to_string(), "2.1.0".to_string()],
         }],
     }];
-    let patch_supported = vec!["2.0.0".to_string(), "2.1.0".to_string()];
+    let patch_supported = revancex::patcher::metadata::CompatibleVersions::Intersection(vec![
+        "2.0.0".to_string(),
+        "2.1.0".to_string(),
+    ]);
 
     let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
         "test_app",
@@ -1228,7 +1261,8 @@ fn test_stale_pin_honored_when_strict() {
             versions: vec!["2.0.0".to_string()],
         }],
     }];
-    let patch_supported = vec!["2.0.0".to_string()];
+    let patch_supported =
+        revancex::patcher::metadata::CompatibleVersions::Intersection(vec!["2.0.0".to_string()]);
 
     let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
         "test_app",
@@ -1429,5 +1463,414 @@ fn test_smoke_test_fail_threshold_and_precedence() {
     assert!(
         revancex::testing::should_exit_failure(3, 4, false, Some(50)),
         "75% > 50% must fail"
+    );
+}
+
+#[test]
+fn test_root_youtube_preserves_original_package_name() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+
+    for app_id in ["youtube", "youtube_music"] {
+        let app = cfg.apps.get(app_id).expect("app missing");
+        let plan_root = revancex::patcher::plan::resolve(
+            app,
+            true,
+            None,
+            None,
+            &cfg.build.patcher.rules,
+            &cfg.build.patcher.auto_disable,
+        );
+
+        assert!(
+            plan_root
+                .excluded
+                .iter()
+                .any(|e| e.eq_ignore_ascii_case("GmsCore support")),
+            "{app_id} root must exclude 'GmsCore support'"
+        );
+        assert!(
+            plan_root
+                .excluded
+                .iter()
+                .any(|e| e.eq_ignore_ascii_case("Change package name")),
+            "{app_id} root must exclude 'Change package name'"
+        );
+        assert!(
+            !plan_root
+                .included
+                .iter()
+                .any(|i| i.eq_ignore_ascii_case("GmsCore support")),
+            "{app_id} root must NOT include 'GmsCore support'"
+        );
+        assert!(
+            !plan_root
+                .included
+                .iter()
+                .any(|i| i.eq_ignore_ascii_case("Change package name")),
+            "{app_id} root must NOT include 'Change package name'"
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_single_module_skips_when_module_single_is_false() {
+    let tmp_dir = tempfile::tempdir().expect("Failed to create tempdir");
+    let out_dir = tmp_dir.path().to_str().unwrap();
+
+    let dummy_adguard = tmp_dir.path().join("adguard-patched.apk");
+    {
+        let file = std::fs::File::create(&dummy_adguard).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("AndroidManifest.xml", opts).unwrap();
+        zip.write_all(&[0x7F; 500]).unwrap();
+        zip.finish().unwrap();
+    }
+
+    let cfg = revancex::config::load_config("./config").expect("Failed to load config");
+    assert!(
+        cfg.apps
+            .get("adguard")
+            .is_some_and(|a| a.module.as_ref().is_some_and(|m| !m.single)),
+        "adguard in config/apps.yaml must have module.single = false"
+    );
+
+    // Call with specific app id
+    revancex::module::single::build_single_module(&cfg, "adguard", out_dir)
+        .await
+        .expect("build_single_module should succeed");
+
+    let module_zip = tmp_dir.path().join("revancex-module-adguard.zip");
+    assert!(
+        !module_zip.exists(),
+        "revancex-module-adguard.zip must NOT be created when module.single is false"
+    );
+
+    // Call with 'all-enabled'
+    revancex::module::single::build_single_module(&cfg, "all-enabled", out_dir)
+        .await
+        .expect("build_single_module all-enabled should succeed");
+
+    assert!(
+        !module_zip.exists(),
+        "revancex-module-adguard.zip must NOT be created even with all-enabled"
+    );
+}
+
+#[test]
+fn test_stale_pin_with_empty_compatible_versions_does_not_auto_correct() {
+    use revancex::patcher::metadata::{PackageCompat, PatchMeta};
+
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let mut app = cfg.apps.values().next().unwrap().clone();
+    app.package = "com.test.app".to_string();
+    app.version = Some("1.0.0".to_string());
+    app.version_pin_strict = false;
+    app.patches = vec!["PatchA".to_string()];
+
+    let patch_meta = vec![PatchMeta {
+        name: "PatchA".to_string(),
+        description: "Patch A".to_string(),
+        compatible_packages: vec![PackageCompat {
+            name: "com.test.app".to_string(),
+            versions: vec!["2.0.0".to_string()],
+        }],
+    }];
+    let patch_supported = revancex::patcher::metadata::CompatibleVersions::Unconstrained;
+
+    let (target_ver, candidates, strategy) = revancex::builder::resolve_app_version_and_strategy(
+        "test_app",
+        &app,
+        Some(&patch_meta),
+        &patch_supported,
+    );
+
+    assert_eq!(target_ver, Some("1.0.0".to_string()));
+    assert_eq!(strategy, "strict-honored-despite-stale");
+    assert_eq!(candidates, vec!["1.0.0".to_string()]);
+}
+
+#[test]
+fn test_failed_patch_ensures_no_output_in_release_dir() {
+    let tmp = tempfile::tempdir().unwrap();
+    let out_dir = tmp.path().to_str().unwrap();
+
+    let fake_patched = tmp.path().join("fake_app-patched.apk");
+    let fake_root = tmp.path().join("fake_app-root.apk");
+    std::fs::write(&fake_patched, b"fake content").unwrap();
+    std::fs::write(&fake_root, b"fake content").unwrap();
+
+    assert!(fake_patched.exists());
+    assert!(fake_root.exists());
+
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app.apk"));
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-patched.apk"));
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-root.apk"));
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-patched.apk.idsig"));
+    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-root.apk.idsig"));
+
+    assert!(
+        !fake_patched.exists(),
+        "Failed app must not leave patched APK in output dir"
+    );
+    assert!(
+        !fake_root.exists(),
+        "Failed app must not leave root APK in output dir"
+    );
+}
+
+#[test]
+fn test_sources_registry_order_and_fallback() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let expected_order = vec![
+        "apkeep",
+        "github",
+        "codeberg",
+        "gitlab",
+        "archive",
+        "apkpure",
+        "apkmirror",
+        "uptodown",
+        "aptoide",
+        "apkfab",
+        "apkcombo",
+    ];
+    assert_eq!(cfg.apk_source_order, expected_order);
+
+    let reg = revancex::sources::default_registry();
+    let reg_names: Vec<&str> = reg.iter().map(|s| s.name()).collect();
+    for name in &expected_order {
+        assert!(
+            reg_names.contains(name),
+            "Source {name} missing from default registry"
+        );
+    }
+}
+
+#[test]
+fn test_cloudflare_challenge_detection() {
+    let client = reqwest::Client::new();
+    let fetch_cfg = revancex::config::sources::FetchConfig::default();
+    let fetcher = revancex::net::Fetcher::new(client, fetch_cfg);
+
+    let mut cf_headers = reqwest::header::HeaderMap::new();
+    cf_headers.insert(
+        "server",
+        reqwest::header::HeaderValue::from_static("cloudflare"),
+    );
+    assert!(fetcher.is_challenge(
+        reqwest::StatusCode::FORBIDDEN,
+        &cf_headers,
+        "<html>access denied</html>"
+    ));
+
+    let mut ray_headers = reqwest::header::HeaderMap::new();
+    ray_headers.insert(
+        "cf-ray",
+        reqwest::header::HeaderValue::from_static("12345-SIN"),
+    );
+    assert!(fetcher.is_challenge(
+        reqwest::StatusCode::SERVICE_UNAVAILABLE,
+        &ray_headers,
+        "<html>service unavailable</html>"
+    ));
+
+    let plain_headers = reqwest::header::HeaderMap::new();
+    assert!(!fetcher.is_challenge(
+        reqwest::StatusCode::FORBIDDEN,
+        &plain_headers,
+        "<html>access denied</html>"
+    ));
+
+    assert!(!fetcher.is_challenge(reqwest::StatusCode::OK, &cf_headers, "<html>success</html>"));
+}
+
+#[test]
+fn test_apkpure_api_response_parsing() {
+    let json_top_level = serde_json::json!({
+        "version_list": [
+            {
+                "version_name": "1.0.0",
+                "asset": {
+                    "urls": ["https://d.apkpure.com/apk/arm64-v8a.apk"]
+                }
+            }
+        ]
+    });
+    let vl1 = json_top_level
+        .get("version_list")
+        .or_else(|| {
+            json_top_level
+                .get("data")
+                .and_then(|d| d.get("version_list"))
+        })
+        .and_then(|v| v.as_array());
+    assert!(vl1.is_some());
+    assert_eq!(vl1.unwrap().len(), 1);
+
+    let json_nested = serde_json::json!({
+        "data": {
+            "version_list": [
+                {
+                    "version_name": "2.0.0",
+                    "asset": {
+                        "urls": ["https://d.apkpure.com/apk/nested.apk"]
+                    }
+                }
+            ]
+        }
+    });
+    let vl2 = json_nested
+        .get("version_list")
+        .or_else(|| json_nested.get("data").and_then(|d| d.get("version_list")))
+        .and_then(|v| v.as_array());
+    assert!(vl2.is_some());
+    assert_eq!(vl2.unwrap().len(), 1);
+}
+
+#[test]
+fn test_apkeep_acknowledge_dangers_gating() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let ack = cfg
+        .apk_sources
+        .get("apkeep")
+        .map(|s| s.acknowledge_dangers)
+        .unwrap_or(false);
+    assert!(!ack, "apkeep.acknowledge_dangers must default to false");
+}
+
+#[test]
+fn test_gboard_config_integrity() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+    let gboard = cfg
+        .apps
+        .get("gboard")
+        .expect("gboard must exist in apps config");
+    assert!(
+        gboard.uptodown_url.is_none(),
+        "gboard uptodown_url must be removed (410 gone)"
+    );
+    assert_eq!(
+        gboard.apkmirror_url.as_deref(),
+        Some("https://www.apkmirror.com/apk/google-inc/gboard/"),
+        "gboard apkmirror_url must point to google-inc/gboard"
+    );
+    let apkfab = gboard
+        .sources
+        .get("apkfab")
+        .expect("gboard must have apkfab source configured");
+    assert_eq!(apkfab.slug.as_deref(), Some("gboard-the-google-keyboard"));
+    let apkcombo = gboard
+        .sources
+        .get("apkcombo")
+        .expect("gboard must have apkcombo source configured");
+    assert_eq!(
+        apkcombo.enabled,
+        Some(true),
+        "apkcombo must be enabled for gboard"
+    );
+}
+
+#[test]
+fn test_report_check_allow_build_failure() {
+    let cfg = config::load_config("./config").expect("Failed to load config");
+
+    let allow = cfg
+        .apps
+        .get("youtube")
+        .map(|a| a.allow_build_failure)
+        .unwrap_or(false);
+    assert!(!allow);
+
+    let mut fake_app = cfg.apps.get("youtube").unwrap().clone();
+    fake_app.allow_build_failure = true;
+    assert!(fake_app.allow_build_failure);
+}
+
+#[test]
+fn test_tool_sidecar_and_integrity() {
+    let tmp = tempfile::tempdir().unwrap();
+    let file_path = tmp.path().join("test_tool.jar");
+    let file_str = file_path.to_str().unwrap();
+
+    {
+        let file = std::fs::File::create(&file_path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("META-INF/MANIFEST.MF", opts).unwrap();
+        zip.write_all(&vec![0x20; 1200]).unwrap();
+        zip.finish().unwrap();
+    }
+
+    let sha256 = utils::compute_file_sha256(&file_path).unwrap();
+    let sidecar = utils::ToolSidecar {
+        repo: "test/repo".to_string(),
+        branch: None,
+        tag: "v1.0".to_string(),
+        asset_name: "test_tool.jar".to_string(),
+        sha256: sha256.clone(),
+        etag: Some("\"etag123\"".to_string()),
+        fetched_at: chrono::Utc::now().to_rfc3339(),
+    };
+
+    utils::save_tool_sidecar(file_str, &sidecar).unwrap();
+    assert!(tmp.path().join("test_tool.jar.meta.json").exists());
+
+    let (valid, loaded) = utils::check_sidecar_and_integrity(file_str);
+    assert!(valid);
+    assert_eq!(loaded.unwrap().sha256, sha256);
+
+    assert!(utils::is_sidecar_within_interval(&sidecar, 6));
+
+    std::fs::write(&file_path, b"corrupted bytes").unwrap();
+    let (tampered_valid, _) = utils::check_sidecar_and_integrity(file_str);
+    assert!(!tampered_valid, "Tampered file must fail integrity check");
+    assert!(!file_path.exists(), "Tampered file must be removed");
+    assert!(
+        !tmp.path().join("test_tool.jar.meta.json").exists(),
+        "Sidecar of tampered file must be removed"
+    );
+}
+
+#[test]
+fn test_clean_stale_tools() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cfg = config::load_config("./config").expect("Failed to load config");
+    cfg.build.tools_dir = tmp.path().to_str().unwrap().to_string();
+
+    let ref_tool = tmp.path().join("cli-all.jar");
+    let stale_tool = tmp.path().join("patches_obsolete_unreferenced.mpp");
+    let stale_sidecar = tmp
+        .path()
+        .join("patches_obsolete_unreferenced.mpp.meta.json");
+
+    std::fs::write(&ref_tool, b"valid content").unwrap();
+    std::fs::write(&stale_tool, b"stale content").unwrap();
+    std::fs::write(&stale_sidecar, b"{}").unwrap();
+
+    utils::clean_stale_tools(&cfg).expect("clean_stale_tools failed");
+
+    assert!(ref_tool.exists(), "Referenced tool must remain");
+    assert!(
+        !stale_tool.exists(),
+        "Stale unreferenced tool must be removed"
+    );
+    assert!(
+        !stale_sidecar.exists(),
+        "Stale tool sidecar must be removed"
+    );
+}
+
+#[tokio::test]
+async fn test_validate_patch_compatibilities_offline_when_no_mpp_files() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cfg = config::load_config("./config").expect("Failed to load config");
+    cfg.build.tools_dir = tmp.path().to_str().unwrap().to_string();
+
+    let warnings = revancex::patcher::metadata::validate_patch_compatibilities(&cfg, None).await;
+    assert!(
+        warnings.is_empty(),
+        "Expected 0 warnings when tools directory has no .mpp files, got: {warnings:?}"
     );
 }

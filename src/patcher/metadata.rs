@@ -387,7 +387,12 @@ pub async fn validate_patch_compatibilities(
                         } else {
                             &app.patches
                         };
-                        let compat = resolve_compatible_versions(&meta, &app.package, enabled, &app.excluded_patches);
+                        let compat = resolve_compatible_versions(
+                            &meta,
+                            &app.package,
+                            enabled,
+                            &app.excluded_patches,
+                        );
                         if let CompatibleVersions::Conflict { patch_versions } = compat {
                             let conflict_desc = patch_versions
                                 .iter()
@@ -583,7 +588,8 @@ mod tests {
             CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
         );
 
-        let res_explicit = resolve_compatible_versions(&patches, "com.test", &["P1".to_string()], &[]);
+        let res_explicit =
+            resolve_compatible_versions(&patches, "com.test", &["P1".to_string()], &[]);
         assert_eq!(
             res_explicit,
             CompatibleVersions::Intersection(vec!["1.0.0".to_string(), "2.0.0".to_string()])

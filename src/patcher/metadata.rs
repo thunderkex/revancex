@@ -178,10 +178,18 @@ pub fn resolve_compatible_versions(
     patches: &[PatchMeta],
     package: &str,
     enabled_patches: &[String],
+    excluded_patches: &[String],
 ) -> CompatibleVersions {
     let active_patches: Vec<&PatchMeta> = patches
         .iter()
         .filter(|patch| {
+            if excluded_patches.iter().any(|e| {
+                e.eq_ignore_ascii_case(&patch.name)
+                    || crate::patcher::name::normalize(e)
+                        == crate::patcher::name::normalize(&patch.name)
+            }) {
+                return false;
+            }
             if enabled_patches.is_empty() {
                 true
             } else {
@@ -287,6 +295,13 @@ pub fn check_app_version_compatibility(
         if !enabled.is_empty() && !enabled.iter().any(|p| p.eq_ignore_ascii_case(&patch.name)) {
             continue;
         }
+        if app.excluded_patches.iter().any(|e| {
+            e.eq_ignore_ascii_case(&patch.name)
+                || crate::patcher::name::normalize(e)
+                    == crate::patcher::name::normalize(&patch.name)
+        }) {
+            continue;
+        }
         for compat in &patch.compatible_packages {
             if compat.name == app.package {
                 if compat.versions.is_empty() {
@@ -372,7 +387,7 @@ pub async fn validate_patch_compatibilities(
                         } else {
                             &app.patches
                         };
-                        let compat = resolve_compatible_versions(&meta, &app.package, enabled);
+                        let compat = resolve_compatible_versions(&meta, &app.package, enabled, &app.excluded_patches);
                         if let CompatibleVersions::Conflict { patch_versions } = compat {
                             let conflict_desc = patch_versions
                                 .iter()
@@ -423,7 +438,7 @@ mod tests {
                 }],
             },
         ];
-        let res = resolve_compatible_versions(&patches, "com.test", &[]);
+        let res = resolve_compatible_versions(&patches, "com.test", &[], &[]);
         assert_eq!(
             res,
             CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
@@ -450,7 +465,7 @@ mod tests {
                 }],
             },
         ];
-        let res = resolve_compatible_versions(&patches, "com.test", &[]);
+        let res = resolve_compatible_versions(&patches, "com.test", &[], &[]);
         match res {
             CompatibleVersions::Conflict { patch_versions } => {
                 assert_eq!(patch_versions.len(), 2);
@@ -459,6 +474,33 @@ mod tests {
             }
             _ => panic!("Expected Conflict, got {:?}", res),
         }
+    }
+
+    #[test]
+    fn test_excluded_patches_resolves_conflict() {
+        let patches = vec![
+            PatchMeta {
+                name: "PatchA".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["1.0.0".to_string()],
+                }],
+            },
+            PatchMeta {
+                name: "PatchB".to_string(),
+                description: "".to_string(),
+                compatible_packages: vec![PackageCompat {
+                    name: "com.test".to_string(),
+                    versions: vec!["2.0.0".to_string()],
+                }],
+            },
+        ];
+        let res = resolve_compatible_versions(&patches, "com.test", &[], &["PatchB".to_string()]);
+        assert_eq!(
+            res,
+            CompatibleVersions::Intersection(vec!["1.0.0".to_string()])
+        );
     }
 
     #[test]
@@ -481,7 +523,7 @@ mod tests {
                 }],
             },
         ];
-        let res = resolve_compatible_versions(&patches, "com.test", &[]);
+        let res = resolve_compatible_versions(&patches, "com.test", &[], &[]);
         assert_eq!(
             res,
             CompatibleVersions::Intersection(vec!["2.0.0".to_string(), "2.1.0".to_string()])
@@ -508,7 +550,7 @@ mod tests {
                 }],
             },
         ];
-        let res = resolve_compatible_versions(&patches, "com.test", &[]);
+        let res = resolve_compatible_versions(&patches, "com.test", &[], &[]);
         assert_eq!(
             res,
             CompatibleVersions::Intersection(vec!["1.2.3".to_string()])
@@ -535,13 +577,13 @@ mod tests {
                 }],
             },
         ];
-        let res_empty = resolve_compatible_versions(&patches, "com.test", &[]);
+        let res_empty = resolve_compatible_versions(&patches, "com.test", &[], &[]);
         assert_eq!(
             res_empty,
             CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
         );
 
-        let res_explicit = resolve_compatible_versions(&patches, "com.test", &["P1".to_string()]);
+        let res_explicit = resolve_compatible_versions(&patches, "com.test", &["P1".to_string()], &[]);
         assert_eq!(
             res_explicit,
             CompatibleVersions::Intersection(vec!["1.0.0".to_string(), "2.0.0".to_string()])

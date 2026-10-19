@@ -615,6 +615,8 @@ apps:
     package: com.mxtech.videoplayer.ad
     patch_source: blazeftl
     cli_source: MorpheApp/morphe-cli
+    excluded_patches:
+    - Kill Signature Verification
     apkmirror_url: https://www.apkmirror.com/apk/mxtech/mx-player/
     uptodown_url: https://mx-player.en.uptodown.com/android
     apkpure_url: https://apkpure.com/mx-player/com.mxtech.videoplayer.ad

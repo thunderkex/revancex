@@ -619,17 +619,24 @@ fn test_resolve_compatible_versions_maximum_coverage() {
         },
     ];
 
-    let result = resolve_compatible_versions(&patches[0..3], "com.pkg", &[]);
+    let result = resolve_compatible_versions(&patches[0..3], "com.pkg", &[], &[]);
     assert_eq!(
         result,
         CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
     );
 
-    let conflict_result = resolve_compatible_versions(&patches, "com.pkg", &[]);
+    let conflict_result = resolve_compatible_versions(&patches, "com.pkg", &[], &[]);
     assert!(matches!(
         conflict_result,
         CompatibleVersions::Conflict { .. }
     ));
+
+    let resolved_result =
+        resolve_compatible_versions(&patches, "com.pkg", &[], &["P4".to_string()]);
+    assert_eq!(
+        resolved_result,
+        CompatibleVersions::Intersection(vec!["2.0.0".to_string()])
+    );
 }
 
 #[test]

@@ -178,8 +178,12 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
             &app.patches
         };
 
-        let supported =
-            metadata::resolve_compatible_versions(&patches, &app.package, enabled_patches);
+        let supported = metadata::resolve_compatible_versions(
+            &patches,
+            &app.package,
+            enabled_patches,
+            &app.excluded_patches,
+        );
         let latest_max = match supported {
             metadata::CompatibleVersions::Intersection(ref vs) => {
                 crate::utils::semver::max_version(vs)

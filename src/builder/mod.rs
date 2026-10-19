@@ -130,7 +130,7 @@ pub async fn resolve_all_patch_compatible_versions(
         .chain(app.patches.iter())
         .cloned()
         .collect::<Vec<_>>();
-    metadata::resolve_compatible_versions(&patches, &app.package, &enabled)
+    metadata::resolve_compatible_versions(&patches, &app.package, &enabled, &app.excluded_patches)
 }
 
 pub async fn resolve_patch_compatible_version(cfg: &Config, app: &AppConfig) -> Option<String> {

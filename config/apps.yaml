@@ -480,7 +480,6 @@ apps:
     package: com.zhiliaoapp.musically
     patch_source: hushfeed
     cli_source: MorpheApp/morphe-cli
-    version: 47.1.4
     uptodown_url: https://tiktok.en.uptodown.com/android
     apkmirror_url: https://apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly
     apkpure_url: https://apkpure.com/tiktok/com.zhiliaoapp.musically

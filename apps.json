@@ -184,7 +184,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/facebook-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/facebook-patched.apk",
     "enabled": true,
     "id": "facebook",
     "mode": "patch",
@@ -201,13 +201,13 @@
       "root": null,
       "stock": {
         "filename": "facebook-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.17-b124",
-        "updated_at": "2026-10-17 09:32:45 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/facebook-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.19-b128",
+        "updated_at": "2026-10-19 08:07:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/facebook-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.17-b124",
-    "updated_at": "2026-10-17 09:32:45 UTC"
+    "tag": "auto-v1.0.5-2026.10.19-b128",
+    "updated_at": "2026-10-19 08:07:38 UTC"
   },
   {
     "architectures": [
@@ -366,7 +366,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/hungry_shark_world-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/hungry_shark_world-patched.apk",
     "enabled": true,
     "id": "hungry_shark_world",
     "mode": "patch",
@@ -383,13 +383,13 @@
       "root": null,
       "stock": {
         "filename": "hungry_shark_world-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.12-b117",
-        "updated_at": "2026-10-12 02:29:17 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/hungry_shark_world-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.19-b128",
+        "updated_at": "2026-10-19 08:07:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/hungry_shark_world-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.12-b117",
-    "updated_at": "2026-10-12 02:29:17 UTC"
+    "tag": "auto-v1.0.5-2026.10.19-b128",
+    "updated_at": "2026-10-19 08:07:38 UTC"
   },
   {
     "architectures": [
@@ -514,7 +514,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/mx_player-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/mx_player-patched.apk",
     "enabled": true,
     "id": "mx_player",
     "mode": "patch",
@@ -531,13 +531,13 @@
       "root": null,
       "stock": {
         "filename": "mx_player-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.17-b124",
-        "updated_at": "2026-10-17 09:32:45 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/mx_player-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.19-b128",
+        "updated_at": "2026-10-19 08:07:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/mx_player-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.17-b124",
-    "updated_at": "2026-10-17 09:32:45 UTC"
+    "tag": "auto-v1.0.5-2026.10.19-b128",
+    "updated_at": "2026-10-19 08:07:38 UTC"
   },
   {
     "architectures": [
@@ -903,7 +903,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/subway_surfers-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/subway_surfers-patched.apk",
     "enabled": true,
     "id": "subway_surfers",
     "mode": "patch",
@@ -920,13 +920,13 @@
       "root": null,
       "stock": {
         "filename": "subway_surfers-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.12-b117",
-        "updated_at": "2026-10-12 02:29:17 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/subway_surfers-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.19-b128",
+        "updated_at": "2026-10-19 08:07:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/subway_surfers-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.12-b117",
-    "updated_at": "2026-10-12 02:29:17 UTC"
+    "tag": "auto-v1.0.5-2026.10.19-b128",
+    "updated_at": "2026-10-19 08:07:38 UTC"
   },
   {
     "architectures": [
@@ -963,7 +963,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/threads-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/threads-patched.apk",
     "enabled": true,
     "id": "threads",
     "mode": "patch",
@@ -980,20 +980,20 @@
       "root": null,
       "stock": {
         "filename": "threads-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.17-b124",
-        "updated_at": "2026-10-17 09:32:45 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/threads-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.19-b128",
+        "updated_at": "2026-10-19 08:07:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/threads-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.17-b124",
-    "updated_at": "2026-10-17 09:32:45 UTC"
+    "tag": "auto-v1.0.5-2026.10.19-b128",
+    "updated_at": "2026-10-19 08:07:38 UTC"
   },
   {
     "architectures": [
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/tiktok-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/tiktok-patched.apk",
     "enabled": true,
     "id": "tiktok",
     "mode": "patch",
@@ -1010,13 +1010,13 @@
       "root": null,
       "stock": {
         "filename": "tiktok-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.17-b124",
-        "updated_at": "2026-10-17 09:32:45 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/tiktok-patched.apk"
+        "tag": "auto-v1.0.5-2026.10.19-b128",
+        "updated_at": "2026-10-19 08:07:38 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/tiktok-patched.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.17-b124",
-    "updated_at": "2026-10-17 09:32:45 UTC"
+    "tag": "auto-v1.0.5-2026.10.19-b128",
+    "updated_at": "2026-10-19 08:07:38 UTC"
   },
   {
     "architectures": [

@@ -19,13 +19,8 @@ impl ApkSource for UptodownSource {
         arch: &'a str,
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
-            let cb = ctx.breaker("uptodown");
-            let cb_count = cb.load(std::sync::atomic::Ordering::SeqCst);
-            if cb_count >= ctx.cb_threshold {
-                tracing::warn!(
-                    "uptodown circuit-breaker open ({cb_count}/{} consecutive TurnstileBlocked) — skipping uptodown",
-                    ctx.cb_threshold
-                );
+            if let Err((_st, reason)) = ctx.can_try("uptodown") {
+                tracing::warn!("{reason} — skipping uptodown");
                 return Ok(None);
             }
             if app.uptodown_url.is_none() {
@@ -59,18 +54,24 @@ impl ApkSource for UptodownSource {
             .await;
             match res {
                 Ok(path) => {
-                    ctx.breaker("uptodown")
-                        .store(0, std::sync::atomic::Ordering::SeqCst);
+                    ctx.record_success("uptodown");
                     Ok(PathBuf::from(path))
                 }
                 Err(crate::builder::UptodownError::TurnstileBlocked) => {
-                    let cb = ctx.breaker("uptodown");
-                    let new_count = cb.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
-                    tracing::warn!(
-                        "uptodown TurnstileBlocked (circuit-breaker {new_count}/{})",
-                        ctx.cb_threshold
+                    ctx.record_failure(
+                        "uptodown",
+                        &crate::sources::breaker::BlockKind::TurnstileChallenge,
                     );
+                    tracing::warn!("uptodown TurnstileBlocked");
                     Err(anyhow::anyhow!("uptodown TurnstileBlocked"))
+                }
+                Err(crate::builder::UptodownError::IpReputationBlocked) => {
+                    ctx.record_failure(
+                        "uptodown",
+                        &crate::sources::breaker::BlockKind::IpReputationBlock,
+                    );
+                    tracing::warn!("uptodown IpReputationBlocked (403/1020)");
+                    Err(anyhow::anyhow!("uptodown IpReputationBlocked (403/1020)"))
                 }
                 Err(e) => Err(anyhow::anyhow!("{e}")),
             }

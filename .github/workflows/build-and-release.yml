@@ -63,7 +63,7 @@ jobs:
     outputs:
       release_tag: ${{ steps.meta.outputs.tag }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Wait for FlareSolverr
         continue-on-error: true
@@ -79,7 +79,7 @@ jobs:
           echo "::warning::FlareSolverr wait timed out; continuing without solver."
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: temurin
@@ -90,7 +90,7 @@ jobs:
 
       - name: Cache revancex CLI binary
         id: cache_cli
-        uses: actions/cache@v6
+        uses: actions/cache@v4
         with:
           path: bin/revancex
           key: revancex-cli-${{ runner.os }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'src/**') }}
@@ -121,7 +121,7 @@ jobs:
           apkeep --version
 
       - name: Restore patch tools cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@v4
         with:
           path: |
             tools/
@@ -140,7 +140,7 @@ jobs:
 
       - name: Save patch tools cache
         if: always() && steps.tools.outputs.tools_changed == 'true'
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@v4
         with:
           path: |
             tools/
@@ -174,11 +174,28 @@ jobs:
               with open('output/BUILD_REPORT.json') as f:
                   data = json.load(f)
               lines = ['### APK Source Acquisition Summary\n', '| App | Status | Source | Resolved Version |\n| --- | --- | --- | --- |\n']
-              for app, rep in data.items():
+              apps = data.get('apps', data)
+              for app, rep in apps.items():
                   src = rep.get('resolved_source') or 'none'
-                  ver = rep.get('resolved_version') or 'none'
+                  ver = rep.get('resolved_version') or rep.get('target_version') or 'none'
                   st = rep.get('status') or 'unknown'
                   lines.append(f'| {app} | {st} | {src} | {ver} |\n')
+
+              summ = data.get('summary', {})
+              if summ:
+                  lines.append('\n### Build Summary\n')
+                  lines.append(f"- Total: {summ.get('total', 0)}\n- Success: {summ.get('success', 0)}\n- Failed: {summ.get('failed', 0)}\n- Skipped: {summ.get('skipped', 0)}\n")
+                  open_breakers = summ.get('open_breakers', [])
+                  if open_breakers:
+                      lines.append('\n#### Open Circuit Breakers\n')
+                      for ob in open_breakers:
+                          lines.append(f'- `{ob}`\n')
+                  cats = summ.get('failures_by_category', {})
+                  if cats:
+                      lines.append('\n#### Failures by Category\n')
+                      for cat, cnt in cats.items():
+                          lines.append(f'- {cat}: {cnt}\n')
+
               with open(summary, 'a') as out:
                   out.writelines(lines)
           " 2>/dev/null
@@ -186,15 +203,14 @@ jobs:
 
       - name: Upload Build Report
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: build-report-${{ inputs.tag_prefix }}-${{ inputs.arch }}
           path: output/BUILD_REPORT.json
           if-no-files-found: warn
 
       - name: Validate Build Report
-        continue-on-error: true
-        run: revancex report check output/BUILD_REPORT.json
+        run: revancex report check output/BUILD_REPORT.json --fail-threshold 40
 
       - name: Verify build produced output
         run: |
@@ -249,9 +265,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Smoke test built APKs
-      #   run: |
-      #     revancex test --output output --apps "${{ inputs.apps }}"
+      - name: Smoke test built APKs
+        run: |
+          REVANCEX_STATIC_TEST=1 revancex test \
+            --output output \
+            --apps "${{ inputs.apps || 'all' }}" \
+            --continue
 
       - name: Resolve Release Metadata
         id: meta
@@ -300,7 +319,7 @@ jobs:
           done
 
       - name: Create release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
           name: ${{ steps.meta.outputs.title }}
@@ -314,9 +333,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Prune old automated releases
+        if: inputs.tag_prefix == 'auto'
+        continue-on-error: true
+        run: |
+          echo "Pruning older automated releases (retaining latest 10)..."
+          gh release list --limit 40 | grep '^auto-' | awk '{print $1}' | tail -n +11 | while read -r old_tag; do
+            echo "Deleting old release: $old_tag"
+            gh release delete "$old_tag" --cleanup-tag -y || true
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Cache pip dependencies
         id: cache_pip
-        uses: actions/cache@v6
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('scripts/requirements.txt') }}
@@ -350,14 +381,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload updated docs artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: docs-dist
           path: docs/
           if-no-files-found: warn
 
       - name: Upload CLI binary artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: cli-binary
           path: bin/revancex

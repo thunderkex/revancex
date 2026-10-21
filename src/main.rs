@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use revancex::{builder, config, module, orchestrator, pages, patcher, testing, utils};
+use revancex::{builder, config, module, orchestrator, pages, patcher, report, testing, utils};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -185,7 +185,19 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum ReportSubcommand {
-    Check { path: std::path::PathBuf },
+    Check {
+        path: std::path::PathBuf,
+        #[arg(
+            long,
+            help = "Maximum allowed failure percentage (0-100) before exiting with error"
+        )]
+        fail_threshold: Option<u32>,
+        #[arg(
+            long = "continue",
+            help = "Do not exit with error on failures, only warn"
+        )]
+        r#continue: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -448,7 +460,9 @@ async fn main() -> Result<()> {
                 return Ok(());
             }
             std::fs::create_dir_all(&config.build.temp_dir)?;
-            let path = builder::fetch_apk(&config, &app, app_cfg, &arch, force, None).await?;
+            let path = builder::fetch_apk(&config, &app, app_cfg, &arch, force, None, None)
+                .await?
+                .path;
             let size = std::fs::metadata(&path)?.len();
             println!("SUCCESS: {app} downloaded to {path} ({size} bytes)");
         }
@@ -634,41 +648,84 @@ async fn main() -> Result<()> {
         },
 
         Commands::Report { sub } => match sub {
-            ReportSubcommand::Check { path } => {
+            ReportSubcommand::Check {
+                path,
+                fail_threshold,
+                r#continue,
+            } => {
                 if !path.exists() {
                     anyhow::bail!("Build report not found: {}", path.display());
                 }
                 let content = std::fs::read_to_string(&path)
                     .with_context(|| format!("Failed to read {}", path.display()))?;
-                let data: std::collections::HashMap<String, serde_json::Value> =
-                    serde_json::from_str(&content)
-                        .with_context(|| format!("Failed to parse JSON in {}", path.display()))?;
+
+                let (schema_version, apps, summary) =
+                    if let Ok(br) = serde_json::from_str::<report::BuildReport>(&content) {
+                        (Some(br.schema_version), br.apps, Some(br.summary))
+                    } else if let Ok(apps_map) = serde_json::from_str::<
+                        std::collections::BTreeMap<String, report::AppBuildReport>,
+                    >(&content)
+                    {
+                        (None, apps_map, None)
+                    } else {
+                        anyhow::bail!(
+                            "Failed to parse build report in {} as valid BuildReport",
+                            path.display()
+                        );
+                    };
 
                 let mut bad = Vec::new();
-                for (app, rep) in &data {
-                    let status = rep
-                        .get("status")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("unknown");
-                    let has_conflict = rep.get("version_conflict").is_some_and(|v| !v.is_null());
-                    let allow_failure = config
-                        .apps
-                        .get(app)
-                        .map(|a| a.allow_build_failure)
-                        .unwrap_or(false);
+                for (app, rep) in &apps {
+                    let allow_failure = config.apps.get(app).is_some_and(|a| a.allow_build_failure);
 
-                    if (status != "success" || has_conflict) && !allow_failure {
-                        bad.push(format!("{app} (status={status}, conflict={has_conflict})"));
+                    let has_conflict = rep.version_conflict.is_some();
+                    let is_failed = rep.status != "success";
+
+                    if (is_failed || has_conflict) && !allow_failure {
+                        bad.push(format!(
+                            "{app} (status={}, conflict={has_conflict})",
+                            rep.status
+                        ));
                     }
                 }
 
                 if !bad.is_empty() {
-                    anyhow::bail!(
-                        "Build report contains failed or version-conflicted apps: {}",
+                    let total = apps.len().max(1);
+                    let fail_pct = (bad.len() as f64 / total as f64) * 100.0;
+                    eprintln!(
+                        "::warning::Build report contains {} failed or unallowed app(s) ({:.1}% of total): {}",
+                        bad.len(),
+                        fail_pct,
                         bad.join(", ")
                     );
+
+                    let should_fail = if r#continue {
+                        false
+                    } else if let Some(threshold) = fail_threshold {
+                        fail_pct > (threshold as f64)
+                    } else {
+                        true
+                    };
+
+                    if should_fail {
+                        anyhow::bail!(
+                            "Build report failure threshold exceeded ({:.1}% > {:?}%): {}",
+                            fail_pct,
+                            fail_threshold,
+                            bad.join(", ")
+                        );
+                    }
                 }
-                println!("Build report validated: all apps succeeded with no conflicts.");
+
+                let ver_str = schema_version.as_deref().unwrap_or("legacy");
+                if let Some(s) = summary {
+                    println!(
+                        "Build report (schema v{ver_str}) validated: {} total, {} success, {} failed, {} skipped.",
+                        s.total, s.success, s.failed, s.skipped
+                    );
+                } else {
+                    println!("Build report (schema v{ver_str}) validated: all apps evaluated within threshold.");
+                }
             }
         },
     }

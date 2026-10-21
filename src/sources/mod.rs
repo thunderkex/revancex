@@ -5,6 +5,7 @@ pub mod apkmirror;
 pub mod apkpure;
 pub mod aptoide;
 pub mod archive;
+pub mod breaker;
 pub mod codeberg;
 pub mod github;
 pub mod gitlab;
@@ -25,6 +26,8 @@ pub struct SourceCtx<'a> {
     pub breakers: Arc<HashMap<String, Arc<AtomicU32>>>,
     pub cb_threshold: u32,
     pub fetcher: Option<&'a crate::net::Fetcher>,
+    pub breaker_registry: Option<Arc<breaker::BreakerRegistry>>,
+    pub app_id: Option<String>,
 }
 
 impl<'a> SourceCtx<'a> {
@@ -35,6 +38,8 @@ impl<'a> SourceCtx<'a> {
             breakers: Arc::new(HashMap::new()),
             cb_threshold,
             fetcher: None,
+            breaker_registry: None,
+            app_id: None,
         }
     }
 
@@ -50,6 +55,8 @@ impl<'a> SourceCtx<'a> {
             breakers: Arc::new(HashMap::new()),
             cb_threshold,
             fetcher: Some(fetcher),
+            breaker_registry: None,
+            app_id: None,
         }
     }
 
@@ -58,6 +65,46 @@ impl<'a> SourceCtx<'a> {
             .get(name)
             .cloned()
             .unwrap_or_else(|| Arc::new(AtomicU32::new(0)))
+    }
+
+    pub fn can_try(
+        &self,
+        source_name: &str,
+    ) -> Result<breaker::BreakerState, (breaker::BreakerState, String)> {
+        if let Some(reg) = &self.breaker_registry {
+            let app = self.app_id.as_deref().unwrap_or("unknown");
+            reg.can_try(source_name, app)
+        } else {
+            let cb = self.breaker(source_name);
+            let count = cb.load(std::sync::atomic::Ordering::SeqCst);
+            if count >= self.cb_threshold {
+                Err((
+                    breaker::BreakerState::Open,
+                    format!("circuit-breaker open ({count}/{})", self.cb_threshold),
+                ))
+            } else {
+                Ok(breaker::BreakerState::Closed)
+            }
+        }
+    }
+
+    pub fn record_success(&self, source_name: &str) {
+        if let Some(reg) = &self.breaker_registry {
+            reg.record_success(source_name);
+        } else {
+            self.breaker(source_name)
+                .store(0, std::sync::atomic::Ordering::SeqCst);
+        }
+    }
+
+    pub fn record_failure(&self, source_name: &str, block_kind: &breaker::BlockKind) {
+        if let Some(reg) = &self.breaker_registry {
+            let app = self.app_id.as_deref().unwrap_or("unknown");
+            reg.record_failure(source_name, app, block_kind);
+        } else {
+            self.breaker(source_name)
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
     }
 
     pub async fn get_html(&self, url: &str) -> (String, reqwest::header::HeaderMap) {

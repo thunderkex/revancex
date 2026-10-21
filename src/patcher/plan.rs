@@ -46,7 +46,7 @@ pub struct RuleSet {
     pub include_if_dependency: std::collections::HashMap<String, Vec<MatchRule>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum DisableReason {
     Incompatible {
         supported: Vec<String>,
@@ -62,7 +62,7 @@ pub enum DisableReason {
     Unknown,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DisabledPatch {
     pub name: String,
     pub reason: DisableReason,

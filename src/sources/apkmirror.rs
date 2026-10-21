@@ -13,12 +13,16 @@ impl ApkSource for ApkmirrorSource {
 
     fn resolve<'a>(
         &'a self,
-        _ctx: &'a SourceCtx<'a>,
+        ctx: &'a SourceCtx<'a>,
         app: &'a AppConfig,
         version: Option<&'a str>,
         arch: &'a str,
     ) -> Pin<Box<dyn std::future::Future<Output = Result<Option<Resolved>>> + Send + 'a>> {
         Box::pin(async move {
+            if let Err((_st, reason)) = ctx.can_try("apkmirror") {
+                tracing::warn!("{reason} — skipping apkmirror");
+                return Ok(None);
+            }
             if app.apkmirror_url.is_none() {
                 tracing::info!("apkmirror skipped: not configured");
                 return Ok(None);
@@ -39,7 +43,7 @@ impl ApkSource for ApkmirrorSource {
         dest: &'a str,
     ) -> Pin<Box<dyn std::future::Future<Output = Result<PathBuf>> + Send + 'a>> {
         Box::pin(async move {
-            crate::builder::fetch_apkmirror(
+            match crate::builder::fetch_apkmirror(
                 ctx.client,
                 &resolved.url,
                 &resolved.arch,
@@ -47,8 +51,19 @@ impl ApkSource for ApkmirrorSource {
                 resolved.version_found.as_deref(),
                 ctx.fetcher,
             )
-            .await?;
-            Ok(PathBuf::from(dest))
+            .await
+            {
+                Ok(_) => {
+                    ctx.record_success("apkmirror");
+                    Ok(PathBuf::from(dest))
+                }
+                Err(e) => {
+                    let err_msg = e.to_string();
+                    let block_kind = crate::sources::breaker::classify_error(&err_msg);
+                    ctx.record_failure("apkmirror", &block_kind);
+                    Err(e)
+                }
+            }
         })
     }
 }

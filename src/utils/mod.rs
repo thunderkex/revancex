@@ -998,7 +998,8 @@ pub fn write_build_report(summary: &BuildSummary, path: &str) -> Result<()> {
     if let Some(parent) = std::path::Path::new(path).parent() {
         let _ = std::fs::create_dir_all(parent);
     }
-    let json = serde_json::to_string_pretty(&summary.reports)?;
+    let report = crate::report::BuildReport::from_summary(summary);
+    let json = serde_json::to_string_pretty(&report)?;
     std::fs::write(path, &json).with_context(|| format!("Writing build report to {path}"))?;
     info!("Build report written to {path}");
     Ok(())

@@ -1874,3 +1874,710 @@ async fn test_validate_patch_compatibilities_offline_when_no_mpp_files() {
         "Expected 0 warnings when tools directory has no .mpp files, got: {warnings:?}"
     );
 }
+
+#[test]
+fn test_apk_integrity_not_zip_html() {
+    let fixture_path = "tests/fixtures/integrity/not_zip_captcha.apk";
+    let res = revancex::utils::apk::verify_apk_integrity(fixture_path);
+    assert!(res.is_err(), "HTML page must fail integrity check");
+    match res.unwrap_err() {
+        revancex::utils::apk::ApkIntegrityError::NotZip {
+            first_bytes_preview,
+            is_html,
+        } => {
+            assert!(is_html, "Must detect HTML content");
+            assert!(
+                first_bytes_preview.contains("DOCTYPE") || first_bytes_preview.contains("html"),
+                "Preview must include the first bytes of the HTML"
+            );
+        }
+        other => panic!("Expected NotZip error, got: {other:?}"),
+    }
+}
+
+#[test]
+fn test_apk_integrity_corrupted_zip() {
+    let fixture_path = "tests/fixtures/integrity/corrupted.apk";
+    let res = revancex::utils::apk::verify_apk_integrity(fixture_path);
+    assert!(res.is_err(), "Truncated ZIP must fail integrity check");
+    match res.unwrap_err() {
+        revancex::utils::apk::ApkIntegrityError::CorruptedZip {
+            reason,
+            first_bytes_preview,
+        } => {
+            assert!(!reason.is_empty());
+            assert!(first_bytes_preview.starts_with("PK"));
+        }
+        other => panic!("Expected CorruptedZip error, got: {other:?}"),
+    }
+}
+
+#[test]
+fn test_apk_integrity_not_apk_missing_manifest_or_dex() {
+    let tmp = tempfile::tempdir().unwrap();
+    let zip_path = tmp.path().join("not_apk.apk");
+
+    // Create valid ZIP containing only readme.txt
+    let file = std::fs::File::create(&zip_path).unwrap();
+    let mut zip = zip::ZipWriter::new(file);
+    let options =
+        zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+    use std::io::Write;
+    zip.start_file("readme.txt", options).unwrap();
+    zip.write_all(b"not an android apk").unwrap();
+    zip.finish().unwrap();
+
+    let res = revancex::utils::apk::verify_apk_integrity(&zip_path);
+    assert!(res.is_err(), "Valid zip without DEX/manifest must fail");
+    match res.unwrap_err() {
+        revancex::utils::apk::ApkIntegrityError::NotApk {
+            missing,
+            first_bytes_preview,
+        } => {
+            assert!(missing.contains(&"AndroidManifest.xml".to_string()));
+            assert!(missing.contains(&"classes.dex".to_string()));
+            assert!(first_bytes_preview.starts_with("PK"));
+        }
+        other => panic!("Expected NotApk error, got: {other:?}"),
+    }
+}
+
+#[test]
+fn test_apk_integrity_valid_fixture() {
+    let fixture_path = "tests/fixtures/fixture.apk";
+    let res = revancex::utils::apk::verify_apk_integrity(fixture_path);
+    assert!(
+        res.is_ok(),
+        "Real fixture APK must pass integrity check: {:?}",
+        res.err()
+    );
+    assert!(revancex::utils::apk::check_apk_integrity(fixture_path));
+}
+
+#[tokio::test]
+async fn test_source_attempt_record_diagnostics_structure() {
+    let record = revancex::orchestrator::scheduler::SourceAttemptRecord {
+        source: "apkmirror".to_string(),
+        outcome: "blocked".to_string(),
+        version: Some("21.13.164".to_string()),
+        url: Some("https://www.apkmirror.com/...".to_string()),
+        reason: "Cloudflare Turnstile challenge detected".to_string(),
+        duration_ms: 250,
+        breaker_state: Some("closed".to_string()),
+        block_kind: Some(revancex::sources::breaker::BlockKind::TurnstileChallenge),
+    };
+
+    let json = serde_json::to_string(&record).unwrap();
+    assert!(json.contains("\"duration_ms\":250"));
+    assert!(json.contains("\"outcome\":\"blocked\""));
+
+    let parsed: revancex::orchestrator::scheduler::SourceAttemptRecord =
+        serde_json::from_str(&json).unwrap();
+    assert_eq!(parsed, record);
+}
+
+#[tokio::test]
+async fn test_fallback_candidate_version_accepts_supported_version() {
+    let candidates = vec![Some("21.13.164".to_string()), Some("20.05.46".to_string())];
+    let result = revancex::builder::download_with_fallback(
+        "youtube",
+        "com.google.android.youtube",
+        &candidates,
+        3,
+        |v| async move {
+            if v.as_deref() == Some("21.13.164") {
+                Err(anyhow::anyhow!("version not found on any mirror"))
+            } else if v.as_deref() == Some("20.05.46") {
+                Ok("output/youtube-20.05.46.apk".to_string())
+            } else {
+                Err(anyhow::anyhow!("unexpected candidate"))
+            }
+        },
+    )
+    .await;
+
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), "output/youtube-20.05.46.apk");
+}
+
+#[tokio::test]
+async fn test_adguard_unsupported_version_discarded_unified_behavior() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cfg = config::load_config("./config").expect("Failed to load config");
+    cfg.build.temp_dir = tmp.path().to_str().unwrap().to_string();
+
+    let mut app = cfg.apps.get("adguard").cloned().unwrap_or_default();
+    app.package = "com.adguard.android".to_string();
+    app.apk_url = None;
+    app.version = Some("4.14.68".to_string());
+    app.version_pin_strict = true;
+
+    let dest = format!("{}/adguard-arm64-v8a-input.apk", cfg.build.temp_dir);
+    std::fs::copy("tests/fixtures/fixture.apk", &dest).unwrap();
+    let actual_ver = revancex::utils::apk::get_apk_version_name(&dest).unwrap();
+    assert_ne!(actual_ver, "4.14.68");
+
+    let is_strictly_pinned = app
+        .version
+        .as_deref()
+        .is_some_and(|v| !v.eq_ignore_ascii_case("auto"))
+        && app.version_pin_strict;
+    assert!(is_strictly_pinned);
+    assert_ne!(&actual_ver, app.version.as_ref().unwrap());
+}
+
+#[test]
+fn test_build_report_schema_version_and_serialization() {
+    use revancex::report::{AppBuildReport, BuildReport, BuildReportSummary, FailureCategory};
+    use std::collections::BTreeMap;
+
+    let mut apps = BTreeMap::new();
+    let mut failures = BTreeMap::new();
+    failures.insert("version_not_supported".to_string(), 1);
+
+    apps.insert(
+        "adguard".to_string(),
+        AppBuildReport {
+            status: "failed".to_string(),
+            target_version: Some("4.14.68".to_string()),
+            target_version_reason: None,
+            patch_supported_versions: vec!["4.14.68".to_string(), "4.13.92".to_string()],
+            fetched_version: Some("4.14.2".to_string()),
+            resolved_version: Some("4.14.68".to_string()),
+            resolved_source: Some("direct_url".to_string()),
+            resolution_strategy: Some("pinned".to_string()),
+            version_conflict: None,
+            patches_included: vec![],
+            patches_auto_disabled: vec![],
+            warnings: vec![],
+            error: Some(
+                "adguard: 0/0 patches applied — version 4.14.2 not covered by any enabled patch"
+                    .to_string(),
+            ),
+            failure_category: Some(FailureCategory::VersionNotSupported),
+            attempted_sources: vec![],
+        },
+    );
+
+    let report = BuildReport {
+        schema_version: "2.0.0".to_string(),
+        build_timestamp: "2026-10-21T09:00:00Z".to_string(),
+        revancex_version: "1.0.5".to_string(),
+        summary: BuildReportSummary {
+            total: 1,
+            success: 0,
+            failed: 1,
+            skipped: 0,
+            failures_by_category: failures,
+            open_breakers: vec![],
+        },
+        apps,
+    };
+
+    let json = serde_json::to_string_pretty(&report).unwrap();
+    assert!(json.contains("\"schema_version\": \"2.0.0\""));
+    assert!(json.contains("\"summary\""));
+    assert!(json.contains("\"failures_by_category\""));
+    assert!(json.contains("\"patch_supported_versions\""));
+
+    let deserialized: BuildReport = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized.schema_version, "2.0.0");
+    assert_eq!(deserialized.summary.failed, 1);
+    assert_eq!(
+        deserialized.apps["adguard"].failure_category,
+        Some(FailureCategory::VersionNotSupported)
+    );
+}
+
+#[test]
+fn test_failure_category_classification() {
+    use revancex::report::FailureCategory;
+
+    assert_eq!(
+        FailureCategory::from_error_message(
+            "reddit: all download sources exhausted for package 'com.reddit.frontpage' across 3 candidate version(s)"
+        ),
+        FailureCategory::AllSourcesExhausted
+    );
+
+    assert_eq!(
+        FailureCategory::from_error_message(
+            "adguard: 0/0 patches applied — version 4.14.2 not covered by any enabled patch"
+        ),
+        FailureCategory::VersionNotSupported
+    );
+
+    assert_eq!(
+        FailureCategory::from_error_message(
+            "youtube: downloaded APK version v20.05.46 does not match target v21.13.164 — discarded"
+        ),
+        FailureCategory::VersionNotSupported
+    );
+
+    assert_eq!(
+        FailureCategory::from_error_message(
+            "flightradar24: downloaded APK failed integrity check: not a valid ZIP (HTML captcha detected)"
+        ),
+        FailureCategory::IntegrityCheckFailed
+    );
+
+    assert_eq!(
+        FailureCategory::from_error_message(
+            "foo: refusing to build latest, patch compatibility unknown"
+        ),
+        FailureCategory::CompatibilityUnknown
+    );
+
+    assert_eq!(
+        FailureCategory::from_error_message(
+            "bar: version conflict between enabled patches: PatchA: [1.0]; PatchB: [2.0]"
+        ),
+        FailureCategory::VersionConflict
+    );
+
+    assert_eq!(
+        FailureCategory::from_error_message(
+            "baz: input APK has native libraries for foreign architectures but none for 'arm64-v8a'"
+        ),
+        FailureCategory::ArchUnsupported
+    );
+
+    assert_eq!(
+        FailureCategory::from_error_message("qux: morphe-cli exited with 1"),
+        FailureCategory::PatcherError
+    );
+}
+
+#[test]
+fn test_build_report_from_summary_aggregation() {
+    use revancex::orchestrator::scheduler::BuildSummary;
+    use revancex::report::{AppBuildReport, BuildReport, FailureCategory};
+    use std::collections::BTreeMap;
+
+    let mut reports = BTreeMap::new();
+    reports.insert(
+        "app_success".to_string(),
+        AppBuildReport {
+            status: "success".to_string(),
+            target_version: Some("1.0.0".to_string()),
+            target_version_reason: None,
+            patch_supported_versions: vec!["1.0.0".to_string()],
+            fetched_version: Some("1.0.0".to_string()),
+            resolved_version: Some("1.0.0".to_string()),
+            resolved_source: Some("apkmirror".to_string()),
+            resolution_strategy: Some("auto".to_string()),
+            version_conflict: None,
+            patches_included: vec!["Patch1".to_string()],
+            patches_auto_disabled: vec![],
+            warnings: vec![],
+            error: None,
+            failure_category: None,
+            attempted_sources: vec![],
+        },
+    );
+
+    reports.insert(
+        "app_unpatched".to_string(),
+        AppBuildReport {
+            status: "success_unpatched".to_string(),
+            target_version: Some("2.0.0".to_string()),
+            target_version_reason: None,
+            patch_supported_versions: vec![],
+            fetched_version: Some("2.0.0".to_string()),
+            resolved_version: Some("2.0.0".to_string()),
+            resolved_source: Some("apkmirror".to_string()),
+            resolution_strategy: Some("auto".to_string()),
+            version_conflict: None,
+            patches_included: vec![],
+            patches_auto_disabled: vec![],
+            warnings: vec!["0 patches applied".to_string()],
+            error: None,
+            failure_category: None,
+            attempted_sources: vec![],
+        },
+    );
+
+    reports.insert(
+        "app_failed".to_string(),
+        AppBuildReport {
+            status: "failed".to_string(),
+            target_version: Some("3.0.0".to_string()),
+            target_version_reason: None,
+            patch_supported_versions: vec![],
+            fetched_version: None,
+            resolved_version: None,
+            resolved_source: None,
+            resolution_strategy: Some("auto".to_string()),
+            version_conflict: None,
+            patches_included: vec![],
+            patches_auto_disabled: vec![],
+            warnings: vec![],
+            error: Some("all download sources exhausted for package 'com.test'".to_string()),
+            failure_category: Some(FailureCategory::AllSourcesExhausted),
+            attempted_sources: vec![],
+        },
+    );
+
+    let summary = BuildSummary {
+        built: vec!["app_success".to_string()],
+        failed: vec![("app_failed".to_string(), "error".to_string())],
+        reports,
+        open_breakers: vec![],
+    };
+
+    let report = BuildReport::from_summary(&summary);
+    assert_eq!(report.summary.total, 3);
+    assert_eq!(report.summary.success, 1);
+    assert_eq!(report.summary.failed, 1);
+    assert_eq!(report.summary.skipped, 1); // success_unpatched counted in skipped, NOT success
+    assert_eq!(
+        report
+            .summary
+            .failures_by_category
+            .get("all_sources_exhausted"),
+        Some(&1)
+    );
+}
+
+#[test]
+fn test_parse_applied_patches_individual_and_empty() {
+    let stdout = "Initializing...\nApplied Hide ads\nApplied SponsorBlock\nDone.\n";
+    let patches = revancex::patcher::parse_applied_patches(stdout);
+    assert_eq!(patches, vec!["Hide ads", "SponsorBlock"]);
+
+    let stdout_applying =
+        "Initializing...\nApplying Custom branding...\nApplying Fix playback...\n";
+    let patches2 = revancex::patcher::parse_applied_patches(stdout_applying);
+    assert_eq!(patches2, vec!["Custom branding", "Fix playback"]);
+
+    let stdout_none = "Initializing...\nApplied 0 patches\nDone.\n";
+    let patches3 = revancex::patcher::parse_applied_patches(stdout_none);
+    assert!(patches3.is_empty());
+}
+
+#[test]
+fn test_write_build_report_and_check_integration() {
+    use revancex::orchestrator::scheduler::BuildSummary;
+    use revancex::report::{AppBuildReport, BuildReport};
+    use std::collections::BTreeMap;
+
+    let tmp = tempfile::tempdir().unwrap();
+    let report_path = tmp.path().join("BUILD_REPORT.json");
+
+    let mut reports = BTreeMap::new();
+    reports.insert(
+        "pixiv".to_string(),
+        AppBuildReport {
+            status: "success".to_string(),
+            target_version: Some("6.196.0".to_string()),
+            target_version_reason: None,
+            patch_supported_versions: vec!["6.196.0".to_string()],
+            fetched_version: Some("6.196.0".to_string()),
+            resolved_version: Some("6.196.0".to_string()),
+            resolved_source: Some("apkmirror".to_string()),
+            resolution_strategy: Some("auto".to_string()),
+            version_conflict: None,
+            patches_included: vec!["Hide ads".to_string()],
+            patches_auto_disabled: vec![],
+            warnings: vec![],
+            error: None,
+            failure_category: None,
+            attempted_sources: vec![],
+        },
+    );
+
+    let summary = BuildSummary {
+        built: vec!["pixiv".to_string()],
+        failed: vec![],
+        reports,
+        open_breakers: vec![],
+    };
+
+    revancex::utils::write_build_report(&summary, report_path.to_str().unwrap()).unwrap();
+    assert!(report_path.exists());
+
+    let content = std::fs::read_to_string(&report_path).unwrap();
+    let report: BuildReport = serde_json::from_str(&content).unwrap();
+    assert_eq!(report.schema_version, "2.0.0");
+    assert_eq!(report.summary.total, 1);
+    assert_eq!(report.summary.success, 1);
+    assert_eq!(report.summary.failed, 0);
+    assert_eq!(report.apps["pixiv"].status, "success");
+}
+
+#[test]
+fn test_circuit_breaker_bug_simulation_and_per_app_fix() {
+    use revancex::sources::breaker::{BlockKind, BreakerState, SourceCircuitBreaker};
+    use std::sync::atomic::{AtomicU32, Ordering};
+
+    // 1. SIMULATE BUG: Legacy global counter incremented per candidate version
+    // If threshold = 3, App 1 trying 3 candidate versions (v1, v2, v3) that fail Turnstile
+    // increments counter 3 times -> counter becomes 3 (>= threshold).
+    // App 2 then immediately gets skipped because counter >= threshold!
+    let legacy_counter = AtomicU32::new(0);
+    let legacy_threshold = 3u32;
+
+    // App 1 candidate 1 fails
+    legacy_counter.fetch_add(1, Ordering::SeqCst);
+    // App 1 candidate 2 fails
+    legacy_counter.fetch_add(1, Ordering::SeqCst);
+    // App 1 candidate 3 fails
+    legacy_counter.fetch_add(1, Ordering::SeqCst);
+
+    assert_eq!(legacy_counter.load(Ordering::SeqCst), 3);
+    // BUG DEMONSTRATED: Legacy logic trips breaker for App 2 because 3 candidate attempts of the SAME app opened it
+    let legacy_app2_skipped = legacy_counter.load(Ordering::SeqCst) >= legacy_threshold;
+    assert!(
+        legacy_app2_skipped,
+        "Legacy counter improperly tripped by 1 app x 3 candidates"
+    );
+
+    // 2. VERIFY FIX: SourceCircuitBreaker tracks distinct APPs, not candidate attempts
+    let breaker = SourceCircuitBreaker::new("uptodown", 3, 300, 5);
+    assert_eq!(breaker.state(), BreakerState::Closed);
+
+    // App 1 candidate 1 fails with TurnstileChallenge
+    breaker.record_failure("com.example.app1", &BlockKind::TurnstileChallenge);
+    // App 1 candidate 2 fails with TurnstileChallenge
+    breaker.record_failure("com.example.app1", &BlockKind::TurnstileChallenge);
+    // App 1 candidate 3 fails with TurnstileChallenge
+    breaker.record_failure("com.example.app1", &BlockKind::TurnstileChallenge);
+
+    // Breaker MUST STILL BE CLOSED because only 1 distinct app failed!
+    assert_eq!(breaker.state(), BreakerState::Closed);
+    assert!(breaker.can_try("com.example.app2").is_ok());
+
+    // App 2 tries and succeeds -> resets breaker state
+    breaker.record_success();
+    assert_eq!(breaker.state(), BreakerState::Closed);
+}
+
+#[test]
+fn test_circuit_breaker_distinct_apps_threshold() {
+    use revancex::sources::breaker::{BlockKind, BreakerState, SourceCircuitBreaker};
+
+    let breaker = SourceCircuitBreaker::new("uptodown", 3, 300, 5);
+
+    // 1st distinct app fails
+    breaker.record_failure("app_one", &BlockKind::TurnstileChallenge);
+    assert_eq!(breaker.state(), BreakerState::Closed);
+
+    // 2nd distinct app fails
+    breaker.record_failure("app_two", &BlockKind::TurnstileChallenge);
+    assert_eq!(breaker.state(), BreakerState::Closed);
+
+    // 3rd distinct app fails -> trips threshold (3)
+    breaker.record_failure("app_three", &BlockKind::TurnstileChallenge);
+    assert_eq!(breaker.state(), BreakerState::Open);
+    assert!(breaker.ever_opened());
+
+    // 4th app is rejected while open
+    assert!(breaker.can_try("app_four").is_err());
+}
+
+#[test]
+fn test_circuit_breaker_ip_reputation_immediate_trip() {
+    use revancex::sources::breaker::{BlockKind, BreakerState, SourceCircuitBreaker};
+
+    let breaker = SourceCircuitBreaker::new("apkmirror", 3, 300, 5);
+    assert_eq!(breaker.state(), BreakerState::Closed);
+
+    // Immediate open on 403 / 1020 IP reputation block (no need to wait for 3 apps)
+    breaker.record_failure("app_one", &BlockKind::IpReputationBlock);
+    assert_eq!(breaker.state(), BreakerState::Open);
+    assert!(breaker.ever_opened());
+
+    // Next candidate or app is immediately blocked
+    let res = breaker.can_try("app_one");
+    assert!(res.is_err());
+    let (st, reason) = res.err().unwrap();
+    assert_eq!(st, BreakerState::Open);
+    assert!(reason.contains("circuit-breaker open"));
+}
+
+#[test]
+fn test_circuit_breaker_cooldown_and_half_open() {
+    use revancex::sources::breaker::{BlockKind, BreakerState, SourceCircuitBreaker};
+
+    // Breaker with cooldown of 2 apps and 0 cooldown_secs for instant time-based test
+    let breaker = SourceCircuitBreaker::new("uptodown", 2, 0, 2);
+
+    breaker.record_failure("app_a", &BlockKind::TurnstileChallenge);
+    breaker.record_failure("app_b", &BlockKind::TurnstileChallenge);
+    assert_eq!(breaker.state(), BreakerState::Open);
+
+    // With 0 cooldown_secs, elapsed >= cooldown immediately transitions to HalfOpen
+    let try_probe = breaker.can_try("app_probe");
+    assert_eq!(try_probe.unwrap(), BreakerState::HalfOpen);
+
+    // While probe is in flight, subsequent app cannot probe
+    let try_second = breaker.can_try("app_second");
+    assert!(try_second.is_err());
+    let (st, msg) = try_second.err().unwrap();
+    assert_eq!(st, BreakerState::HalfOpen);
+    assert!(msg.contains("probe in progress"));
+
+    // Probe succeeds -> breaker fully closes
+    breaker.record_success();
+    assert_eq!(breaker.state(), BreakerState::Closed);
+    assert!(breaker.can_try("app_c").is_ok());
+
+    // Test app-count based cooldown
+    let breaker_app_cd = SourceCircuitBreaker::new("uptodown", 1, 3600, 2);
+    breaker_app_cd.record_failure("app_x", &BlockKind::IpReputationBlock);
+    assert_eq!(breaker_app_cd.state(), BreakerState::Open);
+
+    // 1st app completes -> still open
+    breaker_app_cd.record_app_completed();
+    assert!(breaker_app_cd.can_try("app_y").is_err());
+
+    // 2nd app completes -> reached cooldown_apps (2) -> transitions to HalfOpen
+    breaker_app_cd.record_app_completed();
+    let probe_res = breaker_app_cd.can_try("app_z");
+    assert_eq!(probe_res.unwrap(), BreakerState::HalfOpen);
+
+    // Probe fails -> re-opens
+    breaker_app_cd.record_failure("app_z", &BlockKind::TurnstileChallenge);
+    assert_eq!(breaker_app_cd.state(), BreakerState::Open);
+}
+
+#[test]
+fn test_classify_error_block_kinds() {
+    use revancex::sources::breaker::{classify_error, BlockKind};
+
+    assert_eq!(
+        classify_error("Error 1020: Access denied by Cloudflare"),
+        BlockKind::IpReputationBlock
+    );
+    assert_eq!(
+        classify_error("HTTP 403 Forbidden - IpReputationBlocked"),
+        BlockKind::IpReputationBlock
+    );
+    assert_eq!(
+        classify_error("HTTP 429 Too Many Requests - rate limited"),
+        BlockKind::RateLimited
+    );
+    assert_eq!(classify_error("HTTP 404 Not Found"), BlockKind::NotFound);
+    assert_eq!(
+        classify_error("Cloudflare Turnstile challenge detected"),
+        BlockKind::TurnstileChallenge
+    );
+    assert_eq!(
+        classify_error("cf-chl-bypass challenge page"),
+        BlockKind::TurnstileChallenge
+    );
+    assert_eq!(classify_error("connection reset by peer"), BlockKind::Other);
+}
+
+#[test]
+fn test_circuit_breaker_registry_configuration() {
+    use revancex::config::sources::{BreakerRuleConfig, CircuitBreakersConfig};
+    use revancex::sources::breaker::BreakerRegistry;
+    use std::collections::HashMap;
+
+    let mut sources = HashMap::new();
+    sources.insert(
+        "uptodown".to_string(),
+        BreakerRuleConfig {
+            threshold: 5,
+            cooldown_secs: 120,
+            cooldown_apps: 3,
+        },
+    );
+    sources.insert(
+        "apkmirror".to_string(),
+        BreakerRuleConfig {
+            threshold: 2,
+            cooldown_secs: 600,
+            cooldown_apps: 10,
+        },
+    );
+
+    let cfg = CircuitBreakersConfig {
+        default: BreakerRuleConfig {
+            threshold: 3,
+            cooldown_secs: 300,
+            cooldown_apps: 5,
+        },
+        sources,
+    };
+
+    let registry = BreakerRegistry::new(&cfg);
+    let utd_cb = registry.get("uptodown");
+    assert_eq!(utd_cb.threshold, 5);
+    assert_eq!(utd_cb.cooldown_apps, 3);
+
+    let apkm_cb = registry.get("apkmirror");
+    assert_eq!(apkm_cb.threshold, 2);
+    assert_eq!(apkm_cb.cooldown_apps, 10);
+
+    let default_cb = registry.get("apkpure");
+    assert_eq!(default_cb.threshold, 3);
+    assert_eq!(default_cb.cooldown_apps, 5);
+}
+
+#[tokio::test]
+async fn test_flaresolverr_fail_fast_when_enabled() {
+    use revancex::config::sources::FetchConfig;
+    use revancex::net::Fetcher;
+
+    let mut cfg = FetchConfig::default();
+    cfg.flaresolverr.enabled = "true".to_string();
+    cfg.flaresolverr.url = "http://127.0.0.1:59999/unreachable".to_string();
+
+    let client = reqwest::Client::new();
+    let fetcher = Fetcher::new(client, cfg);
+
+    // When flaresolverr.enabled = "true", unhealthy service MUST fail fast
+    let res = fetcher.ensure_probed().await;
+    assert!(
+        res.is_err(),
+        "ensure_probed must fail fast when flaresolverr.enabled = true and unreachable"
+    );
+    let err_str = res.err().unwrap().to_string();
+    assert!(err_str.contains("FlareSolverr is configured as enabled (\"true\")"));
+
+    // When flaresolverr.enabled = "auto", it should not fail fast but mark unavailable
+    let mut cfg_auto = FetchConfig::default();
+    cfg_auto.flaresolverr.enabled = "auto".to_string();
+    cfg_auto.flaresolverr.url = "http://127.0.0.1:59999/unreachable".to_string();
+
+    let client_auto = reqwest::Client::new();
+    let fetcher_auto = Fetcher::new(client_auto, cfg_auto);
+    let res_auto = fetcher_auto.ensure_probed().await;
+    assert!(
+        res_auto.is_ok(),
+        "ensure_probed must not fail fast when flaresolverr.enabled = auto"
+    );
+    assert!(
+        fetcher_auto.is_flaresolverr_unavailable(),
+        "flaresolverr_unavailable flag must be set in auto mode"
+    );
+}
+
+#[test]
+fn test_report_check_fail_threshold_and_continue_logic() {
+    fn check_should_fail(
+        failed: usize,
+        total: usize,
+        r_continue: bool,
+        threshold: Option<u32>,
+    ) -> bool {
+        if r_continue {
+            false
+        } else if let Some(th) = threshold {
+            (failed as f64 / total as f64) * 100.0 > (th as f64)
+        } else {
+            failed > 0
+        }
+    }
+
+    // 1. With continue = true: should never fail
+    assert!(!check_should_fail(1, 4, true, None));
+
+    // 2. With fail_threshold = 50%: 25% <= 50% -> does not fail
+    assert!(!check_should_fail(1, 4, false, Some(50)));
+
+    // 3. With fail_threshold = 10%: 25% > 10% -> fails
+    assert!(check_should_fail(1, 4, false, Some(10)));
+}

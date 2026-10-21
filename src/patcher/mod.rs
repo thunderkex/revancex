@@ -40,6 +40,29 @@ pub fn parse_applied_patch_count(stdout: &str) -> Option<usize> {
     None
 }
 
+pub fn parse_applied_patches(stdout: &str) -> Vec<String> {
+    let mut patches = Vec::new();
+    for line in stdout.lines() {
+        let trimmed = line.trim();
+        if (trimmed.starts_with("Applied ") || trimmed.starts_with("Applying "))
+            && !trimmed.contains(" patches")
+            && !trimmed.contains(" patch")
+        {
+            let name = if let Some(rest) = trimmed.strip_prefix("Applied ") {
+                rest.trim()
+            } else if let Some(rest) = trimmed.strip_prefix("Applying ") {
+                rest.trim().trim_end_matches("...")
+            } else {
+                ""
+            };
+            if !name.is_empty() && !patches.iter().any(|p: &String| p == name) {
+                patches.push(name.to_string());
+            }
+        }
+    }
+    patches
+}
+
 pub fn parse_filtered_version(stdout: &str, package: &str) -> Option<String> {
     for line in stdout.lines() {
         let trimmed = line.trim();
@@ -298,6 +321,29 @@ pub async fn patch(
         let _ = std::fs::rename(&staging_idsig, &output_idsig);
     }
 
+    let mut final_plan = plan;
+    let parsed_patches = parse_applied_patches(&stdout);
+    if !parsed_patches.is_empty() {
+        final_plan.included = parsed_patches;
+    } else if final_plan.included.is_empty() {
+        if let Some(ref patches) = meta {
+            let active: Vec<String> = patches
+                .iter()
+                .filter(|p| {
+                    p.compatible_packages.iter().any(|c| c.name == app.package)
+                        && !final_plan
+                            .excluded
+                            .iter()
+                            .any(|e| e.eq_ignore_ascii_case(&p.name))
+                })
+                .map(|p| p.name.clone())
+                .collect();
+            if !active.is_empty() {
+                final_plan.included = active;
+            }
+        }
+    }
+
     info!("{id}: patched → {output_apk}");
-    Ok((output_apk, plan))
+    Ok((output_apk, final_plan))
 }

@@ -15,6 +15,7 @@ use tracing::{debug, info, warn};
 #[derive(Debug)]
 pub enum UptodownError {
     TurnstileBlocked,
+    IpReputationBlocked,
     TokenNotFound { html_len: usize, snippet: String },
     Network(anyhow::Error),
 }
@@ -27,6 +28,9 @@ impl std::fmt::Display for UptodownError {
                     f,
                     "Uptodown: Cloudflare Turnstile challenge detected (domain globally blocked)"
                 )
+            }
+            UptodownError::IpReputationBlocked => {
+                write!(f, "Uptodown: IP reputation block (403/1020) detected")
             }
             UptodownError::TokenNotFound { html_len, snippet } => {
                 write!(f, "Uptodown: data-url token not found (page {html_len} bytes); snippet: {snippet}")
@@ -56,6 +60,13 @@ impl std::fmt::Display for ApkpureError {
 }
 
 impl std::error::Error for ApkpureError {}
+
+pub fn is_ip_reputation_blocked(status: u16, body: &str) -> bool {
+    (status == 403 && !is_turnstile_blocked(status, &reqwest::header::HeaderMap::new(), body))
+        || body.contains("1020")
+        || body.contains("error code: 1020")
+        || body.contains("Access denied")
+}
 
 pub fn is_turnstile_blocked(status: u16, headers: &reqwest::header::HeaderMap, body: &str) -> bool {
     let _ = status;
@@ -361,6 +372,12 @@ where
             Ok(path) => return Ok(path),
             Err(e) => {
                 debug!("{id}: version {:?} failed on all sources: {e}", cur);
+                if e.to_string()
+                    .contains("all_candidate_sources_open_breakers")
+                {
+                    info!("{id}: all candidate sources have open circuit breakers — skipping remaining candidate versions");
+                    break;
+                }
             }
         }
     }
@@ -370,6 +387,29 @@ where
     );
 }
 
+#[derive(Debug, Clone)]
+pub struct FetchApkSuccess {
+    pub path: String,
+    pub final_version: Option<String>,
+    pub attempts: Vec<crate::orchestrator::scheduler::SourceAttemptRecord>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct FetchApkError {
+    pub message: String,
+    pub attempts: Vec<crate::orchestrator::scheduler::SourceAttemptRecord>,
+    pub warnings: Vec<String>,
+}
+
+impl std::fmt::Display for FetchApkError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for FetchApkError {}
+
 pub async fn fetch_apk(
     cfg: &Config,
     id: &str,
@@ -377,7 +417,8 @@ pub async fn fetch_apk(
     arch: &str,
     force: bool,
     uptodown_cb: Option<Arc<AtomicU32>>,
-) -> Result<String> {
+    breaker_registry: Option<Arc<crate::sources::breaker::BreakerRegistry>>,
+) -> Result<FetchApkSuccess> {
     let arch_tag = if arch == "all" || arch.is_empty() {
         "all"
     } else {
@@ -403,18 +444,40 @@ pub async fn fetch_apk(
         &patch_compat,
     );
 
+    let is_strictly_pinned = app
+        .version
+        .as_deref()
+        .is_some_and(|v| !v.eq_ignore_ascii_case("auto"))
+        && app.version_pin_strict;
+
     let cache_candidates = [&dest[..], &all_dest[..], &legacy_dest[..]];
     let cache_result = check_cached_input_apk(id, &cache_candidates, target_ver.as_deref(), force);
     if let CacheCheckResult::Hit(cached_path) = cache_result {
         let _ = std::fs::write(format!("{cached_path}.strategy"), &strategy_str);
-        return Ok(cached_path);
+        return Ok(FetchApkSuccess {
+            path: cached_path,
+            final_version: target_ver.clone(),
+            attempts: vec![],
+            warnings: vec![],
+        });
     }
 
     let client = crate::utils::make_browser_client(cfg)?;
 
     let fetcher = Arc::new(crate::net::Fetcher::new(client.clone(), cfg.fetch.clone()));
+    if let Err(e) = fetcher.ensure_probed().await {
+        anyhow::bail!("{id}: FlareSolverr health check failed: {e}");
+    }
+
+    let mut warnings = Vec::new();
+    if fetcher.is_flaresolverr_unavailable() {
+        warnings.push("flaresolverr_unavailable".to_string());
+    }
+
+    let mut all_attempts: Vec<crate::orchestrator::scheduler::SourceAttemptRecord> = Vec::new();
 
     if let Some(url) = &app.apk_url {
+        let t0 = std::time::Instant::now();
         let final_url = if url.contains("github.com") && url.contains("/releases/") {
             resolve_github_asset_url(&client, url, arch, &cfg.build.asset_exclude_patterns)
                 .await
@@ -425,17 +488,118 @@ pub async fn fetch_apk(
         info!("{id}: downloading from direct apk_url {final_url}");
         match download_and_extract_if_bundle(&client, &final_url, &dest, None).await {
             Ok(_) => {
-                let v_write = target_ver
-                    .as_deref()
-                    .map(String::from)
-                    .or_else(|| crate::utils::apk::get_apk_version_name(&dest).ok());
-                if let Some(v) = v_write {
-                    let _ = std::fs::write(format!("{dest}.version"), v);
+                let dur = t0.elapsed().as_millis() as u64;
+                match crate::utils::apk::verify_apk_integrity(&dest) {
+                    Ok(_) => {
+                        let actual_ver_res = crate::utils::apk::get_apk_version_name(&dest);
+                        let is_acceptable = match actual_ver_res {
+                            Ok(ref actual_ver) => {
+                                let actual_parts =
+                                    crate::utils::semver::parse_version_numbers(actual_ver);
+                                let version_matches_target =
+                                    target_ver.as_ref().is_some_and(|target| {
+                                        let target_parts =
+                                            crate::utils::semver::parse_version_numbers(target);
+                                        actual_ver == target
+                                            || (!actual_parts.is_empty()
+                                                && actual_parts == target_parts)
+                                    });
+                                let version_in_patch_compat = !patch_supported_versions.is_empty()
+                                    && patch_supported_versions.iter().any(|v| {
+                                        v == actual_ver
+                                            || (!actual_parts.is_empty()
+                                                && crate::utils::semver::parse_version_numbers(v)
+                                                    == actual_parts)
+                                    });
+
+                                if is_strictly_pinned {
+                                    version_matches_target
+                                } else {
+                                    version_matches_target || version_in_patch_compat
+                                }
+                            }
+                            Err(_) => false,
+                        };
+
+                        if is_acceptable {
+                            let actual_ver = actual_ver_res.ok();
+                            let v_write = actual_ver.clone().or_else(|| target_ver.clone());
+                            if let Some(ref v) = v_write {
+                                let _ = std::fs::write(format!("{dest}.version"), v);
+                            }
+                            let _ = std::fs::write(format!("{dest}.strategy"), &strategy_str);
+                            all_attempts.push(
+                                crate::orchestrator::scheduler::SourceAttemptRecord {
+                                    source: "direct".to_string(),
+                                    outcome: "hit".to_string(),
+                                    version: actual_ver.clone(),
+                                    url: Some(final_url),
+                                    reason: "downloaded successfully via direct apk_url"
+                                        .to_string(),
+                                    duration_ms: dur,
+                                    breaker_state: None,
+                                    block_kind: None,
+                                },
+                            );
+                            return Ok(FetchApkSuccess {
+                                path: dest,
+                                final_version: actual_ver,
+                                attempts: all_attempts,
+                                warnings: warnings.clone(),
+                            });
+                        } else {
+                            let act_str = actual_ver_res.unwrap_or_else(|_| "unknown".to_string());
+                            warn!(
+                                "{id}: direct apk_url gave version v{act_str} which is not compatible with target {:?} or patches — discarding and trying next sources",
+                                target_ver
+                            );
+                            let _ = std::fs::remove_file(&dest);
+                            all_attempts.push(
+                                crate::orchestrator::scheduler::SourceAttemptRecord {
+                                    source: "direct".to_string(),
+                                    outcome: "version_mismatch".to_string(),
+                                    version: Some(act_str.clone()),
+                                    url: Some(final_url),
+                                    reason: format!(
+                                        "downloaded v{act_str} does not match target {:?} and is not in patch supported versions",
+                                        target_ver
+                                    ),
+                                    duration_ms: dur,
+                                    breaker_state: None,
+                                    block_kind: None,
+                                },
+                            );
+                        }
+                    }
+                    Err(integrity_err) => {
+                        warn!("{id}: direct apk_url file failed integrity check: {integrity_err}");
+                        let _ = std::fs::remove_file(&dest);
+                        all_attempts.push(crate::orchestrator::scheduler::SourceAttemptRecord {
+                            source: "direct".to_string(),
+                            outcome: "bad_zip".to_string(),
+                            version: None,
+                            url: Some(final_url),
+                            reason: integrity_err.to_string(),
+                            duration_ms: dur,
+                            breaker_state: None,
+                            block_kind: None,
+                        });
+                    }
                 }
-                let _ = std::fs::write(format!("{dest}.strategy"), &strategy_str);
-                return Ok(dest);
             }
-            Err(e) => warn!("{id}: direct apk_url failed: {e}"),
+            Err(e) => {
+                warn!("{id}: direct apk_url failed: {e}");
+                all_attempts.push(crate::orchestrator::scheduler::SourceAttemptRecord {
+                    source: "direct".to_string(),
+                    outcome: "error".to_string(),
+                    version: None,
+                    url: Some(final_url),
+                    reason: e.to_string(),
+                    duration_ms: t0.elapsed().as_millis() as u64,
+                    breaker_state: None,
+                    block_kind: None,
+                });
+            }
         }
     }
 
@@ -453,6 +617,11 @@ pub async fn fetch_apk(
         candidate_versions.into_iter().map(Some).collect()
     };
 
+    let shared_attempts: Arc<
+        std::sync::Mutex<Vec<crate::orchestrator::scheduler::SourceAttemptRecord>>,
+    > = Arc::new(std::sync::Mutex::new(all_attempts));
+    let attempts_clone = shared_attempts.clone();
+
     let result = download_with_fallback(
         id,
         &app.package,
@@ -464,6 +633,9 @@ pub async fn fetch_apk(
             let ordered = &ordered;
             let fetcher = fetcher.clone();
             let uptodown_cb = uptodown_cb.clone();
+            let breaker_registry = breaker_registry.clone();
+            let patch_supported_versions = patch_supported_versions.clone();
+            let shared_attempts = attempts_clone.clone();
             async move {
                 let mut breakers = std::collections::HashMap::new();
                 if let Some(ref cb) = uptodown_cb {
@@ -475,105 +647,397 @@ pub async fn fetch_apk(
                     breakers: std::sync::Arc::new(breakers),
                     cb_threshold,
                     fetcher: Some(&fetcher),
+                    breaker_registry: breaker_registry.clone(),
+                    app_id: Some(id.to_string()),
                 };
-
-                let mut attempted: Vec<String> = Vec::new();
 
                 for src in ordered {
                     let sname = src.name();
+                    let t_start = std::time::Instant::now();
                     info!("{id}: checking source {sname}");
-                    attempted.push(sname.to_string());
+
+                    let (cur_state, allowed) = match ctx.can_try(sname) {
+                        Ok(st) => (st, true),
+                        Err((st, reason)) => {
+                            shared_attempts.lock().unwrap().push(
+                                crate::orchestrator::scheduler::SourceAttemptRecord {
+                                    source: sname.to_string(),
+                                    outcome: "skipped-breaker".to_string(),
+                                    version: cur_target.clone(),
+                                    url: None,
+                                    reason,
+                                    duration_ms: t_start.elapsed().as_millis() as u64,
+                                    breaker_state: Some(st.to_string()),
+                                    block_kind: None,
+                                },
+                            );
+                            (st, false)
+                        }
+                    };
+
+                    if !allowed {
+                        continue;
+                    }
+
                     match src.resolve(&ctx, app, cur_target.as_deref(), arch).await {
                         Ok(Some(resolved)) => {
+                            let r_url = resolved.url.clone();
                             match src.fetch(&ctx, &resolved, dest).await {
                                 Ok(path) => {
+                                    let dur = t_start.elapsed().as_millis() as u64;
                                     let p_str = path.to_string_lossy();
+
+                                    // Verify APK integrity
+                                    if let Err(integrity_err) =
+                                        crate::utils::apk::verify_apk_integrity(&path)
+                                    {
+                                        warn!(
+                                            "{id}: APK from {sname} failed integrity check: {integrity_err}"
+                                        );
+                                        let _ = std::fs::remove_file(dest);
+                                        shared_attempts.lock().unwrap().push(
+                                            crate::orchestrator::scheduler::SourceAttemptRecord {
+                                                source: sname.to_string(),
+                                                outcome: "bad_zip".to_string(),
+                                                version: cur_target.clone(),
+                                                url: Some(r_url),
+                                                reason: integrity_err.to_string(),
+                                                duration_ms: dur,
+                                                breaker_state: Some(cur_state.to_string()),
+                                                block_kind: None,
+                                            },
+                                        );
+                                        continue;
+                                    }
+
+                                    // Check architecture
                                     if arch != "all" && arch != "universal" && !arch.is_empty() {
-                                        let has_any = arch::apk_has_any_native_libs(&p_str).unwrap_or(false);
-                                        let has_target = arch::apk_has_arch(&p_str, arch).unwrap_or(false);
+                                        let has_any = arch::apk_has_any_native_libs(&p_str)
+                                            .unwrap_or(false);
+                                        let has_target =
+                                            arch::apk_has_arch(&p_str, arch).unwrap_or(false);
                                         if has_any && !has_target {
                                             warn!("{id}: APK from {sname} has native libs but none for requested arch '{arch}', discarding and trying next source");
                                             let _ = std::fs::remove_file(dest);
+                                            shared_attempts.lock().unwrap().push(
+                                                crate::orchestrator::scheduler::SourceAttemptRecord {
+                                                    source: sname.to_string(),
+                                                    outcome: "not_found".to_string(),
+                                                    version: cur_target.clone(),
+                                                    url: Some(r_url),
+                                                    reason: format!(
+                                                        "native libs missing for arch '{arch}'"
+                                                    ),
+                                                    duration_ms: dur,
+                                                    breaker_state: Some(cur_state.to_string()),
+                                                    block_kind: None,
+                                                },
+                                            );
                                             continue;
                                         }
                                     }
+
+                                    // Check certificate SHA-256
                                     if let Some(ref expected_cert) = app.expected_cert_sha256 {
                                         match crate::utils::keystore::verify_apk_cert_sha256(
                                             &p_str,
                                             expected_cert,
                                         ) {
                                             Ok(true) => {
-                                                info!("{id}: APK cert SHA-256 matches expected: {expected_cert}");
+                                                info!(
+                                                    "{id}: APK cert SHA-256 matches expected: {expected_cert}"
+                                                );
                                             }
                                             Ok(false) => {
                                                 warn!("{id}: APK cert SHA-256 mismatch for source {sname}, discarding and trying next source");
                                                 let _ = std::fs::remove_file(dest);
+                                                shared_attempts.lock().unwrap().push(
+                                                    crate::orchestrator::scheduler::SourceAttemptRecord {
+                                                        source: sname.to_string(),
+                                                        outcome: "error".to_string(),
+                                                        version: cur_target.clone(),
+                                                        url: Some(r_url),
+                                                        reason: "cert SHA-256 mismatch".to_string(),
+                                                        duration_ms: dur,
+                                                        breaker_state: Some(cur_state.to_string()),
+                                                        block_kind: None,
+                                                    },
+                                                );
                                                 continue;
                                             }
                                             Err(e) => {
                                                 warn!("{id}: failed to verify APK cert for {sname}: {e}, trying next source");
                                                 let _ = std::fs::remove_file(dest);
+                                                shared_attempts.lock().unwrap().push(
+                                                    crate::orchestrator::scheduler::SourceAttemptRecord {
+                                                        source: sname.to_string(),
+                                                        outcome: "error".to_string(),
+                                                        version: cur_target.clone(),
+                                                        url: Some(r_url),
+                                                        reason: format!(
+                                                            "failed to verify cert: {e}"
+                                                        ),
+                                                        duration_ms: dur,
+                                                        breaker_state: Some(cur_state.to_string()),
+                                                        block_kind: None,
+                                                    },
+                                                );
                                                 continue;
                                             }
                                         }
                                     }
-                                    info!("{id}: BUILD_REPORT resolved_source={sname} attempted={attempted:?}");
-                                    return Ok(path.to_string_lossy().to_string());
+
+                                    // Check version match
+                                    let actual_ver =
+                                        match crate::utils::apk::get_apk_version_name(&path) {
+                                            Ok(v) => v,
+                                            Err(e) => {
+                                                let _ = std::fs::remove_file(dest);
+                                                shared_attempts.lock().unwrap().push(
+                                                    crate::orchestrator::scheduler::SourceAttemptRecord {
+                                                        source: sname.to_string(),
+                                                        outcome: "error".to_string(),
+                                                        version: cur_target.clone(),
+                                                        url: Some(r_url),
+                                                        reason: format!(
+                                                            "failed to read APK version name: {e}"
+                                                        ),
+                                                        duration_ms: dur,
+                                                        breaker_state: Some(cur_state.to_string()),
+                                                        block_kind: None,
+                                                    },
+                                                );
+                                                continue;
+                                            }
+                                        };
+
+                                    let actual_parts = crate::utils::semver::parse_version_numbers(
+                                        &actual_ver,
+                                    );
+                                    let matches_cur = cur_target.as_ref().is_none_or(|tgt| {
+                                        let tgt_parts =
+                                            crate::utils::semver::parse_version_numbers(tgt);
+                                        &actual_ver == tgt
+                                            || (!actual_parts.is_empty()
+                                                && actual_parts == tgt_parts)
+                                    });
+
+                                    let in_patch_compat = !patch_supported_versions.is_empty()
+                                        && patch_supported_versions.iter().any(|v| {
+                                            v == &actual_ver
+                                                || (!actual_parts.is_empty()
+                                                    && crate::utils::semver::parse_version_numbers(
+                                                        v,
+                                                    ) == actual_parts)
+                                        });
+
+                                    if matches_cur || (!is_strictly_pinned && in_patch_compat) {
+                                        ctx.record_success(sname);
+                                        shared_attempts.lock().unwrap().push(
+                                            crate::orchestrator::scheduler::SourceAttemptRecord {
+                                                source: sname.to_string(),
+                                                outcome: "hit".to_string(),
+                                                version: Some(actual_ver.clone()),
+                                                url: Some(r_url),
+                                                reason: "downloaded and verified successfully"
+                                                    .to_string(),
+                                                duration_ms: dur,
+                                                breaker_state: Some(cur_state.to_string()),
+                                                block_kind: None,
+                                            },
+                                        );
+                                        info!(
+                                            "{id}: BUILD_REPORT resolved_source={sname} actual_ver={actual_ver}"
+                                        );
+                                        return Ok(path.to_string_lossy().to_string());
+                                    } else {
+                                        let _ = std::fs::remove_file(dest);
+                                        let tgt_name = cur_target.as_deref().unwrap_or("auto");
+                                        shared_attempts.lock().unwrap().push(
+                                            crate::orchestrator::scheduler::SourceAttemptRecord {
+                                                source: sname.to_string(),
+                                                outcome: "version_mismatch".to_string(),
+                                                version: Some(actual_ver.clone()),
+                                                url: Some(r_url),
+                                                reason: format!(
+                                                    "downloaded v{actual_ver} does not match requested v{tgt_name} and is not in patch supported versions"
+                                                ),
+                                                duration_ms: dur,
+                                                breaker_state: Some(cur_state.to_string()),
+                                                block_kind: None,
+                                            },
+                                        );
+                                        continue;
+                                    }
                                 }
-                                Err(e) => warn!("{id}: {sname} fetch failed: {e}"),
+                                Err(e) => {
+                                    let dur = t_start.elapsed().as_millis() as u64;
+                                    let err_msg = e.to_string();
+                                    let block_kind = crate::sources::breaker::classify_error(&err_msg);
+                                    ctx.record_failure(sname, &block_kind);
+                                    let outcome = match block_kind {
+                                        crate::sources::breaker::BlockKind::TurnstileChallenge
+                                        | crate::sources::breaker::BlockKind::IpReputationBlock => "blocked",
+                                        crate::sources::breaker::BlockKind::RateLimited => "rate_limited",
+                                        crate::sources::breaker::BlockKind::NotFound => "not_found",
+                                        _ => "error",
+                                    };
+                                    shared_attempts.lock().unwrap().push(
+                                        crate::orchestrator::scheduler::SourceAttemptRecord {
+                                            source: sname.to_string(),
+                                            outcome: outcome.to_string(),
+                                            version: cur_target.clone(),
+                                            url: Some(r_url),
+                                            reason: err_msg.clone(),
+                                            duration_ms: dur,
+                                            breaker_state: Some(cur_state.to_string()),
+                                            block_kind: Some(block_kind),
+                                        },
+                                    );
+                                    warn!("{id}: {sname} fetch failed: {err_msg}");
+                                }
                             }
                         }
-                        Ok(None) => {}
-                        Err(e) => warn!("{id}: {sname} resolve failed: {e}"),
+                        Ok(None) => {
+                            let dur = t_start.elapsed().as_millis() as u64;
+                            shared_attempts.lock().unwrap().push(
+                                crate::orchestrator::scheduler::SourceAttemptRecord {
+                                    source: sname.to_string(),
+                                    outcome: "not_found".to_string(),
+                                    version: cur_target.clone(),
+                                    url: None,
+                                    reason: "source not configured or release not found"
+                                        .to_string(),
+                                    duration_ms: dur,
+                                    breaker_state: Some(cur_state.to_string()),
+                                    block_kind: Some(crate::sources::breaker::BlockKind::NotFound),
+                                },
+                            );
+                        }
+                        Err(e) => {
+                            let dur = t_start.elapsed().as_millis() as u64;
+                            let err_msg = e.to_string();
+                            let block_kind = crate::sources::breaker::classify_error(&err_msg);
+                            ctx.record_failure(sname, &block_kind);
+                            let outcome = match block_kind {
+                                crate::sources::breaker::BlockKind::TurnstileChallenge
+                                | crate::sources::breaker::BlockKind::IpReputationBlock => "blocked",
+                                crate::sources::breaker::BlockKind::RateLimited => "rate_limited",
+                                crate::sources::breaker::BlockKind::NotFound => "not_found",
+                                _ => "error",
+                            };
+                            shared_attempts.lock().unwrap().push(
+                                crate::orchestrator::scheduler::SourceAttemptRecord {
+                                    source: sname.to_string(),
+                                    outcome: outcome.to_string(),
+                                    version: cur_target.clone(),
+                                    url: None,
+                                    reason: err_msg.clone(),
+                                    duration_ms: dur,
+                                    breaker_state: Some(cur_state.to_string()),
+                                    block_kind: Some(block_kind),
+                                },
+                            );
+                            warn!("{id}: {sname} resolve failed: {err_msg}");
+                        }
                     }
                 }
 
+                let all_open = ordered.iter().all(|s| ctx.can_try(s.name()).is_err());
+                if all_open {
+                    anyhow::bail!("{id}: all sources failed for candidate {:?} (all_candidate_sources_open_breakers)", cur_target);
+                }
                 anyhow::bail!("{id}: all sources failed for candidate {:?}", cur_target);
             }
         },
     )
-    .await?;
+    .await;
 
-    if let Ok(actual_ver) = crate::utils::apk::get_apk_version_name(&dest) {
-        let actual_parts = crate::utils::semver::parse_version_numbers(&actual_ver);
-        if let Some(ref target) = target_ver {
-            let target_parts = crate::utils::semver::parse_version_numbers(target);
-            if &actual_ver != target && (actual_parts.is_empty() || actual_parts != target_parts) {
-                let _ = std::fs::remove_file(&dest);
-                let _ = std::fs::remove_file(format!("{dest}.version"));
-                let _ = std::fs::remove_file(format!("{dest}.strategy"));
-                anyhow::bail!(
-                    "{id}: downloaded APK version v{actual_ver} does not match target v{target} — discarded"
-                );
-            }
-        } else if !patch_supported_versions.is_empty() {
-            let is_supported = patch_supported_versions.iter().any(|v| {
-                v == &actual_ver
-                    || (!actual_parts.is_empty()
-                        && crate::utils::semver::parse_version_numbers(v) == actual_parts)
-            });
-            if !is_supported {
-                let _ = std::fs::remove_file(&dest);
-                let _ = std::fs::remove_file(format!("{dest}.version"));
-                let _ = std::fs::remove_file(format!("{dest}.strategy"));
-                anyhow::bail!(
-                    "{id}: downloaded APK version v{actual_ver} is not compatible with any enabled patch (supported: {:?}) — discarded",
-                    patch_supported_versions
-                );
-            }
+    let result = match result {
+        Ok(path) => path,
+        Err(e) => {
+            let final_attempts = shared_attempts.lock().unwrap().clone();
+            return Err(anyhow::Error::new(FetchApkError {
+                message: e.to_string(),
+                attempts: final_attempts,
+                warnings: warnings.clone(),
+            }));
         }
+    };
+
+    let actual_ver = crate::utils::apk::get_apk_version_name(&dest).ok();
+    let actual_parts = actual_ver
+        .as_ref()
+        .map(|v| crate::utils::semver::parse_version_numbers(v))
+        .unwrap_or_default();
+
+    let version_matches_target = target_ver.as_ref().is_some_and(|target| {
+        let target_parts = crate::utils::semver::parse_version_numbers(target);
+        actual_ver.as_ref().map(|v| v == target).unwrap_or(false)
+            || (!actual_parts.is_empty() && actual_parts == target_parts)
+    });
+
+    let version_in_patch_compat = !patch_supported_versions.is_empty()
+        && actual_ver.as_ref().is_some_and(|v| {
+            patch_supported_versions.iter().any(|pv| {
+                pv == v
+                    || (!actual_parts.is_empty()
+                        && crate::utils::semver::parse_version_numbers(pv) == actual_parts)
+            })
+        });
+
+    if is_strictly_pinned {
+        if !version_matches_target {
+            let _ = std::fs::remove_file(&dest);
+            let _ = std::fs::remove_file(format!("{dest}.version"));
+            let _ = std::fs::remove_file(format!("{dest}.strategy"));
+            let act_str = actual_ver.unwrap_or_else(|| "unknown".to_string());
+            let final_attempts = shared_attempts.lock().unwrap().clone();
+            return Err(anyhow::Error::new(FetchApkError {
+                message: format!(
+                    "{id}: downloaded APK version v{act_str} does not match strictly pinned target v{} — discarded",
+                    target_ver.as_deref().unwrap_or("unknown")
+                ),
+                attempts: final_attempts,
+                warnings: warnings.clone(),
+            }));
+        }
+    } else if !version_matches_target && !version_in_patch_compat && target_ver.is_some() {
+        let _ = std::fs::remove_file(&dest);
+        let _ = std::fs::remove_file(format!("{dest}.version"));
+        let _ = std::fs::remove_file(format!("{dest}.strategy"));
+        let act_str = actual_ver.unwrap_or_else(|| "unknown".to_string());
+        let final_attempts = shared_attempts.lock().unwrap().clone();
+        return Err(anyhow::Error::new(FetchApkError {
+            message: format!(
+                "{id}: downloaded APK version v{act_str} does not match target v{} and is not compatible with any enabled patch (supported: {:?}) — discarded",
+                target_ver.as_deref().unwrap_or("unknown"),
+                patch_supported_versions
+            ),
+            attempts: final_attempts,
+            warnings: warnings.clone(),
+        }));
+    } else if !version_matches_target && version_in_patch_compat {
+        let act_str = actual_ver.as_deref().unwrap_or("unknown");
+        info!(
+            "{id}: target was v{}, but mirror provided compatible version v{act_str} supported by patch — accepting fallback",
+            target_ver.as_deref().unwrap_or("auto")
+        );
     }
 
-    let v_write = target_ver
-        .as_deref()
-        .map(String::from)
-        .or_else(|| crate::utils::apk::get_apk_version_name(&dest).ok());
-    if let Some(v) = v_write {
+    let final_ver = actual_ver.or_else(|| target_ver.clone());
+    if let Some(ref v) = final_ver {
         let _ = std::fs::write(format!("{dest}.version"), v);
     }
     let _ = std::fs::write(format!("{dest}.strategy"), &strategy_str);
 
-    Ok(result)
+    let final_attempts = shared_attempts.lock().unwrap().clone();
+    Ok(FetchApkSuccess {
+        path: result,
+        final_version: final_ver,
+        attempts: final_attempts,
+        warnings,
+    })
 }
 
 fn is_beta_or_alpha(s: &str) -> bool {
@@ -844,6 +1308,11 @@ pub(crate) async fn fetch_uptodown(
     let _ = versions_headers;
     let html = html_bytes;
 
+    if is_ip_reputation_blocked(versions_status, &html) {
+        warn!("uptodown: IpReputationBlocked on versions page (status={versions_status})");
+        return Err(UptodownError::IpReputationBlocked);
+    }
+
     if is_turnstile_blocked(versions_status, &versions_headers, &html) {
         warn!("uptodown: TurnstileBlocked on versions page (status={versions_status})");
         return Err(UptodownError::TurnstileBlocked);
@@ -938,6 +1407,11 @@ pub(crate) async fn fetch_uptodown(
     let _ = dl_status;
 
     debug!("uptodown: download page {} bytes", dl_html.len());
+
+    if is_ip_reputation_blocked(dl_status, &dl_html) {
+        warn!("uptodown: IpReputationBlocked on download page (status={dl_status})");
+        return Err(UptodownError::IpReputationBlocked);
+    }
 
     if is_turnstile_blocked(dl_status, &dl_headers, &dl_html) {
         warn!("uptodown: TurnstileBlocked on download page (status={dl_status})");

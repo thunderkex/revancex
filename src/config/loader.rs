@@ -322,6 +322,7 @@ pub struct Config {
     pub patch_sources: BTreeMap<String, PatchSourceEntry>,
     pub apk_sources: BTreeMap<String, ApkSourceEntry>,
     pub apk_source_order: Vec<String>,
+    pub circuit_breakers: crate::config::sources::CircuitBreakersConfig,
     pub fetch: crate::config::sources::FetchConfig,
     pub build: BuildConfig,
     pub module_meta: ModuleMetaConfig,
@@ -342,6 +343,8 @@ struct SourcesFile {
     apk_sources: BTreeMap<String, ApkSourceEntry>,
     #[serde(default)]
     apk_source_order: Vec<String>,
+    #[serde(default)]
+    circuit_breakers: crate::config::sources::CircuitBreakersConfig,
     #[serde(default)]
     fetch: crate::config::sources::FetchConfig,
 }
@@ -448,6 +451,7 @@ pub fn load_config(config_dir: &str) -> Result<Config> {
         patch_sources: sources.patch_sources,
         apk_sources: sources.apk_sources,
         apk_source_order: sources.apk_source_order,
+        circuit_breakers: sources.circuit_breakers,
         fetch: sources.fetch,
         build: build_file.build,
         module_meta: module_meta_file.module,

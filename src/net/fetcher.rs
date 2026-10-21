@@ -3,6 +3,7 @@
 // https://github.com/RookieEnough/Morphe-AutoBuilds
 
 use crate::config::sources::FetchConfig;
+use crate::sources::breaker::BlockKind;
 use anyhow::{bail, Context, Result};
 use reqwest::header::{HeaderMap, USER_AGENT};
 use reqwest::{Client, StatusCode};
@@ -16,7 +17,7 @@ use tracing::{debug, info, warn};
 
 #[derive(Debug)]
 pub enum FetchError {
-    Blocked { host: String },
+    Blocked { host: String, kind: BlockKind },
     ChallengeFailed { host: String, reason: String },
     Http { status: StatusCode, url: String },
     Network(anyhow::Error),
@@ -27,11 +28,8 @@ impl std::error::Error for FetchError {}
 impl fmt::Display for FetchError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Blocked { host } => {
-                write!(
-                    f,
-                    "Host {host} is blocked by Cloudflare (all bypass stages failed)"
-                )
+            Self::Blocked { host, kind } => {
+                write!(f, "Host {host} is blocked by Cloudflare ({kind})")
             }
             Self::ChallengeFailed { host, reason } => {
                 write!(f, "Challenge bypass failed for {host}: {reason}")
@@ -40,6 +38,23 @@ impl fmt::Display for FetchError {
                 write!(f, "HTTP error ({status}): {url}")
             }
             Self::Network(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+impl FetchError {
+    pub fn kind(&self) -> BlockKind {
+        match self {
+            Self::Blocked { kind, .. } => *kind,
+            Self::Http { status, .. } if *status == StatusCode::FORBIDDEN => {
+                BlockKind::IpReputationBlock
+            }
+            Self::Http { status, .. } if *status == StatusCode::TOO_MANY_REQUESTS => {
+                BlockKind::RateLimited
+            }
+            Self::Http { status, .. } if *status == StatusCode::NOT_FOUND => BlockKind::NotFound,
+            Self::ChallengeFailed { .. } => BlockKind::TurnstileChallenge,
+            _ => BlockKind::Other,
         }
     }
 }
@@ -147,14 +162,25 @@ impl Fetcher {
         &self.client
     }
 
-    pub async fn ensure_probed(&self) {
+    pub fn is_flaresolverr_unavailable(&self) -> bool {
+        let fs_enabled_str = std::env::var("FLARESOLVERR_ENABLED")
+            .unwrap_or_else(|_| self.config.flaresolverr.enabled.clone());
+        let fs_mode = fs_enabled_str.trim().to_lowercase();
+        fs_mode != "false" && !self.flaresolverr_available.load(Ordering::SeqCst)
+    }
+
+    pub async fn ensure_probed(&self) -> Result<()> {
         if self.probed.swap(true, Ordering::SeqCst) {
-            return;
+            return Ok(());
         }
 
         let fs_url = std::env::var("FLARESOLVERR_URL")
             .unwrap_or_else(|_| self.config.flaresolverr.url.clone());
-        if self.config.flaresolverr.enabled != "false" {
+        let fs_enabled_str = std::env::var("FLARESOLVERR_ENABLED")
+            .unwrap_or_else(|_| self.config.flaresolverr.enabled.clone());
+        let fs_mode = fs_enabled_str.trim().to_lowercase();
+
+        if fs_mode != "false" {
             let probe_res = self
                 .client
                 .get(&fs_url)
@@ -169,8 +195,13 @@ impl Fetcher {
                     self.flaresolverr_available.store(true, Ordering::SeqCst);
                 }
                 _ => {
-                    debug!("FlareSolverr probe failed or absent at {fs_url}");
                     self.flaresolverr_available.store(false, Ordering::SeqCst);
+                    if fs_mode == "true" {
+                        bail!(
+                            "FlareSolverr is configured as enabled (\"true\") at '{fs_url}', but health check failed. FlareSolverr service is unhealthy or unreachable."
+                        );
+                    }
+                    warn!("FlareSolverr probe failed or absent at {fs_url} (mode: {fs_mode})");
                 }
             }
         }
@@ -197,6 +228,7 @@ impl Fetcher {
                 }
             }
         }
+        Ok(())
     }
 
     pub fn is_challenge(&self, status: StatusCode, headers: &HeaderMap, body: &str) -> bool {
@@ -251,12 +283,15 @@ impl Fetcher {
             let lock = self.host_state.lock().unwrap();
             if let Some(st) = lock.get(&host) {
                 if st.blocked {
-                    return Err(FetchError::Blocked { host });
+                    return Err(FetchError::Blocked {
+                        host,
+                        kind: BlockKind::TurnstileChallenge,
+                    });
                 }
             }
         }
 
-        self.ensure_probed().await;
+        let _ = self.ensure_probed().await;
 
         if let Some(&delay_ms) = self.config.per_host_delay_ms.get(&host) {
             tokio::time::sleep(Duration::from_millis(delay_ms)).await;
@@ -321,23 +356,20 @@ impl Fetcher {
                 } else if status.is_success() {
                     return Ok(body);
                 } else {
-                    if status == StatusCode::FORBIDDEN {
-                        let server = headers
-                            .get("server")
-                            .and_then(|v| v.to_str().ok())
-                            .unwrap_or("-");
-                        let cf_ray = headers
-                            .get("cf-ray")
-                            .and_then(|v| v.to_str().ok())
-                            .unwrap_or("-");
-                        let cf_mitigated = headers
-                            .get("cf-mitigated")
-                            .and_then(|v| v.to_str().ok())
-                            .unwrap_or("-");
-                        let body_snippet: String = body.chars().take(200).collect();
-                        info!(
-                            "403 details — status={status}, server={server}, cf-ray={cf_ray}, cf-mitigated={cf_mitigated}, body[:200]={body_snippet}"
-                        );
+                    let kind = if status == StatusCode::FORBIDDEN
+                        || body.contains("1020")
+                        || body.contains("error code: 1020")
+                    {
+                        BlockKind::IpReputationBlock
+                    } else if status == StatusCode::TOO_MANY_REQUESTS {
+                        BlockKind::RateLimited
+                    } else if status == StatusCode::NOT_FOUND {
+                        BlockKind::NotFound
+                    } else {
+                        BlockKind::Other
+                    };
+                    if kind != BlockKind::Other {
+                        return Err(FetchError::Blocked { host, kind });
                     }
                     return Err(FetchError::Http {
                         status,
@@ -400,7 +432,10 @@ impl Fetcher {
             entry.blocked = true;
         }
 
-        Err(FetchError::Blocked { host })
+        Err(FetchError::Blocked {
+            host,
+            kind: BlockKind::TurnstileChallenge,
+        })
     }
 
     fn record_solved_host(&self, host: &str, sol: &SolvedSolution) {

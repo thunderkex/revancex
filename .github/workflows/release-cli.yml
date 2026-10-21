@@ -43,7 +43,7 @@ jobs:
       tag: ${{ steps.check.outputs.tag }}
       version: ${{ steps.check.outputs.version }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Check version and determine release need
         id: check
@@ -109,7 +109,7 @@ jobs:
             bin_name: revancex.exe
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -154,7 +154,7 @@ jobs:
           (Get-FileHash "${{ matrix.artifact_name }}" -Algorithm SHA256).Hash.ToLower() + "  ${{ matrix.artifact_name }}" | Out-File -Encoding ascii "${{ matrix.artifact_name }}.sha256"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
           path: |
@@ -178,16 +178,16 @@ jobs:
     if: needs.check_release.outputs.should_release == 'true'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - name: Download all built artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v4
         with:
           path: release_assets
           merge-multiple: true
 
       - name: Create or Update GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.check_release.outputs.tag }}
           name: "ReVanceX CLI ${{ needs.check_release.outputs.tag }}"

@@ -2,6 +2,46 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct BreakerRuleConfig {
+    #[serde(default = "default_cb_threshold")]
+    pub threshold: u32,
+    #[serde(default = "default_cb_cooldown_secs")]
+    pub cooldown_secs: u64,
+    #[serde(default = "default_cb_cooldown_apps")]
+    pub cooldown_apps: usize,
+}
+
+fn default_cb_threshold() -> u32 {
+    3
+}
+
+fn default_cb_cooldown_secs() -> u64 {
+    60
+}
+
+fn default_cb_cooldown_apps() -> usize {
+    5
+}
+
+impl Default for BreakerRuleConfig {
+    fn default() -> Self {
+        Self {
+            threshold: default_cb_threshold(),
+            cooldown_secs: default_cb_cooldown_secs(),
+            cooldown_apps: default_cb_cooldown_apps(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct CircuitBreakersConfig {
+    #[serde(default)]
+    pub default: BreakerRuleConfig,
+    #[serde(default)]
+    pub sources: HashMap<String, BreakerRuleConfig>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct CliSource {
     pub repo: String,
     pub asset_pattern: String,

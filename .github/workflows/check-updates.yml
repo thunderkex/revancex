@@ -25,7 +25,7 @@ jobs:
       has_updates: ${{ steps.poll.outputs.has_updates }}
       changed_apps: ${{ steps.poll.outputs.changed_apps }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
       - uses: Swatinem/rust-cache@v2
         with:

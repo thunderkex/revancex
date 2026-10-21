@@ -129,3 +129,18 @@ apk_source_order:
   - apkfab
   - apkcombo
 
+circuit_breakers:
+  default:
+    threshold: 3
+    cooldown_secs: 60
+    cooldown_apps: 5
+  sources:
+    uptodown:
+      threshold: 3
+      cooldown_secs: 60
+      cooldown_apps: 5
+    apkmirror:
+      threshold: 2
+      cooldown_secs: 120
+      cooldown_apps: 3
+

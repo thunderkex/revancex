@@ -118,7 +118,7 @@ fn test_real_arch_stripping() {
     let mut has_v7a = false;
 
     for i in 0..archive.len() {
-        let name = archive.by_index(i).unwrap().name().to_string();
+        let name = archive.by_index(i).unwrap().name().unwrap().to_string();
         if name.contains("arm64-v8a") {
             has_arm64 = true;
         }
@@ -186,7 +186,14 @@ fn test_arch_stripping_preserves_original_cache() {
     let mut orig_archive =
         zip::ZipArchive::new(std::fs::File::open(&original_apk).unwrap()).unwrap();
     let orig_entries: Vec<String> = (0..orig_archive.len())
-        .map(|i| orig_archive.by_index(i).unwrap().name().to_string())
+        .map(|i| {
+            orig_archive
+                .by_index(i)
+                .unwrap()
+                .name()
+                .unwrap()
+                .to_string()
+        })
         .collect();
     assert!(orig_entries.contains(&"lib/arm64-v8a/libtest.so".to_string()));
     assert!(orig_entries.contains(&"lib/x86_64/libtest.so".to_string()));
@@ -199,14 +206,21 @@ fn test_arch_stripping_preserves_original_cache() {
     let mut arm64_archive =
         zip::ZipArchive::new(std::fs::File::open(&arm64_work).unwrap()).unwrap();
     let arm64_entries: Vec<String> = (0..arm64_archive.len())
-        .map(|i| arm64_archive.by_index(i).unwrap().name().to_string())
+        .map(|i| {
+            arm64_archive
+                .by_index(i)
+                .unwrap()
+                .name()
+                .unwrap()
+                .to_string()
+        })
         .collect();
     assert!(arm64_entries.contains(&"lib/arm64-v8a/libtest.so".to_string()));
     assert!(!arm64_entries.contains(&"lib/x86_64/libtest.so".to_string()));
 
     let mut x86_archive = zip::ZipArchive::new(std::fs::File::open(&x86_work).unwrap()).unwrap();
     let x86_entries: Vec<String> = (0..x86_archive.len())
-        .map(|i| x86_archive.by_index(i).unwrap().name().to_string())
+        .map(|i| x86_archive.by_index(i).unwrap().name().unwrap().to_string())
         .collect();
     assert!(x86_entries.contains(&"lib/x86_64/libtest.so".to_string()));
     assert!(!x86_entries.contains(&"lib/arm64-v8a/libtest.so".to_string()));
@@ -251,7 +265,7 @@ fn test_real_lite_optimization() {
     let mut archive = zip::ZipArchive::new(file).unwrap();
 
     for i in 0..archive.len() {
-        let name = archive.by_index(i).unwrap().name().to_string();
+        let name = archive.by_index(i).unwrap().name().unwrap().to_string();
         assert!(!name.ends_with(".RSA"), "CERT.RSA must be removed");
         assert!(!name.ends_with(".properties"), "properties must be removed");
     }
@@ -308,7 +322,7 @@ async fn test_magisk_module_bundle_creation_and_verification() {
     let mut apk_entries = 0;
 
     for i in 0..archive.len() {
-        let name = archive.by_index(i).unwrap().name().to_string();
+        let name = archive.by_index(i).unwrap().name().unwrap().to_string();
         match name.as_str() {
             "META-INF/com/google/android/update-binary" => has_update_binary = true,
             "META-INF/com/google/android/updater-script" => has_updater_script = true,

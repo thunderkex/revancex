@@ -44,7 +44,7 @@ pub fn dex_entries_crc<P: AsRef<Path>>(
     let mut dex_map = std::collections::BTreeMap::new();
     for i in 0..archive.len() {
         let entry = archive.by_index(i)?;
-        let name = entry.name().to_string();
+        let name = entry.name()?.to_string();
         if name.ends_with(".dex") {
             dex_map.insert(name, entry.crc32());
         }

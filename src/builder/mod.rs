@@ -2183,11 +2183,13 @@ fn is_split_bundle(zip_path: &str) -> bool {
     let mut apk_count = 0;
     for i in 0..archive.len() {
         if let Ok(item) = archive.by_index(i) {
-            let name = item.name().to_lowercase();
-            if name.ends_with(".apk") {
-                apk_count += 1;
-                if apk_count > 1 || name.starts_with("split_") || name.contains(".config.") {
-                    return true;
+            if let Ok(name_cow) = item.name() {
+                let name = name_cow.to_lowercase();
+                if name.ends_with(".apk") {
+                    apk_count += 1;
+                    if apk_count > 1 || name.starts_with("split_") || name.contains(".config.") {
+                        return true;
+                    }
                 }
             }
         }
@@ -2240,7 +2242,7 @@ fn extract_base_apk_from_zip(zip_path: &str, dest: &str) -> Result<()> {
 
     for i in 0..archive.len() {
         let item = archive.by_index(i)?;
-        let name = item.name().to_lowercase();
+        let name = item.name()?.to_lowercase();
         if name.ends_with(".apk") {
             if name.ends_with("base.apk") {
                 best_index = Some(i);
@@ -2270,11 +2272,11 @@ pub fn strip_split_requirements_from_apk(apk_path: &str) -> Result<bool> {
     let mut archive = zip::ZipArchive::new(src_file)?;
 
     let mut manifest_bytes: Option<Vec<u8>> = None;
-    let mut other_entries = Vec::new();
+    let mut other_entries: Vec<(String, Vec<u8>, zip::CompressionMethod)> = Vec::new();
 
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i)?;
-        let name = entry.name().to_string();
+        let name = entry.name()?.to_string();
         let mut data = Vec::with_capacity(entry.size() as usize);
         entry.read_to_end(&mut data)?;
 

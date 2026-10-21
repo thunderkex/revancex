@@ -24,7 +24,7 @@ pub fn verify_bundle(zip_path: &str) -> Result<()> {
 
     for i in 0..archive.len() {
         let mut item = archive.by_index(i)?;
-        let name = item.name().to_string();
+        let name = item.name()?.to_string();
 
         match name.as_str() {
             "META-INF/com/google/android/update-binary" => {

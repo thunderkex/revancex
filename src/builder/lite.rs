@@ -17,8 +17,8 @@ pub fn optimize_apk(apk_path: &str) -> Result<u64> {
         let mut zip_in = zip::ZipArchive::new(src)?;
         for i in 0..zip_in.len() {
             let entry = zip_in.by_index(i)?;
-            let name = entry.name();
-            if should_drop(name) {
+            let name = entry.name()?;
+            if should_drop(&name) {
                 removed_count += 1;
                 removed_bytes += entry.size();
             }

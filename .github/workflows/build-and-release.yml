@@ -166,40 +166,7 @@ jobs:
       - name: Write attempted sources to GITHUB_STEP_SUMMARY
         if: always()
         run: |
-          if [ -f output/BUILD_REPORT.json ]; then
-            python3 -c "
-          import json, os
-          summary = os.environ.get('GITHUB_STEP_SUMMARY')
-          if summary and os.path.exists('output/BUILD_REPORT.json'):
-              with open('output/BUILD_REPORT.json') as f:
-                  data = json.load(f)
-              lines = ['### APK Source Acquisition Summary\n', '| App | Status | Source | Resolved Version |\n| --- | --- | --- | --- |\n']
-              apps = data.get('apps', data)
-              for app, rep in apps.items():
-                  src = rep.get('resolved_source') or 'none'
-                  ver = rep.get('resolved_version') or rep.get('target_version') or 'none'
-                  st = rep.get('status') or 'unknown'
-                  lines.append(f'| {app} | {st} | {src} | {ver} |\n')
-
-              summ = data.get('summary', {})
-              if summ:
-                  lines.append('\n### Build Summary\n')
-                  lines.append(f"- Total: {summ.get('total', 0)}\n- Success: {summ.get('success', 0)}\n- Failed: {summ.get('failed', 0)}\n- Skipped: {summ.get('skipped', 0)}\n")
-                  open_breakers = summ.get('open_breakers', [])
-                  if open_breakers:
-                      lines.append('\n#### Open Circuit Breakers\n')
-                      for ob in open_breakers:
-                          lines.append(f'- `{ob}`\n')
-                  cats = summ.get('failures_by_category', {})
-                  if cats:
-                      lines.append('\n#### Failures by Category\n')
-                      for cat, cnt in cats.items():
-                          lines.append(f'- {cat}: {cnt}\n')
-
-              with open(summary, 'a') as out:
-                  out.writelines(lines)
-          " 2>/dev/null
-          fi
+          python3 scripts/summarize_build_report.py
 
       - name: Upload Build Report
         if: always()

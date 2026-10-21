@@ -340,7 +340,9 @@ jobs:
           echo "Pruning older automated releases (retaining latest 10)..."
           gh release list --limit 40 | grep '^auto-' | awk '{print $1}' | tail -n +11 | while read -r old_tag; do
             echo "Deleting old release: $old_tag"
-            gh release delete "$old_tag" --cleanup-tag -y || true
+            if ! gh release delete "$old_tag" --cleanup-tag -y; then
+              echo "Warning: could not delete release $old_tag, skipping..."
+            fi
           done
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

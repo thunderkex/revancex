@@ -63,7 +63,7 @@ jobs:
     outputs:
       release_tag: ${{ steps.meta.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Wait for FlareSolverr
         continue-on-error: true
@@ -79,7 +79,7 @@ jobs:
           echo "::warning::FlareSolverr wait timed out; continuing without solver."
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: temurin
@@ -90,7 +90,7 @@ jobs:
 
       - name: Cache revancex CLI binary
         id: cache_cli
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: bin/revancex
           key: revancex-cli-${{ runner.os }}-${{ hashFiles('Cargo.toml', 'Cargo.lock', 'src/**') }}
@@ -121,7 +121,7 @@ jobs:
           apkeep --version
 
       - name: Restore patch tools cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: |
             tools/
@@ -140,7 +140,7 @@ jobs:
 
       - name: Save patch tools cache
         if: always() && steps.tools.outputs.tools_changed == 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: |
             tools/
@@ -170,7 +170,7 @@ jobs:
 
       - name: Upload Build Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-report-${{ inputs.tag_prefix }}-${{ inputs.arch }}
           path: output/BUILD_REPORT.json
@@ -286,7 +286,7 @@ jobs:
           done
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
           name: ${{ steps.meta.outputs.title }}
@@ -316,7 +316,7 @@ jobs:
 
       - name: Cache pip dependencies
         id: cache_pip
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('scripts/requirements.txt') }}
@@ -350,14 +350,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload updated docs artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docs-dist
           path: docs/
           if-no-files-found: warn
 
       - name: Upload CLI binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cli-binary
           path: bin/revancex

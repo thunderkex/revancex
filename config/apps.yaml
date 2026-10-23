@@ -1,5 +1,6 @@
 apps:
   adguard:
+    name: "AdGuard"
     enabled: true
     package: com.adguard.android
     patch_source: rushiranpise
@@ -20,6 +21,7 @@ apps:
     dependencies: []
 
   camscanner:
+    name: "CamScanner"
     enabled: true
     package: com.intsig.camscanner
     patch_source: rushiranpise
@@ -40,6 +42,7 @@ apps:
     dependencies: []
 
   duolingo:
+    name: "Duolingo"
     enabled: true  
     package: com.duolingo
     patch_source: hoodles
@@ -61,6 +64,7 @@ apps:
     dependencies: []
 
   facebook:
+    name: "Facebook"
     enabled: true  
     package: com.facebook.katana
     patch_source: hushfacebook
@@ -82,6 +86,7 @@ apps:
     dependencies: []
 
   flightradar24:
+    name: "Flightradar24"
     enabled: true  
     package: com.flightradar24free
     patch_source: rushiranpise
@@ -102,6 +107,7 @@ apps:
     dependencies: []
 
   gboard:
+    name: "Gboard"
     enabled: true
     package: com.google.android.inputmethod.latin
     patch_source: jasonwu
@@ -128,6 +134,7 @@ apps:
     dependencies: []
 
   google_maps:
+    name: "Google Maps"
     enabled: true  
     package: com.google.android.apps.maps
     patch_source: bearinmindcat
@@ -148,77 +155,13 @@ apps:
       bundle: true
     dependencies: []
 
-  google_phone:
-    enabled: true  
-    package: com.google.android.dialer
-    patch_source: DmoniakPatches
-    cli_source: MorpheApp/morphe-cli
-    uptodown_url: https://google-phone.en.uptodown.com/android
-    apkmirror_url: https://www.apkmirror.com/apk/google-inc/google-phone/
-    apkpure_url: https://apkpure.com/phone-by-google/com.google.android.dialer
-    aptoide_url: com.google.android.dialer
-    architectures:
-    - arm64-v8a
-    mode: patch
-    keystore:
-      alias: revanced
-      file: keys/google_phone.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
-  google_photos:
-    enabled: true
-    package: com.google.android.apps.photos
-    patch_source: rushiranpise
-    cli_source: MorpheApp/morphe-cli
-    apkmirror_url: https://www.apkmirror.com/apk/google-inc/google-photos
-    uptodown_url: https://google-photos.en.uptodown.com/android
-    archive_url: https://archive.org/download/geologically/apks/com.google.android.apps.photos
-    architectures:
-    - arm64-v8a
-    mode: patch
-    excluded_patches:
-    - Custom branding
-    - Change package name
-    keystore:
-      alias: revanced
-      file: keys/google_photos.jks
-    module:
-      single: false
-      bundle: true
-    dependencies:
-    - microg
-
-  subway_surfers:
-    enabled: true
-    package: com.kiloo.subwaysurf
-    patch_source: DmoniakPatches
-    cli_source: MorpheApp/morphe-cli
-    excluded_patches:
-    - 120 FPS High Refresh Rate & Low Latency - Subway Surfers (Experimental)
-    - Unlock Characters & Hoverboards - Subway Surfers (Experimental)
-    uptodown_url: https://subway-surfers.en.uptodown.com/android
-    apkmirror_url: https://www.apkmirror.com/apk/sybo-games/subwaysurfers
-    architectures:
-    - arm64-v8a
-    mode: patch
-    keystore:
-      alias: revanced
-      file: keys/revanced.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
   instagram:
+    name: "Instagram"
     enabled: true  
     package: com.instagram.android
-    patches_version: dev
-    patch_source: piko
+    patch_source: piko_ig_lite
     cli_source: MorpheApp/morphe-cli
-    apkmirror_url: https://www.apkmirror.com/apk/instagram/instagram/
+    apkmirror_url: https://www.apkmirror.com/apk/instagram/instagram-instagram/
     uptodown_url: https://instagram.en.uptodown.com/android
     archive_url: https://archive.org/download/geologically/apks/com.instagram.android
     apkpure_url: https://apkpure.com/instagram/com.instagram.android
@@ -238,6 +181,7 @@ apps:
     dependencies: []
 
   lightroom:
+    name: "Lightroom"
     enabled: true  
     package: com.adobe.lrmobile
     patch_source: hoodles
@@ -259,6 +203,7 @@ apps:
     dependencies: []
 
   microg:
+    name: "MicroG"
     enabled: true
     package: app.revanced.android.gms
     patch_source: none
@@ -279,13 +224,12 @@ apps:
     dependencies: []
 
   moviebox:
+    name: "Moviebox"
     enabled: true  
     package: com.community.oneroom
-    patch_source: dhrubonai
+    patch_source: hxreborn
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://com-community-oneroom.en.uptodown.com/android
-    archive_url: https://archive.org/download/geologically/apks/com.community.oneroom
-    apkpure_url: https://apkpure.com/moviebox/com.community.oneroom
     aptoide_url: com.community.oneroom
     architectures:
     - arm64-v8a
@@ -298,52 +242,11 @@ apps:
       bundle: true
     dependencies: []
 
-  myfitnesspal:
-    enabled: true  
-    package: com.myfitnesspal.android
-    patch_source: hoodles
-    uptodown_url: https://calorie-counter-myfitnesspal.en.uptodown.com/android
-    apkmirror_url: https://www.apkmirror.com/apk/myfitnesspal-inc/calorie-counter-myfitnesspal/
-    archive_url: https://archive.org/download/geologically/apks/com.myfitnesspal.android
-    apkpure_url: https://apkpure.com/myfitnesspal-calorie-counter/com.myfitnesspal.android
-    aptoide_url: com.myfitnesspal.android
-    architectures:
-    - arm64-v8a
-    mode: patch
-    keystore:
-      alias: revanced
-      file: keys/myfitnesspal.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
-  nova_launcher:
-    enabled: true  
-    package: com.teslacoilsw.launcher
-    patch_source: rushiranpise
-    uptodown_url: https://nova-launcher.en.uptodown.com/android
-    apkmirror_url: https://www.apkmirror.com/apk/instabridge-sweden-ab/nova-launcher/
-    archive_url: https://archive.org/download/geologically/apks/com.teslacoilsw.launcher
-    apkpure_url: https://apkpure.com/nova-launcher/com.teslacoilsw.launcher
-    aptoide_url: com.teslacoilsw.launcher
-    architectures:
-    - arm64-v8a
-    mode: patch
-    patches:
-    - unlock-prime
-    keystore:
-      alias: revanced
-      file: keys/nova_launcher.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
   pixiv:
+    name: "Pixiv"
     enabled: true  
     package: jp.pxv.android
-    patch_source: de_revanced
+    patch_source: frip
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/pixiv-inc/pixiv/
     uptodown_url: https://pixiv.en.uptodown.com/android
@@ -353,11 +256,6 @@ apps:
     architectures:
     - arm64-v8a
     mode: patch
-    included_patches:
-    - Hide ads
-    - Remove popular search time limit
-    excluded_patches:
-    - Change package name
     keystore:
       alias: revanced
       file: keys/pixiv.jks
@@ -366,30 +264,11 @@ apps:
       bundle: true
     dependencies: []
 
-  prime_video:
-    enabled: true  
-    package: com.amazon.avod.thirdpartyclient
-    patch_source: hoodles
-    cli_source: MorpheApp/morphe-cli
-    apkmirror_url: https://www.apkmirror.com/apk/amazon-mobile-llc/amazon-prime-video/
-    uptodown_url: https://amazon-prime-video.en.uptodown.com/android
-    apkpure_url: https://apkpure.com/amazon-prime-video/com.amazon.avod.thirdpartyclient
-    aptoide_url: com.amazon.avod.thirdpartyclient
-    architectures:
-    - arm64-v8a
-    mode: patch
-    keystore:
-      alias: revanced
-      file: keys/prime_video.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
   proton_vpn:
+    name: "Proton VPN"
     enabled: true  
     package: ch.protonvpn.android
-    patch_source: DmoniakPatches
+    patch_source: hxreborn
     uptodown_url: https://protonvpn.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/proton-technologies-ag/protonvpn-secure-and-free-vpn/
     archive_url: https://archive.org/download/geologically/apks/ch.protonvpn.android
@@ -407,10 +286,10 @@ apps:
     dependencies: []
 
   reddit:
+    name: "Reddit"
     enabled: true
     package: com.reddit.frontpage
     patch_source: jkennethcarino
-    patch_version: dev
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://reddit-official-app.en.uptodown.com/android
     apkmirror_url: https://apkmirror.com/apk/redditinc/reddit
@@ -418,9 +297,6 @@ apps:
     architectures:
     - arm64-v8a
     mode: patch
-    included_patches: []
-    excluded_patches:
-    - Change package name
     keystore:
       alias: revanced
       file: keys/reddit.jks
@@ -430,9 +306,10 @@ apps:
     dependencies: []
 
   strava:
+    name: "Strava"
     enabled: true  
     package: com.strava
-    patch_source: rushiranpise
+    patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/strava/strava/
     uptodown_url: https://strava.en.uptodown.com/android
@@ -457,6 +334,7 @@ apps:
     dependencies: []
 
   threads:
+    name: "Threads"
     enabled: true  
     package: com.instagram.barcelona
     patch_source: hushthreads
@@ -479,6 +357,7 @@ apps:
     dependencies: []
 
   tiktok:
+    name: "TikTok"
     enabled: true  
     package: com.zhiliaoapp.musically
     patch_source: hushfeed
@@ -500,6 +379,7 @@ apps:
     dependencies: []
 
   wps_office:
+    name: "WPS Office"
     enabled: true
     package: cn.wps.moffice_eng
     patch_source: hoodles
@@ -518,14 +398,16 @@ apps:
     archive_url: https://archive.org/download/geologically/apks/cn.wps.moffice_eng
 
   x_piko:
+    name: "X Piko"
     enabled: true  
     package: com.twitter.android
-    patch_source: piko
+    apk_url: https://d.apkpure.com/b/XAPK/com.twitter.android?versionCode=312191000&nc=arm64-v8a
+    patch_source: piko_newx
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/x-corp/twitter/
     archive_url: https://archive.org/download/geologically/apks/com.twitter.android
     uptodown_url: https://twitter.en.uptodown.com/android
-    apkpure_url: https://apkpure.com/twitter/com.twitter.android
+    apkpure_url: https://apkpure.com/x-formerly-twitter/com.twitter.android
     aptoide_url: com.twitter.android
     architectures:
     - arm64-v8a
@@ -542,6 +424,7 @@ apps:
     dependencies: []
 
   youtube:
+    name: "YouTube"
     enabled: true
     package: com.google.android.youtube
     patch_source: anddea
@@ -572,10 +455,16 @@ apps:
       root: []
 
   pinterest:
+    name: "Pinterest"
     enabled: true  
     package: com.pinterest
+    version: 14.23.0
     patch_source: browzomje
     cli_source: MorpheApp/morphe-cli
+    excluded_patches:
+    - Keep Home feed
+    - Choose startup tab
+    - Hide save for later tooltip
     apkmirror_url: https://www.apkmirror.com/apk/pinterest/pinterest-one-destination-for-a-world-of-inspiration
     uptodown_url: https://pinterest.en.uptodown.com/android
     apkpure_url: https://apkpure.com/pinterest/com.pinterest
@@ -592,27 +481,8 @@ apps:
       bundle: true
     dependencies: []
 
-  telegram:
-    enabled: true  
-    package: org.telegram.messenger
-    patch_source: rushiranpise
-    cli_source: MorpheApp/morphe-cli
-    apkmirror_url: https://www.apkmirror.com/apk/telegram-messenger-llp/telegram/
-    uptodown_url: https://telegram.en.uptodown.com/android
-    apkpure_url: https://apkpure.com/telegram/org.telegram.messenger
-    aptoide_url: org.telegram.messenger
-    architectures:
-    - arm64-v8a
-    mode: patch
-    keystore:
-      alias: revanced
-      file: keys/telegram.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
-
   mx_player:
+    name: "MX Player"
     enabled: true  
     package: com.mxtech.videoplayer.ad
     patch_source: blazeftl
@@ -635,9 +505,10 @@ apps:
     dependencies: []
 
   capcut:
+    name: "CapCut"
     enabled: true  
     package: com.lemon.lvoverseas
-    patch_source: rikydev
+    patch_source: kveld9
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/bytedance-pte-ltd/capcut/
     uptodown_url: https://viamaker.en.uptodown.com/android
@@ -655,9 +526,10 @@ apps:
     dependencies: []
 
   pvz_free:
+    name: "Plants vs Zombies"
     enabled: true  
     package: com.ea.game.pvzfree_row
-    patch_source: miguelninja
+    patch_source: byehi98
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/electronic-arts/plants-vs-zombies-free/
     uptodown_url: https://plants-vs-zombies-free.en.uptodown.com/android
@@ -675,6 +547,7 @@ apps:
     dependencies: []
 
   cloudflare_warp:
+    name: "Cloudflare WARP"
     enabled: true  
     package: com.cloudflare.onedotonedotonedotone
     patch_source: rushiranpise
@@ -696,6 +569,7 @@ apps:
     dependencies: []
 
   sticker_maker:
+    name: "Sticker Maker"
     enabled: true  
     package: com.marsvard.stickermakerforwhatsapp
     patch_source: rushiranpise
@@ -716,6 +590,7 @@ apps:
     dependencies: []
 
   drama_box:
+    name: "DramaBox"
     enabled: true  
     package: com.storymatrix.drama
     patch_source: rushiranpise
@@ -736,6 +611,7 @@ apps:
     dependencies: []
 
   stellarium:
+    name: "Stellarium"
     enabled: true  
     package: com.noctuasoftware.stellarium_free
     patch_source: bholey
@@ -756,8 +632,10 @@ apps:
     dependencies: []
 
   serverauditor:
+    name: "Termius"
     enabled: true  
     package: com.server.auditor.ssh.client
+    version: 7.11.2
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/termius-corporation/termius-ssh-telnet-client
@@ -767,6 +645,8 @@ apps:
     architectures:
     - arm64-v8a
     mode: patch
+    patches:
+    - Server Auditor Premium
     keystore:
       alias: revanced
       file: keys/serverauditor.jks
@@ -776,9 +656,10 @@ apps:
     dependencies: []
 
   hungry_shark_world:
+    name: "Hungry Shark World"
     enabled: true
     package: com.ubisoft.hungrysharkworld
-    patch_source: DmoniakPatches
+    patch_source: legendsciber
     cli_source: MorpheApp/morphe-cli
     uptodown_url: https://ubisoft-entertainment-hungry-shark.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/ubisoft-entertainment/hungry-shark-world/
@@ -794,6 +675,7 @@ apps:
     dependencies: []
 
   youtube_music:
+    name: "YouTube Music"
     enabled: true
     package: com.google.android.apps.youtube.music
     patch_source: anddea

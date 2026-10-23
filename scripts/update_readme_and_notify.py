@@ -141,7 +141,6 @@ def main():
     os.makedirs("tmp", exist_ok=True)
     registry = {
         "stock_apps": {},
-        "root_apps": {},
         "single_modules": {},
         "bundles": {},
         "custom_bundles": {}
@@ -151,19 +150,52 @@ def main():
             with open(RELEASES_REGISTRY_PATH, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
             for key, val in loaded.items():
-                registry[key] = val
+                if key != "root_apps":
+                    registry[key] = val
         except Exception:
             pass
 
-    if "root_apps" not in registry:
-        registry["root_apps"] = {}
+    apps_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "apps.yaml")
+    apps_cfg = {}
+    if _YAML_AVAILABLE and os.path.exists(apps_yaml_path):
+        try:
+            with open(apps_yaml_path, "r", encoding="utf-8") as f:
+                y = yaml.safe_load(f)
+                if y and "apps" in y:
+                    apps_cfg = y["apps"]
+        except Exception as e:
+            print(f"[apps.yaml] Failed to load: {e}")
 
-    legacy_root_keys = [k for k in list(registry["stock_apps"].keys()) if k.endswith("-root")]
-    for k in legacy_root_keys:
-        val = registry["stock_apps"].pop(k)
-        app_key = k[:-5]
-        if app_key not in registry["root_apps"]:
-            registry["root_apps"][app_key] = val
+    def _resolve_app_key(filename, is_module=False):
+        stem = filename[:-4]
+        if is_module:
+            clean = (
+                stem.replace("revancex-module-", "")
+                .replace("revanced-module-", "")
+                .replace("-module", "")
+                .replace("revancex-", "")
+                .replace("revanced-", "")
+            )
+        else:
+            clean = stem.replace("-patched", "")
+        if clean in apps_cfg:
+            return clean
+        for app_id, app_data in apps_cfg.items():
+            if not isinstance(app_data, dict):
+                continue
+            app_name = app_data.get("name") or app_data.get("display_name") or app_id.replace("_", " ").title()
+            sanitized = re.sub(r"[^a-zA-Z0-9]+", "-", app_name).strip("-")
+            if clean == app_id or clean == sanitized or clean.lower() == app_id.lower() or stem.startswith(f"{sanitized}-") or stem.startswith(f"{app_id}-"):
+                return app_id
+        # Fallback: if filename is like Name-1.2.3, strip version suffix
+        m = re.match(r"^([a-zA-Z0-9_\s]+?)-v?\d", clean)
+        if m:
+            prefix = m.group(1).strip("-")
+            prefix_lower = prefix.lower().replace("-", "_").replace(" ", "_")
+            if prefix_lower in apps_cfg:
+                return prefix_lower
+            return prefix_lower
+        return clean.lower()
 
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     new_files = []
@@ -179,11 +211,10 @@ def main():
         url = f"https://github.com/{repo_slug}/releases/download/{tag_name}/{fname}" if repo_slug else f"#{fname}"
         
         if fname.endswith(".apk") and not fname.endswith(".idsig"):
-            stem = fname[:-4]
-            is_root = stem.endswith("-root") or "-root" in stem
-            app_key = stem.replace("-root", "").replace("-patched", "")
-            target_dict = registry["root_apps"] if is_root else registry["stock_apps"]
-            target_dict[app_key] = {
+            if "-root" in fname:
+                continue
+            app_key = _resolve_app_key(fname, is_module=False)
+            registry["stock_apps"][app_key] = {
                 "filename": fname,
                 "url": url,
                 "tag": tag_name,
@@ -205,14 +236,7 @@ def main():
                     "updated_at": now_iso
                 }
             else:
-                base = fname[:-4]
-                app_key = (
-                    base.replace("revancex-module-", "")
-                    .replace("revanced-module-", "")
-                    .replace("-module", "")
-                    .replace("revancex-", "")
-                    .replace("revanced-", "")
-                )
+                app_key = _resolve_app_key(fname, is_module=True)
                 registry["single_modules"][app_key] = {
                     "filename": fname,
                     "url": url,
@@ -246,35 +270,34 @@ def main():
 
     app_names = sorted(list(set(
         list(registry["stock_apps"].keys()) +
-        list(registry["root_apps"].keys()) +
         list(registry["single_modules"].keys())
     )))
     
     stock_module_table = [
-        "| App | Stock APK | Root APK | Single Root Module | Last Updated |",
-        "| :--- | :--- | :--- | :--- | :--- |"
+        "| App | Patched APK | Single Root Module | Last Updated |",
+        "| :--- | :--- | :--- | :--- |"
     ]
     for app in app_names:
         stock_info = registry["stock_apps"].get(app)
-        root_info = registry["root_apps"].get(app)
         module_info = registry["single_modules"].get(app)
 
-        clean_name = app.replace("_", " ").title()
+        clean_name = apps_cfg.get(app, {}).get("name") if isinstance(apps_cfg.get(app), dict) else None
+        if not clean_name:
+            clean_name = app.replace("_", " ").title()
         
         stock_str = f"[{stock_info['filename']}]({stock_info['url']})" if stock_info else "—"
-        root_str = f"[{root_info['filename']}]({root_info['url']})" if root_info else "—"
         module_str = f"[{module_info['filename']}]({module_info['url']})" if module_info else "—"
         
         timestamps = [
             info["updated_at"]
-            for info in (stock_info, root_info, module_info)
+            for info in (stock_info, module_info)
             if info and "updated_at" in info
         ]
         date_str = max(timestamps) if timestamps else ""
 
-        stock_module_table.append(f"| **{clean_name}** | {stock_str} | {root_str} | {module_str} | {date_str} |")
+        stock_module_table.append(f"| **{clean_name}** | {stock_str} | {module_str} | {date_str} |")
     if len(stock_module_table) == 2:
-        stock_module_table.append("| _None yet_ | — | — | — | — |")
+        stock_module_table.append("| _None yet_ | — | — | — |")
 
     bundle_table = [
         "| Bundle Name | Included Apps & Payload Files | Download Link | Release Tag | Updated At |",
@@ -306,7 +329,7 @@ def main():
 
     content_parts = [
         START_MARKER,
-        '### <i class="fa-solid fa-mobile-screen"></i> Stock Apps & Single Root Modules',
+        '### <i class="fa-solid fa-mobile-screen"></i> Patched Apps & Single Root Modules',
         "\n".join(stock_module_table),
         "",
         '### <i class="fa-solid fa-box-archive"></i> Bundle Modules (Multi-App)',

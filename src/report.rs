@@ -92,7 +92,7 @@ impl SourceAttemptRecord {
     }
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, Default)]
 pub struct AppBuildReport {
     pub status: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -123,6 +123,18 @@ pub struct AppBuildReport {
     pub failure_category: Option<FailureCategory>,
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub attempted_sources: Vec<SourceAttemptRecord>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub arch_mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub output_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub output_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub root_payload_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub module_file: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub runtime_test: Option<String>,
 }
 
 impl AppBuildReport {
@@ -145,6 +157,12 @@ impl AppBuildReport {
             error: Some(err_str),
             failure_category: Some(cat),
             attempted_sources: vec![],
+            arch_mode: None,
+            output_file: None,
+            output_path: None,
+            root_payload_path: None,
+            module_file: None,
+            runtime_test: None,
         }
     }
 }

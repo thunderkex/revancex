@@ -10,12 +10,13 @@ Automated patch orchestration ecosystem written in Rust. It streamlines patching
 
 ## Features
 
-- **40+ Pre-Configured Apps**: YouTube, YouTube Music, Spotify, Reddit, MicroG, Soundcloud, Twitter/X, and more.
-- **Fast Rust CLI (`revancex`)**: High-performance local building, version resolution, and APK patching with no runtime dependencies beyond Java JDK 17.
+- **35+ Pre-Configured Apps**: YouTube, YouTube Music, Spotify, Reddit, MicroG, TikTok, Instagram, Twitter/X, Pinterest, Gboard, Google Photos, and more.
+- **Fast Rust CLI (`revancex`)**: High-performance local building, version resolution, and APK patching with no runtime dependencies beyond Java JDK 17 (Rust 1.85+ MSRV).
+- **Multi-Source APK Acquisition**: Resilient fallback pipeline (APKMirror, Uptodown, APKPure API, Aptoide, APKCombo, APKFab, Archive.org, GitHub, GitLab, Codeberg, apkeep) protected by domain-aware circuit breakers.
 - **Root & Non-Root Packaging**: Generate standalone signed APKs, individual Magisk/KernelSU modules, or multi-app bundle zips.
-- **Embedded WebUI**: KernelSU and Magisk modules include an interactive, responsive WebUI for managing mounted apps.
-- **Dynamic Configuration**: Fully decoupled definitions for apps (`apps.yaml`), patch profiles (`patches.yaml`), and upstream sources (`sources.yaml`).
-- **Automated CI/CD**: Scheduled and on-demand builds via GitHub Actions with GitHub Pages catalogue.
+- **Embedded WebUI**: KernelSU, APatch, and Magisk modules include an interactive, responsive Material 3 Expressive WebUI for inspecting and toggling mounted apps.
+- **Testing & Health Diagnostics**: Built-in environment diagnostic suite (`doctor`), static DEX and AndroidManifest validation, and automated smoke testing (`test`) with failure threshold policies.
+- **Dynamic Configuration & CI/CD**: Decoupled YAML definitions (`apps.yaml`, `sources.yaml`, `modules.yaml`, `build.yaml`), structured build reporting (`BUILD_REPORT.json`), automated GitHub Actions pipelines, and an interactive GitHub Pages catalogue.
 
 ---
 
@@ -25,50 +26,51 @@ Browse apps visually on our [Web Catalogue](https://thunderkex.github.io/revance
 
 <!-- AUTO-APP-LIST-START -->
 
-### <i class="fa-solid fa-mobile-screen"></i> Stock Apps & Single Root Modules
+### <i class="fa-solid fa-mobile-screen"></i> Patched Apps & Single Root Modules
 
-| App | Stock APK | Root APK | Single Root Module | Last Updated |
-| :--- | :--- | :--- | :--- | :--- |
-| **Adguard** | [adguard-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/adguard-patched.apk) | — | — | 2026-09-28 19:13:02 UTC |
-| **Camscanner** | [camscanner-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/camscanner-patched.apk) | — | — | 2026-10-17 09:32:45 UTC |
-| **Capcut** | [capcut-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/capcut-patched.apk) | — | — | 2026-10-05 01:57:41 UTC |
-| **Cloudflare Warp** | [cloudflare_warp-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/cloudflare_warp-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Drama Box** | [drama_box-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk) | — | — | 2026-09-28 08:40:43 UTC |
-| **Duolingo** | [duolingo-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Facebook** | [facebook-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/facebook-patched.apk) | — | — | 2026-10-19 08:07:38 UTC |
-| **Flightradar24** | [flightradar24-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/flightradar24-patched.apk) | — | — | 2026-10-17 09:32:45 UTC |
-| **Gboard** | [gboard-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/gboard-patched.apk) | — | — | 2026-10-11 02:05:10 UTC |
-| **Google Maps** | [google_maps-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk) | — | — | 2026-10-12 02:29:17 UTC |
-| **Google News** | [google_news-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/google_news-patched.apk) | — | — | 2026-09-28 19:13:02 UTC |
-| **Google Phone** | [google_phone-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_phone-patched.apk) | — | — | 2026-10-12 02:29:17 UTC |
-| **Google Photos** | [google_photos-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/google_photos-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Hungry Shark World** | [hungry_shark_world-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Instagram** | [instagram-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/instagram-patched.apk) | — | — | 2026-10-11 02:05:10 UTC |
-| **Lightroom** | [lightroom-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/lightroom-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Microg** | [microg.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/microg.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Mx Player** | [mx_player-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/mx_player-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Myfitnesspal** | [myfitnesspal-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/myfitnesspal-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Nova Launcher** | [nova_launcher-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/nova_launcher-patched.apk) | — | — | 2026-09-28 08:40:43 UTC |
-| **Pixiv** | [pixiv-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/pixiv-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Prime Video** | [prime_video-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/prime_video-patched.apk) | — | — | 2026-10-05 01:57:41 UTC |
-| **Proton Vpn** | [proton_vpn-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/proton_vpn-patched.apk) | — | — | 2026-10-12 02:29:17 UTC |
-| **Pvz Free** | [pvz_free-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/pvz_free-patched.apk) | — | — | 2026-09-28 08:40:43 UTC |
-| **Reddit** | [reddit-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/reddit-patched.apk) | — | — | 2026-10-11 02:05:10 UTC |
-| **Serverauditor** | [serverauditor-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/serverauditor-patched.apk) | — | — | 2026-10-17 09:32:45 UTC |
-| **Solid Explorer** | [solid_explorer-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.27-b28/solid_explorer-patched.apk) | — | — | 2026-09-27 09:56:46 UTC |
-| **Soundcloud** | [soundcloud-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/soundcloud-patched.apk) | [soundcloud-root.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/soundcloud-root.apk) | — | 2026-10-05 01:57:41 UTC |
-| **Spotify** | [spotify-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/spotify-patched.apk) | — | — | 2026-10-05 01:57:41 UTC |
-| **Stellarium** | [stellarium-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/stellarium-patched.apk) | — | — | 2026-09-28 08:40:43 UTC |
-| **Sticker Maker** | [sticker_maker-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/sticker_maker-patched.apk) | — | — | 2026-10-17 09:32:45 UTC |
-| **Strava** | [strava-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/strava-patched.apk) | — | — | 2026-10-17 09:32:45 UTC |
-| **Subway Surfers** | [subway_surfers-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/subway_surfers-patched.apk) | — | — | 2026-10-19 08:07:38 UTC |
-| **Telegram** | [telegram-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/telegram-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Threads** | [threads-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/threads-patched.apk) | — | — | 2026-10-19 08:07:38 UTC |
-| **Tiktok** | [tiktok-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/tiktok-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **Wps Office** | [wps_office-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/wps_office-patched.apk) | — | — | 2026-10-19 09:51:05 UTC |
-| **X Piko** | [x_piko-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/x_piko-patched.apk) | — | — | 2026-10-11 02:05:10 UTC |
-| **Youtube** | [youtube-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/youtube-patched.apk) | [youtube-root.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/youtube-root.apk) | [revancex-module-youtube.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-youtube.zip) | 2026-09-28 19:13:02 UTC |
-| **Youtube Music** | [youtube_music-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/youtube_music-patched.apk) | [youtube_music-root.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/youtube_music-root.apk) | [revancex-module-youtube_music.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-module-youtube_music.zip) | 2026-10-19 09:51:05 UTC |
+| App | Patched APK | Single Root Module | Last Updated |
+| :--- | :--- | :--- | :--- |
+| **Adguard** | [adguard-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/adguard-patched.apk) | — | 2026-09-28 19:13:02 UTC |
+| **Camscanner** | [camscanner-patched.apk](#camscanner-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Capcut** | [capcut-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/capcut-patched.apk) | — | 2026-10-05 01:57:41 UTC |
+| **Cloudflare Warp** | [cloudflare_warp-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/cloudflare_warp-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Drama Box** | [drama_box-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk) | — | 2026-09-28 08:40:43 UTC |
+| **Duolingo** | [duolingo-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Facebook** | [facebook-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/facebook-patched.apk) | — | 2026-10-19 08:07:38 UTC |
+| **Flightradar24** | [flightradar24-patched.apk](#flightradar24-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Gboard** | [gboard-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/gboard-patched.apk) | — | 2026-10-11 02:05:10 UTC |
+| **Google Maps** | [google_maps-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk) | — | 2026-10-12 02:29:17 UTC |
+| **Google News** | [google_news-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/google_news-patched.apk) | — | 2026-09-28 19:13:02 UTC |
+| **Google Phone** | [google_phone-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_phone-patched.apk) | — | 2026-10-12 02:29:17 UTC |
+| **Google Photos** | [google_photos-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/google_photos-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Hungry Shark World** | [hungry_shark_world-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Instagram** | [instagram-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/instagram-patched.apk) | — | 2026-10-11 02:05:10 UTC |
+| **Lightroom** | [lightroom-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/lightroom-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Microg** | [microg.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/microg.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Mx Player** | [mx_player-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/mx_player-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Myfitnesspal** | [myfitnesspal-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/myfitnesspal-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Nova Launcher** | [nova_launcher-patched.apk](#nova_launcher-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Pinterest** | [pinterest-patched.apk](#pinterest-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Pixiv** | [pixiv-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/pixiv-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Prime Video** | [prime_video-patched.apk](#prime_video-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Proton Vpn** | [proton_vpn-patched.apk](#proton_vpn-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Pvz Free** | [pvz_free-patched.apk](#pvz_free-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Reddit** | [reddit-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/reddit-patched.apk) | — | 2026-10-11 02:05:10 UTC |
+| **Serverauditor** | [serverauditor-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/serverauditor-patched.apk) | — | 2026-10-17 09:32:45 UTC |
+| **Solid Explorer** | [solid_explorer-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.27-b28/solid_explorer-patched.apk) | — | 2026-09-27 09:56:46 UTC |
+| **Soundcloud** | [soundcloud-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/soundcloud-patched.apk) | — | 2026-10-05 01:57:41 UTC |
+| **Spotify** | [spotify-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/spotify-patched.apk) | — | 2026-10-05 01:57:41 UTC |
+| **Stellarium** | [stellarium-patched.apk](#stellarium-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Sticker Maker** | [sticker_maker-patched.apk](#sticker_maker-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Strava** | [strava-patched.apk](#strava-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Subway Surfers** | [subway_surfers-patched.apk](#subway_surfers-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Telegram** | [telegram-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/telegram-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Threads** | [threads-patched.apk](#threads-patched.apk) | — | 2026-10-22 02:06:32 UTC |
+| **Tiktok** | [tiktok-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/tiktok-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **Wps Office** | [wps_office-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/wps_office-patched.apk) | — | 2026-10-19 09:51:05 UTC |
+| **X Piko** | [x_piko-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/x_piko-patched.apk) | — | 2026-10-11 02:05:10 UTC |
+| **Youtube** | [youtube-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/youtube-patched.apk) | [revancex-module-youtube.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/revancex-module-youtube.zip) | 2026-09-28 19:13:02 UTC |
+| **Youtube Music** | [youtube_music-patched.apk](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/youtube_music-patched.apk) | [revancex-module-youtube_music.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-module-youtube_music.zip) | 2026-10-19 09:51:05 UTC |
 
 
 
@@ -76,12 +78,12 @@ Browse apps visually on our [Web Catalogue](https://thunderkex.github.io/revance
 
 | Bundle Name | Included Apps & Payload Files | Download Link | Release Tag | Updated At |
 | :--- | :--- | :--- | :--- | :--- |
-| **All Bundle**<br><code>revancex-bundle-all.zip</code> | <details><summary><b>24 Apps / APKs (Click to view)</b></summary><ul><li><b>Adguard</b>: <code>apks/adguard.apk</code></li><li><b>Camscanner</b>: <code>apks/camscanner.apk</code></li><li><b>Duolingo</b>: <code>apks/duolingo.apk</code></li><li><b>Facebook</b>: <code>apks/facebook.apk</code></li><li><b>Flightradar24</b>: <code>apks/flightradar24.apk</code></li><li><b>Gboard</b>: <code>apks/gboard.apk</code></li><li><b>Google Photos</b>: <code>apks/google_photos.apk</code></li><li><b>Hungry Shark World</b>: <code>apks/hungry_shark_world.apk</code></li><li><b>Instagram</b>: <code>apks/instagram.apk</code></li><li><b>Lightroom</b>: <code>apks/lightroom.apk</code></li><li><b>Moviebox</b>: <code>apks/moviebox.apk</code></li><li><b>Myfitnesspal</b>: <code>apks/myfitnesspal.apk</code></li><li><b>Nova Launcher</b>: <code>apks/nova_launcher.apk</code></li><li><b>Pixiv</b>: <code>apks/pixiv.apk</code></li><li><b>Prime Video</b>: <code>apks/prime_video.apk</code></li><li><b>Proton Vpn</b>: <code>apks/proton_vpn.apk</code></li><li><b>Reddit</b>: <code>apks/reddit.apk</code></li><li><b>Strava</b>: <code>apks/strava.apk</code></li><li><b>Threads</b>: <code>apks/threads.apk</code></li><li><b>Tiktok</b>: <code>apks/tiktok.apk</code></li><li><b>Wps Office</b>: <code>apks/wps_office.apk</code></li><li><b>X Piko</b>: <code>apks/x_piko.apk</code></li><li><b>Youtube</b>: <code>apks/youtube.apk</code></li><li><b>Youtube Music</b>: <code>apks/youtube_music.apk</code></li></ul></details> | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/revancex-bundle-all.zip) | `auto-v1.0.5-2026.10.19-b128` | 2026-10-19 08:07:38 UTC |
-| **Core Essentials Bundle**<br><code>revancex-bundle-core.zip</code> | <details><summary><b>4 Apps / APKs (Click to view)</b></summary><ul><li><b>Youtube</b>: <code>apks/youtube.apk</code></li><li><b>Youtube Music</b>: <code>apks/youtube_music.apk</code></li><li><b>Reddit</b>: <code>apks/reddit.apk</code></li><li><b>X Piko</b>: <code>apks/x_piko.apk</code></li></ul></details> | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-bundle-core.zip) | `auto-v1.0.5-2026.10.19-b130` | 2026-10-19 09:51:05 UTC |
-| **Multimedia Bundle**<br><code>revancex-bundle-multimedia.zip</code> | <details><summary><b>3 Apps / APKs (Click to view)</b></summary><ul><li><b>Youtube</b>: <code>apks/youtube.apk</code></li><li><b>Youtube Music</b>: <code>apks/youtube_music.apk</code></li><li><b>Prime Video</b>: <code>apks/prime_video.apk</code></li></ul></details> | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-bundle-multimedia.zip) | `auto-v1.0.5-2026.10.19-b130` | 2026-10-19 09:51:05 UTC |
-| **Productivity Bundle**<br><code>revancex-bundle-productivity.zip</code> | <details><summary><b>3 Apps / APKs (Click to view)</b></summary><ul><li><b>Camscanner</b>: <code>apks/camscanner.apk</code></li><li><b>Lightroom</b>: <code>apks/lightroom.apk</code></li><li><b>Wps Office</b>: <code>apks/wps_office.apk</code></li></ul></details> | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-bundle-productivity.zip) | `auto-v1.0.5-2026.10.19-b130` | 2026-10-19 09:51:05 UTC |
-| **Social Bundle**<br><code>revancex-bundle-social.zip</code> | <details><summary><b>7 Apps / APKs (Click to view)</b></summary><ul><li><b>Reddit</b>: <code>apks/reddit.apk</code></li><li><b>Tiktok</b>: <code>apks/tiktok.apk</code></li><li><b>Instagram</b>: <code>apks/instagram.apk</code></li><li><b>Facebook</b>: <code>apks/facebook.apk</code></li><li><b>Threads</b>: <code>apks/threads.apk</code></li><li><b>X Piko</b>: <code>apks/x_piko.apk</code></li><li><b>Pixiv</b>: <code>apks/pixiv.apk</code></li></ul></details> | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-bundle-social.zip) | `auto-v1.0.5-2026.10.19-b130` | 2026-10-19 09:51:05 UTC |
-| **Tools Bundle**<br><code>revancex-bundle-tools.zip</code> | <details><summary><b>2 Apps / APKs (Click to view)</b></summary><ul><li><b>Adguard</b>: <code>apks/adguard.apk</code></li><li><b>Proton Vpn</b>: <code>apks/proton_vpn.apk</code></li></ul></details> | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/revancex-bundle-tools.zip) | `auto-v1.0.5-2026.10.12-b117` | 2026-10-12 02:29:17 UTC |
+| **All Bundle**<br><code>revancex-bundle-all.zip</code> | Configured apps | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/revancex-bundle-all.zip) | `auto-v1.0.5-2026.10.19-b128` | 2026-10-19 08:07:38 UTC |
+| **Core Bundle**<br><code>revancex-bundle-core.zip</code> | Configured apps | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-bundle-core.zip) | `auto-v1.0.5-2026.10.19-b130` | 2026-10-19 09:51:05 UTC |
+| **Multimedia Bundle**<br><code>revancex-bundle-multimedia.zip</code> | Configured apps | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-bundle-multimedia.zip) | `auto-v1.0.5-2026.10.19-b130` | 2026-10-19 09:51:05 UTC |
+| **Productivity Bundle**<br><code>revancex-bundle-productivity.zip</code> | Configured apps | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-bundle-productivity.zip) | `auto-v1.0.5-2026.10.19-b130` | 2026-10-19 09:51:05 UTC |
+| **Social Bundle**<br><code>revancex-bundle-social.zip</code> | Configured apps | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-bundle-social.zip) | `auto-v1.0.5-2026.10.19-b130` | 2026-10-19 09:51:05 UTC |
+| **Tools Bundle**<br><code>revancex-bundle-tools.zip</code> | Configured apps | [Download Zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/revancex-bundle-tools.zip) | `auto-v1.0.5-2026.10.12-b117` | 2026-10-12 02:29:17 UTC |
 
 
 
@@ -129,15 +131,25 @@ Expand-Archive revancex-windows-x86_64.zip -DestinationPath .
 <details>
 <summary><b><i class="fa-solid fa-rocket"></i> Step-by-Step Build Workflow</b></summary>
 
+#### Step 0: Check Environment & Prerequisites
+
+Verify that your system has all required and recommended tools installed:
+
+```bash
+./revancex doctor
+```
+
+*(On Windows: `.\revancex.exe doctor`)*
+
+This verifies Java JDK 17+, Android SDK tools (`keytool`, `zipalign`, `adb`), `apkeep`, python runtime, bypass services, and configuration integrity.
+
 #### Step 1: Download Required Tools & Patches
 
-Download the required tools (revanced-cli, patch jars, apkeep, integrations) automatically:
+Download the required patcher JARs, integrations, and tools automatically:
 
 ```bash
 ./revancex download-tools
 ```
-
-*(On Windows: `.\revancex.exe download-tools`)*
 
 #### Step 2: Check for Upstream Updates (Optional)
 
@@ -157,10 +169,10 @@ Build your selected applications using the `build` subcommand:
   ./revancex build --apps youtube,microg --arch arm64-v8a
   ```
 
-- **Build all configured applications**:
+- **Build all configured applications with failure tolerance and report generation**:
 
   ```bash
-  ./revancex build --apps all --arch arm64-v8a
+  ./revancex build --apps all --arch arm64-v8a --keep-going --report ./output/BUILD_REPORT.json
   ```
 
 - **Supported architectures (`--arch`)**:
@@ -179,7 +191,19 @@ Build your selected applications using the `build` subcommand:
   ./revancex build --apps youtube --output ./my-output
   ```
 
-#### Step 4: Create Magisk & KernelSU Modules (Root)
+#### Step 4: Smoke Test Built APKs
+
+Validate built APKs before release or installation:
+
+```bash
+# Run static manifest/DEX verification or adb smoke test
+./revancex test --apps all --fail-threshold 10 --continue
+```
+
+- When devices are connected via ADB, it tests APK installation, launch, and checks logcat for crash loops or fatal exceptions.
+- In offline or CI environments without physical devices, it performs deep static inspection (valid ZIP structure, valid `classes.dex`, readable `AndroidManifest.xml`).
+
+#### Step 5: Create Magisk & KernelSU Modules (Root)
 
 Package patched APKs into flashable root modules:
 
@@ -190,10 +214,9 @@ Package patched APKs into flashable root modules:
   ```
 
 - **Multi-App Categorized Bundle Modules**:
-  Build pre-categorized bundles (or custom app combinations) to keep module sizes lightweight and organized:
+  Build pre-categorized bundles (or custom app combinations) with embedded Material 3 WebUI:
 
   ```bash
-  # Build specific category bundles
   ./revancex module --bundle --apps social --output ./modules        # Social Media Bundle
   ./revancex module --bundle --apps multimedia --output ./modules    # Multimedia Bundle
   ./revancex module --bundle --apps productivity --output ./modules  # Productivity Bundle
@@ -202,12 +225,24 @@ Package patched APKs into flashable root modules:
   ./revancex module --bundle --apps all --include-webui --output ./modules  # All Category Bundles
   ```
 
-#### Step 5: Validate Configuration & Setup
+- **Verify Root Module Integrity**:
+
+  ```bash
+  ./revancex verify-module ./modules/revancex-bundle-core.zip
+  ```
+
+#### Step 6: Validate Configuration & Setup
 
 Verify configuration syntax, app schemas, and patch integrity:
 
 ```bash
 ./revancex validate --strict
+```
+
+Or perform live reachability checks on upstream sources:
+
+```bash
+./revancex validate --online
 ```
 
 </details>
@@ -259,13 +294,23 @@ revancex-bundle-<category>.zip
 
 | Command | Description | Example |
 | --- | --- | --- |
-| `apps` | List all configured apps and package IDs | `revancex apps` |
-| `download-tools` | Download patcher JARs, integrations, and tools | `revancex download-tools` |
-| `check-updates` | Poll upstream sources for app and patch updates | `revancex check-updates --json` |
-| `build` | Patch and sign target applications | `revancex build --apps youtube --arch arm64-v8a` |
-| `module` | Package APKs into Magisk/KernelSU zip modules | `revancex module --bundle --apps youtube,microg` |
-| `validate` | Check schema and config integrity | `revancex validate --strict` |
-| `clean` | Clean up build artifacts and temporary files | `revancex clean` |
+| `doctor` | Inspect local environment, required JDK 17+, Android SDK tools, and network services | `revancex doctor` |
+| `apps` | List all configured apps, status, and package IDs | `revancex apps [--json]` |
+| `download-tools` | Download patcher JARs, integrations, and tools | `revancex download-tools [--apps youtube]` |
+| `check-updates` | Poll upstream sources for app and patch updates | `revancex check-updates [--json]` |
+| `build` | Patch, optimize, sign APKs, and generate build reports | `revancex build --apps youtube --arch arm64-v8a [--keep-going] [--report <path>]` |
+| `module` | Package APKs into single or bundle Magisk/KernelSU modules | `revancex module --bundle --apps core [--include-webui]` |
+| `test` | Smoke test APKs (static DEX/manifest or ADB device) with failure tolerance | `revancex test --apps all [--fail-threshold 20] [--continue]` |
+| `validate` | Check schema, app definitions, and patch compatibility | `revancex validate [--strict] [--online] [--apps youtube]` |
+| `clean` | Clean build outputs, caches, or stale tool downloads | `revancex clean [--all] [--stale-tools]` |
+| `fetch-apk` | Download stock APK using the configured multi-source chain | `revancex fetch-apk youtube --arch arm64-v8a` |
+| `verify-module` | Verify structure and integrity of a root module zip | `revancex verify-module ./modules/revancex-bundle-core.zip` |
+| `patches` | List available patches and version compatibilities for an app | `revancex patches youtube [--mode root\|nonroot] [--json]` |
+| `keystore` | Inspect or initialize signing keystore | `revancex keystore --info` |
+| `report` | Inspect build report and enforce failure threshold policies in CI | `revancex report check ./output/BUILD_REPORT.json [--fail-threshold 15]` |
+| `sources` | Probe and test APK sources for reachability and version resolution | `revancex sources probe youtube` |
+| `gen-apps-json` | Generate web catalogue dataset `docs/apps.json` from release registry | `revancex gen-apps-json` |
+| `generate-matrix` | Generate CI build matrix JSON for GitHub Actions | `revancex generate-matrix --apps all` |
 
 </details>
 
@@ -275,10 +320,11 @@ revancex-bundle-<category>.zip
 Compile the CLI directly from source:
 
 ```bash
-# Prerequisites: Rust 1.75+ and JDK 17+
+# Prerequisites: Rust 1.85+ and JDK 17+
 cargo build --release
 
 # Run compiled binary
+./target/release/revancex doctor
 ./target/release/revancex apps
 ./target/release/revancex download-tools
 ./target/release/revancex build --apps youtube,microg --arch arm64-v8a
@@ -293,7 +339,7 @@ cargo build --release
 2. The GitHub Actions workflows run automatically:
    - **Auto Build**: Triggered on schedule or via `workflow_dispatch`.
    - **Custom Build**: Triggered via the GitHub Pages interface or `workflow_dispatch`.
-   - **CI Validation & Tests**: Runs automated tests on every push.
+   - **CI Validation & Tests**: Runs automated Rust tests and script verifications on every push.
 3. Download the generated APKs and Magisk modules directly from the **Releases** tab.
 
 </details>
@@ -303,24 +349,48 @@ cargo build --release
 
 Copy `.env.example` to `.env` and configure credentials. Never commit `.env`.
 
-| Variable | Description |
-| --- | --- |
-| `GITHUB_TOKEN` | Token with `repo` + `workflow` scopes |
-| `KEYSTORE_PASSWORD` | Password for generated keystores |
-| `TG_TOKEN` | (Optional) Telegram bot token for build notifications |
-| `TG_CHAT` | (Optional) Telegram chat ID or channel username |
-| `TG_TOPIC` | (Optional) Telegram topic / thread ID for forum supergroups |
+| Variable | Description | Default / Example |
+| --- | --- | --- |
+| `GITHUB_TOKEN` | Token with `repo` + `workflow` scopes (prevents GitHub API rate limits) | `ghp_...` |
+| `GITLAB_TOKEN` | (Optional) GitLab token for fetching GitLab-hosted releases without rate limits | `glpat-...` |
+| `KEYSTORE_PASSWORD` | Keystore password for signing generated APKs | `revanced` / `666` |
+| `KEYSTORE_FILE` | (Optional) Custom keystore path override | `keys/custom.jks` |
+| `KEYSTORE_B64` | (Optional) Base64-encoded keystore for CI pipelines | `<base64>` |
+| `TG_TOKEN` | (Optional) Telegram bot token for build notifications | `123456:ABC...` |
+| `TG_CHAT` | (Optional) Telegram chat ID or channel username | `-1001234567890` |
+| `TG_TOPIC` | (Optional) Telegram forum topic / thread ID for supergroups | `42` |
+| `FLARESOLVERR_URL` | (Optional) FlareSolverr endpoint URL | `http://localhost:8191/v1` |
+| `TRAWL_URL` | (Optional) Trawl headless browser render service endpoint URL | `http://localhost:8000` |
+| `REVANCEX_STATIC_TEST` | (Optional) Force static manifest/DEX testing without ADB device | `1` |
+| `REVANCEX_CB_THRESHOLD` | (Optional) Circuit breaker error threshold before tripping | `3` |
+| `REVANCEX_CB_COOLDOWN_SECS` | (Optional) Circuit breaker cooldown period in seconds | `60` |
+| `REVANCEX_CONFIG_DIR` | (Optional) Override path to config directory | `./config` |
+| `REVANCEX_TEMP_DIR` | (Optional) Override path to temporary directory | `./tmp` |
 
 </details>
 
 <details>
 <summary><b><i class="fa-solid fa-circle-plus"></i> Adding a New App</b></summary>
 
-Add an entry to [`config/apps.yaml`](config/apps.yaml) following the existing schema. Run `validate` to check:
+1. Add an entry to [`config/apps.yaml`](config/apps.yaml) following the schema documented in [`CONFIG.md`](CONFIG.md).
+2. Query available patches and compatible versions:
 
-```bash
-./revancex validate --strict
-```
+   ```bash
+   ./revancex patches <app_id>
+   ```
+
+3. Validate configuration syntax and patch integrity:
+
+   ```bash
+   ./revancex validate --strict --apps <app_id>
+   ```
+
+4. Build and test locally:
+
+   ```bash
+   ./revancex build --apps <app_id>
+   ./revancex test --apps <app_id>
+   ```
 
 </details>
 

@@ -68,17 +68,11 @@ pub fn parse_filtered_version(stdout: &str, package: &str) -> Option<String> {
         let trimmed = line.trim();
         let marker = format!("Filtering patches for {package}");
         if let Some(idx) = trimmed.find(&marker) {
-            let after = &trimmed[idx + marker.len()..];
-            let ver_candidate = after
-                .split_whitespace()
-                .find(|tok| tok.starts_with('v') && tok.len() > 1)
-                .map(|tok| &tok[1..])
-                .or_else(|| after.split_whitespace().next());
-            if let Some(raw) = ver_candidate {
-                let norm = crate::utils::version::normalize_version(raw);
-                if !norm.is_empty() {
-                    return Some(norm);
-                }
+            let after = trimmed[idx + marker.len()..].trim().trim_end_matches('.');
+            let raw = after.strip_prefix('v').unwrap_or(after);
+            let norm = crate::utils::version::normalize_version(raw);
+            if !norm.is_empty() {
+                return Some(norm);
             }
         }
     }
@@ -112,9 +106,30 @@ pub async fn patch(
         .map(|p| p.repo.clone())
         .unwrap_or_else(|| app.patch_source.clone());
 
-    let suffix = if is_root { "-root.apk" } else { "-patched.apk" };
-    let staging_apk = format!("{}/{id}{suffix}-stage.apk", cfg.build.temp_dir);
-    let output_apk = format!("{output_dir}/{id}{suffix}");
+    let apk_version = crate::utils::apk::get_apk_version_name(apk_path).ok();
+    if let Some(ref ver) = apk_version {
+        info!("{id}: parsed actual APK version {ver} from {apk_path}");
+    }
+    let effective_version = apk_version
+        .as_deref()
+        .or(app.version.as_deref())
+        .unwrap_or("auto");
+
+    let (output_apk, staging_apk) = if is_root {
+        let payload = format!("{}/{id}-root-payload.apk", cfg.build.temp_dir);
+        let stage = format!("{}/{id}-root-stage.apk", cfg.build.temp_dir);
+        (payload, stage)
+    } else {
+        let app_name = app.display_name(id);
+        let filename = crate::patcher::name::output_filename(
+            &app_name,
+            effective_version,
+            crate::patcher::name::ArtifactKind::Apk,
+        );
+        let out = format!("{output_dir}/{filename}");
+        let stage = format!("{}/{filename}-stage.apk", cfg.build.temp_dir);
+        (out, stage)
+    };
 
     let mpp_path = metadata::resolve_mpp_path(cfg, app);
     let meta = if let Some(ref p) = mpp_path {
@@ -126,10 +141,6 @@ pub async fn patch(
         if let Some(warn) = metadata::check_app_version_compatibility(id, app, patches) {
             tracing::warn!("{id}: {warn}");
         }
-    }
-    let apk_version = crate::utils::apk::get_apk_version_name(apk_path).ok();
-    if let Some(ref ver) = apk_version {
-        info!("{id}: parsed actual APK version {ver} from {apk_path}");
     }
     let plan = plan::resolve(
         app,
@@ -158,6 +169,7 @@ pub async fn patch(
     let mut cmd = tokio::process::Command::new("java");
     cmd.args(["-jar", &args.cli_jar, "patch"])
         .arg(format!("--patches={}", args.patches_arg))
+        .arg("-f")
         .arg("--continue-on-error")
         .arg("-o")
         .arg(&args.output_apk);
@@ -305,6 +317,50 @@ pub async fn patch(
         let _ = std::fs::remove_file(&staging_apk);
         let _ = std::fs::remove_file(&output_apk);
         anyhow::bail!("{id}: patched APK failed integrity check");
+    }
+
+    let zipalign_bin = if cfg!(windows) {
+        "zipalign.exe"
+    } else {
+        "zipalign"
+    };
+    let apksigner_bin = if cfg!(windows) {
+        "apksigner.bat"
+    } else {
+        "apksigner"
+    };
+    let is_aligned = std::process::Command::new(zipalign_bin)
+        .args(["-c", "-p", "4", &staging_apk])
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false);
+
+    if !is_aligned {
+        let aligned_stage = format!("{staging_apk}.aligned.apk");
+        if let Ok(align_out) = std::process::Command::new(zipalign_bin)
+            .args(["-p", "-f", "4", &staging_apk, &aligned_stage])
+            .output()
+        {
+            if align_out.status.success() {
+                let _ = std::fs::rename(&aligned_stage, &staging_apk);
+                let _ = std::process::Command::new(apksigner_bin)
+                    .args([
+                        "sign",
+                        "--ks",
+                        &ks.file,
+                        "--ks-key-alias",
+                        &ks.alias,
+                        "--ks-pass",
+                        &format!("pass:{}", ks.password),
+                        "--key-pass",
+                        &format!("pass:{}", ks.password),
+                        &staging_apk,
+                    ])
+                    .output();
+            } else {
+                let _ = std::fs::remove_file(&aligned_stage);
+            }
+        }
     }
 
     std::fs::rename(&staging_apk, &output_apk)

@@ -1,6 +1,14 @@
 pub fn normalize_version(v: &str) -> String {
     let v = v.trim();
     let v = v.trim_end_matches("...");
+    if let (Some(open), Some(close)) = (v.find('('), v.find(')')) {
+        if open < close {
+            let inner = &v[open + 1..close];
+            if inner.contains('.') {
+                return normalize_version(inner);
+            }
+        }
+    }
     let mut end = 0;
     let bytes = v.as_bytes();
     let len = bytes.len();
@@ -48,6 +56,7 @@ mod tests {
         assert_eq!(normalize_version("32.30.0(1575420)"), "32.30.0");
         assert_eq!(normalize_version("6.6 build 002"), "6.6");
         assert_eq!(normalize_version("20.12.36"), "20.12.36");
+        assert_eq!(normalize_version("88800 (8.8.8)"), "8.8.8");
         assert_eq!(normalize_version("4.5.6..."), "4.5.6");
         assert_eq!(normalize_version("1.0"), "1.0");
     }

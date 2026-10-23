@@ -50,6 +50,8 @@ struct BreakerInner {
     opened_at: Option<Instant>,
     apps_since_opened: usize,
     probe_in_flight: bool,
+    probe_app: Option<String>,
+    probe_started_at: Option<Instant>,
     ever_opened: bool,
 }
 
@@ -75,12 +77,14 @@ impl SourceCircuitBreaker {
                 opened_at: None,
                 apps_since_opened: 0,
                 probe_in_flight: false,
+                probe_app: None,
+                probe_started_at: None,
                 ever_opened: false,
             }),
         }
     }
 
-    pub fn can_try(&self, _app_id: &str) -> Result<BreakerState, (BreakerState, String)> {
+    pub fn can_try(&self, app_id: &str) -> Result<BreakerState, (BreakerState, String)> {
         let mut inner = self.inner.lock().unwrap();
         match inner.state {
             BreakerState::Closed => Ok(BreakerState::Closed),
@@ -94,6 +98,8 @@ impl SourceCircuitBreaker {
                 if time_expired || apps_expired {
                     inner.state = BreakerState::HalfOpen;
                     inner.probe_in_flight = true;
+                    inner.probe_app = Some(app_id.to_string());
+                    inner.probe_started_at = Some(Instant::now());
                     Ok(BreakerState::HalfOpen)
                 } else {
                     let reason = format!(
@@ -105,8 +111,24 @@ impl SourceCircuitBreaker {
                 }
             }
             BreakerState::HalfOpen => {
+                // Auto-clear stale probe if in flight for more than 45 seconds
+                if inner.probe_in_flight
+                    && inner
+                        .probe_started_at
+                        .is_some_and(|t| t.elapsed() > Duration::from_secs(45))
+                {
+                    inner.probe_in_flight = false;
+                    inner.probe_app = None;
+                    inner.probe_started_at = None;
+                }
+
                 if !inner.probe_in_flight {
                     inner.probe_in_flight = true;
+                    inner.probe_app = Some(app_id.to_string());
+                    inner.probe_started_at = Some(Instant::now());
+                    Ok(BreakerState::HalfOpen)
+                } else if inner.probe_app.as_deref() == Some(app_id) {
+                    // Re-entrant call from the app currently probing this source
                     Ok(BreakerState::HalfOpen)
                 } else {
                     Err((
@@ -123,6 +145,8 @@ impl SourceCircuitBreaker {
         inner.state = BreakerState::Closed;
         inner.failed_apps.clear();
         inner.probe_in_flight = false;
+        inner.probe_app = None;
+        inner.probe_started_at = None;
         inner.opened_at = None;
         inner.apps_since_opened = 0;
     }
@@ -130,13 +154,24 @@ impl SourceCircuitBreaker {
     pub fn record_failure(&self, app_id: &str, block_kind: &BlockKind) {
         let mut inner = self.inner.lock().unwrap();
         match block_kind {
+            BlockKind::NotFound => {
+                if inner.state == BreakerState::HalfOpen
+                    && inner.probe_app.as_deref() == Some(app_id)
+                {
+                    inner.probe_in_flight = false;
+                    inner.probe_app = None;
+                    inner.probe_started_at = None;
+                }
+            }
             BlockKind::IpReputationBlock => {
-                // Immediate open on IP reputation block
+                // Immediate open on confirmed IP reputation block
                 inner.state = BreakerState::Open;
                 inner.opened_at = Some(Instant::now());
                 inner.ever_opened = true;
                 inner.failed_apps.insert(app_id.to_string());
                 inner.probe_in_flight = false;
+                inner.probe_app = None;
+                inner.probe_started_at = None;
                 inner.apps_since_opened = 0;
             }
             _ => {
@@ -146,6 +181,8 @@ impl SourceCircuitBreaker {
                     inner.state = BreakerState::Open;
                     inner.opened_at = Some(Instant::now());
                     inner.probe_in_flight = false;
+                    inner.probe_app = None;
+                    inner.probe_started_at = None;
                     inner.apps_since_opened = 0;
                 } else if inner.failed_apps.len() >= self.threshold as usize {
                     inner.state = BreakerState::Open;
@@ -161,6 +198,10 @@ impl SourceCircuitBreaker {
         let mut inner = self.inner.lock().unwrap();
         if inner.state == BreakerState::Open {
             inner.apps_since_opened += 1;
+        } else if inner.state == BreakerState::HalfOpen {
+            inner.probe_in_flight = false;
+            inner.probe_app = None;
+            inner.probe_started_at = None;
         }
     }
 
@@ -279,7 +320,6 @@ pub fn classify_error(err_str: &str) -> BlockKind {
         || lower.contains("ip_reputation")
         || lower.contains("access denied")
         || lower.contains("ip reputation")
-        || (lower.contains("403") && !lower.contains("turnstile") && !lower.contains("challenge"))
     {
         BlockKind::IpReputationBlock
     } else if lower.contains("429")

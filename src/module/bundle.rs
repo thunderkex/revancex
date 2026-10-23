@@ -26,7 +26,9 @@ fn bundle_display_name(cfg: &Config, key: &str) -> String {
 }
 
 pub(crate) fn parse_apk_stem(stem: &str) -> (&str, u8) {
-    if let Some(base) = stem.strip_suffix("-root") {
+    if let Some(base) = stem.strip_suffix("-root-payload") {
+        (base, 2)
+    } else if let Some(base) = stem.strip_suffix("-root") {
         (base, 2)
     } else if let Some(base) = stem.strip_suffix("-patched") {
         (base, 1)
@@ -184,6 +186,15 @@ pub async fn build_custom_module(
                 }
             }
         } else if token == "all" || token == "all-enabled" {
+            for (app_id, app_cfg) in &cfg.apps {
+                if !app_cfg.enabled || !app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
+                    continue;
+                }
+                let temp_root = format!("{}/{app_id}-root-payload.apk", cfg.build.temp_dir);
+                if Path::new(&temp_root).exists() {
+                    apk_map.insert(app_id.clone(), (temp_root, 2));
+                }
+            }
             if let Ok(entries) = std::fs::read_dir(&resolved_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
@@ -191,7 +202,21 @@ pub async fn build_custom_module(
                         if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                             if !name.to_lowercase().contains("microg") {
                                 let stem = name.trim_end_matches(".apk");
-                                let (app_id, prio) = parse_apk_stem(stem);
+                                let (mut app_id, mut prio) = parse_apk_stem(stem);
+                                if !cfg.apps.contains_key(app_id) {
+                                    for (cand_id, cand_app) in &cfg.apps {
+                                        let clean = crate::patcher::name::sanitize_app_name(
+                                            &cand_app.display_name(cand_id),
+                                        );
+                                        if stem.starts_with(&format!("{clean}-"))
+                                            || stem.starts_with(&format!("{cand_id}-"))
+                                        {
+                                            app_id = cand_id.as_str();
+                                            prio = 1;
+                                            break;
+                                        }
+                                    }
+                                }
                                 if let Some(app_cfg) = cfg.apps.get(app_id) {
                                     if !app_cfg.enabled
                                         || !app_cfg.module.as_ref().is_none_or(|m| m.bundle)
@@ -217,13 +242,34 @@ pub async fn build_custom_module(
                 }
             }
         } else {
+            let temp_root = format!("{}/{token}-root-payload.apk", cfg.build.temp_dir);
+            if Path::new(&temp_root).exists() {
+                if let Some(app_cfg) = cfg.apps.get(token) {
+                    if app_cfg.enabled && app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
+                        apk_map.insert(token.to_string(), (temp_root, 2));
+                    }
+                }
+            }
             if let Ok(entries) = std::fs::read_dir(&resolved_dir) {
                 for entry in entries.flatten() {
                     let path = entry.path();
                     if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                         if name.ends_with(".apk") && !name.to_lowercase().contains("microg") {
                             let stem = name.trim_end_matches(".apk");
-                            let (app_id, prio) = parse_apk_stem(stem);
+                            let (mut app_id, mut prio) = parse_apk_stem(stem);
+                            if app_id != token {
+                                if let Some(target_app) = cfg.apps.get(token) {
+                                    let clean = crate::patcher::name::sanitize_app_name(
+                                        &target_app.display_name(token),
+                                    );
+                                    if stem.starts_with(&format!("{clean}-"))
+                                        || stem.starts_with(&format!("{token}-"))
+                                    {
+                                        app_id = token;
+                                        prio = 1;
+                                    }
+                                }
+                            }
                             if app_id == token {
                                 if let Some(app_cfg) = cfg.apps.get(app_id) {
                                     if !app_cfg.enabled

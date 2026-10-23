@@ -63,9 +63,10 @@ impl std::error::Error for ApkpureError {}
 
 pub fn is_ip_reputation_blocked(status: u16, body: &str) -> bool {
     (status == 403 && !is_turnstile_blocked(status, &reqwest::header::HeaderMap::new(), body))
-        || body.contains("1020")
         || body.contains("error code: 1020")
-        || body.contains("Access denied")
+        || body.contains("Error 1020")
+        || body.contains("Access denied |")
+        || body.contains("<title>Access denied")
 }
 
 pub fn is_turnstile_blocked(status: u16, headers: &reqwest::header::HeaderMap, body: &str) -> bool {
@@ -330,11 +331,15 @@ pub fn resolve_app_version_and_strategy(
                 )
             }
         } else {
-            (
-                Some(pin.to_string()),
-                vec![pin.to_string()],
-                "pinned".to_string(),
-            )
+            let mut candidates = vec![pin.to_string()];
+            if !app.version_pin_strict {
+                for v in available_versions.into_iter().rev() {
+                    if v != pin && !candidates.contains(&v) {
+                        candidates.push(v);
+                    }
+                }
+            }
+            (Some(pin.to_string()), candidates, "pinned".to_string())
         }
     } else {
         let auto_ver = crate::utils::semver::max_version(&available_versions);
@@ -482,11 +487,18 @@ pub async fn fetch_apk(
             resolve_github_asset_url(&client, url, arch, &cfg.build.asset_exclude_patterns)
                 .await
                 .unwrap_or_else(|_| url.clone())
+        } else if url.contains("d.apkpure.") {
+            resolve_apkpure_cdn_url(url, Some("https://apkpure.com/")).await
         } else {
             url.clone()
         };
+        let referer = if url.contains("apkpure.") {
+            Some("https://apkpure.com/")
+        } else {
+            None
+        };
         info!("{id}: downloading from direct apk_url {final_url}");
-        match download_and_extract_if_bundle(&client, &final_url, &dest, None).await {
+        match download_and_extract_if_bundle(&client, &final_url, &dest, referer).await {
             Ok(_) => {
                 let dur = t0.elapsed().as_millis() as u64;
                 match crate::utils::apk::verify_apk_integrity(&dest) {
@@ -501,12 +513,16 @@ pub async fn fetch_apk(
                                         let target_parts =
                                             crate::utils::semver::parse_version_numbers(target);
                                         actual_ver == target
+                                            || crate::utils::version::versions_match(
+                                                actual_ver, target,
+                                            )
                                             || (!actual_parts.is_empty()
                                                 && actual_parts == target_parts)
                                     });
                                 let version_in_patch_compat = !patch_supported_versions.is_empty()
                                     && patch_supported_versions.iter().any(|v| {
                                         v == actual_ver
+                                            || crate::utils::version::versions_match(actual_ver, v)
                                             || (!actual_parts.is_empty()
                                                 && crate::utils::semver::parse_version_numbers(v)
                                                     == actual_parts)
@@ -818,6 +834,7 @@ pub async fn fetch_apk(
                                         let tgt_parts =
                                             crate::utils::semver::parse_version_numbers(tgt);
                                         &actual_ver == tgt
+                                            || crate::utils::version::versions_match(&actual_ver, tgt)
                                             || (!actual_parts.is_empty()
                                                 && actual_parts == tgt_parts)
                                     });
@@ -825,6 +842,7 @@ pub async fn fetch_apk(
                                     let in_patch_compat = !patch_supported_versions.is_empty()
                                         && patch_supported_versions.iter().any(|v| {
                                             v == &actual_ver
+                                                || crate::utils::version::versions_match(&actual_ver, v)
                                                 || (!actual_parts.is_empty()
                                                     && crate::utils::semver::parse_version_numbers(
                                                         v,
@@ -973,7 +991,10 @@ pub async fn fetch_apk(
 
     let version_matches_target = target_ver.as_ref().is_some_and(|target| {
         let target_parts = crate::utils::semver::parse_version_numbers(target);
-        actual_ver.as_ref().map(|v| v == target).unwrap_or(false)
+        actual_ver
+            .as_ref()
+            .map(|v| v == target || crate::utils::version::versions_match(v, target))
+            .unwrap_or(false)
             || (!actual_parts.is_empty() && actual_parts == target_parts)
     });
 
@@ -981,6 +1002,7 @@ pub async fn fetch_apk(
         && actual_ver.as_ref().is_some_and(|v| {
             patch_supported_versions.iter().any(|pv| {
                 pv == v
+                    || crate::utils::version::versions_match(v, pv)
                     || (!actual_parts.is_empty()
                         && crate::utils::semver::parse_version_numbers(pv) == actual_parts)
             })
@@ -1833,12 +1855,35 @@ pub(crate) async fn resolve_apkpure_api_url(
         anyhow::bail!("apkpure_api: empty version_list for {package}");
     }
     let entry = if let Some(ver) = target_version {
-        version_list.iter().find(|e| {
-            let vn = e["version_name"].as_str().unwrap_or("");
-            vn == ver || crate::utils::version::versions_match(vn, ver)
-        })
+        version_list
+            .iter()
+            .find(|e| {
+                let vn = e["version_name"].as_str().unwrap_or("");
+                let ver_match = vn == ver || crate::utils::version::versions_match(vn, ver);
+                if !ver_match {
+                    return false;
+                }
+                e.get("native_code")
+                    .and_then(|v| v.as_array())
+                    .map(|nc| nc.iter().any(|c| c.as_str() == Some(arch)))
+                    .unwrap_or(false)
+            })
+            .or_else(|| {
+                version_list.iter().find(|e| {
+                    let vn = e["version_name"].as_str().unwrap_or("");
+                    vn == ver || crate::utils::version::versions_match(vn, ver)
+                })
+            })
     } else {
-        version_list.first()
+        version_list
+            .iter()
+            .find(|e| {
+                e.get("native_code")
+                    .and_then(|v| v.as_array())
+                    .map(|nc| nc.iter().any(|c| c.as_str() == Some(arch)))
+                    .unwrap_or(false)
+            })
+            .or_else(|| version_list.first())
     };
     let entry = entry.ok_or_else(|| {
         anyhow::anyhow!(
@@ -1911,6 +1956,7 @@ async fn resolve_apkpure_cdn_url(url: &str, referer: Option<&str>) -> String {
         return url.to_string();
     }
     let no_redirect_client = match Client::builder()
+        .http1_only()
         .redirect(reqwest::redirect::Policy::none())
         .timeout(std::time::Duration::from_secs(10))
         .build()
@@ -1929,7 +1975,7 @@ async fn resolve_apkpure_cdn_url(url: &str, referer: Option<&str>) -> String {
     for r_opt in referers_to_try {
         let mut req = no_redirect_client
             .get(url)
-            .header(reqwest::header::USER_AGENT, crate::utils::DEFAULT_UA)
+            .header(reqwest::header::USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
             .header(
                 reqwest::header::ACCEPT,
                 "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -1941,8 +1987,14 @@ async fn resolve_apkpure_cdn_url(url: &str, referer: Option<&str>) -> String {
             if resp.status().is_redirection() {
                 if let Some(loc) = resp.headers().get(reqwest::header::LOCATION) {
                     if let Ok(loc_str) = loc.to_str() {
-                        info!("apkpure: resolved CDN redirect {url} -> {loc_str}");
-                        return loc_str.to_string();
+                        let is_root = loc_str.ends_with("apkpure.com/")
+                            || loc_str.ends_with("apkpure.net/")
+                            || loc_str == "https://apkpure.com"
+                            || loc_str == "https://apkpure.net";
+                        if !is_root {
+                            info!("apkpure: resolved CDN redirect {url} -> {loc_str}");
+                            return loc_str.to_string();
+                        }
                     }
                 }
             }
@@ -2019,13 +2071,19 @@ pub(crate) async fn fetch_apkpure(
         if let Some(ver) = target_version {
             let ver_clean = ver.replace(' ', "-");
             dl_pages.push(format!("{can_url}/download/{ver_clean}"));
+            dl_pages.push(format!("{can_url}/versions"));
         } else {
             dl_pages.push(format!("{can_url}/download"));
+            dl_pages.push(format!("{can_url}/versions"));
         }
     }
 
     let re_dl_link = Regex::new(
         r#"href=[\x22\x27](https://d\.apkpure\.(?:com|net)/b/(?:XAPK|APK)/[^\x22\x27]+)[\x22\x27]"#,
+    )
+    .map_err(|e| ApkpureError::Other(e.into()))?;
+    let re_version_item = Regex::new(
+        r#"data-dt-version=[\x22\x27]([^\x22\x27]+)[\x22\x27][^>]*data-dt-versioncode=[\x22\x27]([^\x22\x27]+)[\x22\x27]"#,
     )
     .map_err(|e| ApkpureError::Other(e.into()))?;
 
@@ -2077,6 +2135,24 @@ pub(crate) async fn fetch_apkpure(
             let link = cap[1].replace("&amp;", "&");
             if !found_dl_links.contains(&link) {
                 found_dl_links.push(link);
+            }
+        }
+
+        for cap in re_version_item.captures_iter(&html) {
+            let item_ver = &cap[1];
+            let item_code = &cap[2];
+            let matches = if let Some(tv) = target_version {
+                item_ver == tv || crate::utils::version::versions_match(item_ver, tv)
+            } else {
+                true
+            };
+            if matches {
+                let code_link = format!(
+                    "https://d.apkpure.com/b/XAPK/{package}?versionCode={item_code}&nc={arch}"
+                );
+                if !found_dl_links.contains(&code_link) {
+                    found_dl_links.push(code_link);
+                }
             }
         }
 

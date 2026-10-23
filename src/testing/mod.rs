@@ -125,11 +125,13 @@ pub fn filter_release_artifacts(
                         let path = entry.path();
                         if path.extension().and_then(|e| e.to_str()) == Some("apk") {
                             let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-                            let app_id = name
-                                .strip_suffix("-root")
-                                .or_else(|| name.strip_suffix("-patched"))
-                                .unwrap_or(name);
-                            if app_id == item.app {
+                            let matches_app = name == item.app
+                                || name.strip_suffix("-patched") == Some(&item.app)
+                                || name.starts_with(&format!("{}-", item.app))
+                                || crate::utils::apk::get_apk_package_name(&path)
+                                    .map(|p| p == item.package)
+                                    .unwrap_or(false);
+                            if matches_app {
                                 info!(
                                     "Removing failed artifact from release output: {}",
                                     path.display()
@@ -213,15 +215,35 @@ pub async fn run_device_tests(
                         let path = entry.path();
                         if path.extension().and_then(|e| e.to_str()) == Some("apk") {
                             let name = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-                            let app_id = name
-                                .strip_suffix("-root")
-                                .or_else(|| name.strip_suffix("-patched"))
-                                .unwrap_or(name);
-                            if apps_input != "all"
-                                && !apps_input.split(',').any(|a| {
-                                    let clean = a.trim();
-                                    clean == app_id || clean.trim_end_matches("-root") == app_id
+                            let matched_id = cfg
+                                .as_ref()
+                                .and_then(|c| {
+                                    if c.apps.contains_key(name) {
+                                        return Some(name.to_string());
+                                    }
+                                    if let Some(stripped) = name.strip_suffix("-patched") {
+                                        if c.apps.contains_key(stripped) {
+                                            return Some(stripped.to_string());
+                                        }
+                                    }
+                                    for (id, app) in &c.apps {
+                                        let clean = crate::patcher::name::sanitize_app_name(
+                                            &app.display_name(id),
+                                        );
+                                        if name.starts_with(&format!("{clean}-"))
+                                            || name.starts_with(&format!("{id}-"))
+                                        {
+                                            return Some(id.clone());
+                                        }
+                                    }
+                                    None
                                 })
+                                .unwrap_or_else(|| {
+                                    name.strip_suffix("-patched").unwrap_or(name).to_string()
+                                });
+                            let app_id = &matched_id;
+                            if apps_input != "all"
+                                && !apps_input.split(',').any(|a| a.trim() == app_id)
                             {
                                 continue;
                             }
@@ -355,17 +377,31 @@ pub async fn run_device_tests(
                     .and_then(|s| s.to_str())
                     .unwrap_or("")
                     .to_string();
-                let app_id = name
-                    .strip_suffix("-root")
-                    .or_else(|| name.strip_suffix("-patched"))
-                    .unwrap_or(&name);
-                if apps_input == "all"
-                    || apps_input.split(',').any(|a| {
-                        let clean = a.trim();
-                        clean == app_id || clean.trim_end_matches("-root") == app_id
+                let matched_id = cfg
+                    .as_ref()
+                    .and_then(|c| {
+                        if c.apps.contains_key(&name) {
+                            return Some(name.clone());
+                        }
+                        if let Some(stripped) = name.strip_suffix("-patched") {
+                            if c.apps.contains_key(stripped) {
+                                return Some(stripped.to_string());
+                            }
+                        }
+                        for (id, app) in &c.apps {
+                            let clean =
+                                crate::patcher::name::sanitize_app_name(&app.display_name(id));
+                            if name.starts_with(&format!("{clean}-"))
+                                || name.starts_with(&format!("{id}-"))
+                            {
+                                return Some(id.clone());
+                            }
+                        }
+                        None
                     })
-                {
-                    apks.push((app_id.to_string(), path.to_string_lossy().to_string()));
+                    .unwrap_or_else(|| name.strip_suffix("-patched").unwrap_or(&name).to_string());
+                if apps_input == "all" || apps_input.split(',').any(|a| a.trim() == matched_id) {
+                    apks.push((matched_id, path.to_string_lossy().to_string()));
                 }
             }
         }

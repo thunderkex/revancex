@@ -96,12 +96,14 @@ pub async fn run_pipeline(
                     .unwrap_or_else(|| "build failed".to_string());
                 warn!("Build failed for {id}: {err_str}");
                 failed.push((id.clone(), err_str));
-                reports.insert(id.clone(), report);
+                if let Some(ref path) = report.output_path {
+                    let _ = std::fs::remove_file(path);
+                    let _ = std::fs::remove_file(format!("{path}.idsig"));
+                }
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk"));
-                let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk.idsig"));
-                let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk.idsig"));
+                reports.insert(id.clone(), report);
             }
             Err(e) => {
                 warn!("Task panicked for {id}: {e}");
@@ -110,9 +112,7 @@ pub async fn run_pipeline(
                 reports.insert(id.clone(), AppBuildReport::failed(err_str));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk"));
-                let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk"));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}-patched.apk.idsig"));
-                let _ = std::fs::remove_file(format!("{output_dir}/{id}-root.apk.idsig"));
             }
         }
     }
@@ -225,6 +225,7 @@ async fn build_single(
                 error: Some(msg),
                 failure_category: Some(FailureCategory::CompatibilityUnknown),
                 attempted_sources: vec![],
+                ..Default::default()
             },
         );
     }
@@ -234,7 +235,7 @@ async fn build_single(
             if let Some(err) =
                 crate::patcher::metadata::check_app_version_compatibility(id, app, meta_slice)
             {
-                if app.version_pin_strict || patch_supported.is_empty() {
+                if !app.version_pin_strict && patch_supported.is_empty() {
                     let err_msg = format!("{id}: {err}");
                     return (
                         None,
@@ -254,10 +255,13 @@ async fn build_single(
                             error: Some(err_msg.clone()),
                             failure_category: Some(FailureCategory::from_error_message(&err_msg)),
                             attempted_sources: vec![],
+                            ..Default::default()
                         },
                     );
-                } else {
+                } else if !app.version_pin_strict {
                     tracing::warn!("{id}: {err} (auto-correcting to compatible version)");
+                } else {
+                    tracing::warn!("{id}: {err} (honoring strict pin)");
                 }
             }
         }
@@ -293,6 +297,7 @@ async fn build_single(
                         error: Some(err_msg),
                         failure_category: Some(cat),
                         attempted_sources: attempts,
+                        ..Default::default()
                     },
                 );
             }
@@ -334,6 +339,7 @@ async fn build_single(
                 error: Some(err_msg),
                 failure_category: Some(FailureCategory::IntegrityCheckFailed),
                 attempted_sources: fetch_attempts,
+                ..Default::default()
             },
         );
     }
@@ -360,6 +366,7 @@ async fn build_single(
                     error: Some(err_msg.clone()),
                     failure_category: Some(FailureCategory::from_error_message(&err_msg)),
                     attempted_sources: fetch_attempts,
+                    ..Default::default()
                 },
             );
         }
@@ -382,45 +389,23 @@ async fn build_single(
                 error: None,
                 failure_category: None,
                 attempted_sources: fetch_attempts,
+                ..Default::default()
             },
         );
     }
 
-    let apk_path = if arch != "all" && arch != "universal" {
+    let (apk_path, arch_mode) = if arch != "all" && arch != "universal" {
         let work_apk = format!("{}/{id}-{arch}-work.apk", cfg.build.temp_dir);
-        if let Ok(false) = builder::arch::apk_has_arch(&raw_apk, arch) {
-            if builder::arch::apk_has_any_native_libs(&raw_apk).unwrap_or(false) {
-                let err_msg = format!("{id}: input APK has native libraries for foreign architectures but none for '{arch}'");
-                tracing::error!("{err_msg}");
-                return (
-                    None,
-                    AppBuildReport {
-                        status: "failed".to_string(),
-                        target_version: effective_target_ver,
-                        target_version_reason: target_version_reason.clone(),
-                        patch_supported_versions: patch_supported_list,
-                        fetched_version: fetched_version.clone(),
-                        resolved_version: resolved_ver,
-                        resolved_source,
-                        resolution_strategy: Some(strategy_str),
-                        version_conflict,
-                        patches_included: vec![],
-                        patches_auto_disabled: vec![],
-                        warnings: fetch_warnings.clone(),
-                        error: Some(err_msg),
-                        failure_category: Some(FailureCategory::ArchUnsupported),
-                        attempted_sources: fetch_attempts,
-                    },
-                );
-            }
+        let has_target_arch = builder::arch::apk_has_arch(&raw_apk, arch).unwrap_or(false);
+        if !has_target_arch {
             info!(
-                "{id}: input APK has no native libs for '{arch}', using unstripped universal APK"
+                "{id}: input APK has no native libs for '{arch}', falling back to unstripped universal APK"
             );
-            raw_apk
+            (raw_apk, "universal".to_string())
         } else if let Err(e) = builder::arch::strip_unsupported_archs_to(&raw_apk, &work_apk, arch)
         {
             warn!("{id}: arch stripping note: {e}");
-            raw_apk
+            (raw_apk, "universal".to_string())
         } else if let Err(e) = builder::arch::verify_arch_native_libs(&raw_apk, &work_apk, arch) {
             let err_msg = format!("{id}: arch verification failed: {e}");
             tracing::error!("{err_msg}");
@@ -436,41 +421,56 @@ async fn build_single(
                     resolved_source,
                     resolution_strategy: Some(strategy_str),
                     version_conflict,
-                    patches_included: vec![],
-                    patches_auto_disabled: vec![],
                     warnings: fetch_warnings.clone(),
                     error: Some(err_msg),
                     failure_category: Some(FailureCategory::ArchUnsupported),
                     attempted_sources: fetch_attempts,
+                    arch_mode: Some(arch.to_string()),
+                    ..Default::default()
                 },
             );
         } else {
-            work_apk
+            (work_apk, arch.to_string())
         }
     } else {
-        raw_apk
+        (raw_apk, "universal".to_string())
     };
 
-    let patch_res = if effective_mode == "both" {
+    let needs_module_root =
+        app.module.as_ref().is_some_and(|m| m.single || m.bundle) || effective_mode == "both";
+
+    let (patch_res, root_payload_path) = if effective_mode == "both" || needs_module_root {
         match patcher::patch(cfg, id, app, &apk_path, output_dir, false).await {
             Ok((non_root, plan)) => {
-                let _ = patcher::patch(cfg, id, app, &apk_path, output_dir, true).await;
-                Ok((non_root, plan))
+                let root_res = patcher::patch(cfg, id, app, &apk_path, output_dir, true).await;
+                let root_payload = match root_res {
+                    Ok((r_path, _)) => Some(r_path),
+                    Err(e) => {
+                        warn!("{id}: root payload patch failed: {e}");
+                        None
+                    }
+                };
+                (Ok((non_root, plan)), root_payload)
             }
-            Err(e) => Err(e),
+            Err(e) => (Err(e), None),
         }
     } else {
         let is_root = effective_mode == "module" || effective_mode == "root";
-        match patcher::patch(cfg, id, app, &apk_path, output_dir, is_root).await {
+        let res = patcher::patch(cfg, id, app, &apk_path, output_dir, is_root).await;
+        match res {
             Ok((patched, plan)) => {
                 if effective_mode == "lite" {
                     if let Err(e) = builder::lite::optimize_apk(&patched) {
                         warn!("{id}: lite optimization note: {e}");
                     }
                 }
-                Ok((patched, plan))
+                if is_root {
+                    (Ok((patched.clone(), plan)), Some(patched))
+                } else {
+                    (Ok((patched, plan)), None)
+                }
             }
-            Err(e) => Err(e),
+            Err(e) => (Err(e), None),
         }
     };
 
@@ -488,8 +488,12 @@ async fn build_single(
             } else {
                 "success".to_string()
             };
+            let output_file = std::path::Path::new(&out_path)
+                .file_name()
+                .and_then(|n| n.to_str())
+                .map(String::from);
             (
-                Some(out_path),
+                Some(out_path.clone()),
                 AppBuildReport {
                     status,
                     target_version: effective_target_ver,
@@ -506,6 +510,12 @@ async fn build_single(
                     error: None,
                     failure_category: None,
                     attempted_sources: fetch_attempts,
+                    arch_mode: Some(arch_mode),
+                    output_file,
+                    output_path: Some(out_path),
+                    root_payload_path,
+                    module_file: None,
+                    runtime_test: None,
                 },
             )
         }
@@ -530,6 +540,12 @@ async fn build_single(
                     error: Some(err_msg),
                     failure_category: Some(cat),
                     attempted_sources: fetch_attempts,
+                    arch_mode: Some(arch_mode),
+                    output_file: None,
+                    output_path: None,
+                    root_payload_path: None,
+                    module_file: None,
+                    runtime_test: None,
                 },
             )
         }

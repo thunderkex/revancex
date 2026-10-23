@@ -267,11 +267,11 @@ pub async fn default_fetch(
 }
 
 pub const DEFAULT_SOURCE_ORDER: &[&str] = &[
-    "apkeep",
     "github",
-    "codeberg",
     "gitlab",
     "archive",
+    "codeberg",
+    "apkeep",
     "apkpure",
     "apkmirror",
     "uptodown",

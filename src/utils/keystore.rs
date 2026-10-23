@@ -163,6 +163,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         max_version: None,
         post_patch_hooks: vec![],
         display_name: None,
+        name: None,
         bundle_priority: 100,
     };
     let ks = resolve(cfg, &app_dummy).await?;

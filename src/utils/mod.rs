@@ -26,9 +26,7 @@ pub fn make_github_client(cfg: &Config) -> Result<Client> {
 }
 
 pub fn make_browser_client(cfg: &Config) -> Result<Client> {
-    use reqwest::header::{
-        HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_LANGUAGE, USER_AGENT,
-    };
+    use reqwest::header::{HeaderMap, HeaderName, HeaderValue, ACCEPT, USER_AGENT};
     let mut headers = HeaderMap::new();
     let ua = random_user_agent();
     let val = HeaderValue::from_str(ua).unwrap_or_else(|_| HeaderValue::from_static(DEFAULT_UA));
@@ -39,7 +37,6 @@ pub fn make_browser_client(cfg: &Config) -> Result<Client> {
             "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         ),
     );
-    headers.insert(ACCEPT_LANGUAGE, HeaderValue::from_static("en-US,en;q=0.9"));
     headers.insert(
         HeaderName::from_static("sec-ch-ua"),
         HeaderValue::from_static(
@@ -64,7 +61,7 @@ pub fn make_browser_client(cfg: &Config) -> Result<Client> {
     );
     headers.insert(
         HeaderName::from_static("sec-fetch-site"),
-        HeaderValue::from_static("same-origin"),
+        HeaderValue::from_static("none"),
     );
     headers.insert(
         HeaderName::from_static("upgrade-insecure-requests"),

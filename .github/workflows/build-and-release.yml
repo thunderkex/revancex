@@ -215,7 +215,6 @@ jobs:
             fname=$(basename "$apk")
             appid="${fname%.apk}"
             appid="${appid%-patched}"
-            appid="${appid%-root}"
             [ "$appid" = "microg" ] && continue
             echo "Building single module for: $appid"
             if ! revancex module --single --apps "$appid" --output output; then

@@ -54,17 +54,16 @@ pub fn generate_apps_json_with_registry(
         .into_iter()
         .map(|(id, app)| {
             let stock_rel = registry.stock_apps.get(id);
-            let root_rel = registry.root_apps.get(id);
             let mod_rel = registry.single_modules.get(id);
 
-            let primary_rel = stock_rel.or(root_rel).or(mod_rel);
+            let primary_rel = stock_rel.or(mod_rel);
             let download_url = primary_rel.map(|r| r.url.as_str());
             let tag = primary_rel.map(|r| r.tag.as_str());
             let updated_at = primary_rel.map(|r| r.updated_at.as_str());
 
             json!({
                 "id": id,
-                "name": app.display_name.as_deref().unwrap_or(id),
+                "name": app.display_name(id),
                 "enabled": app.enabled,
                 "package": app.package,
                 "patch_source": app.patch_source,
@@ -81,7 +80,6 @@ pub fn generate_apps_json_with_registry(
                 "updated_at": updated_at,
                 "releases": {
                     "stock": stock_rel,
-                    "root": root_rel,
                     "module": mod_rel,
                 }
             })

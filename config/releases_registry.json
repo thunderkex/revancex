@@ -8,9 +8,9 @@
     },
     "flightradar24": {
       "filename": "flightradar24-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/flightradar24-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.17-b124",
-      "updated_at": "2026-10-17 09:32:45 UTC"
+      "url": "#flightradar24-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "youtube_music": {
       "filename": "youtube_music-patched.apk",
@@ -50,15 +50,15 @@
     },
     "proton_vpn": {
       "filename": "proton_vpn-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/proton_vpn-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.12-b117",
-      "updated_at": "2026-10-12 02:29:17 UTC"
+      "url": "#proton_vpn-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "threads": {
       "filename": "threads-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/threads-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b128",
-      "updated_at": "2026-10-19 08:07:38 UTC"
+      "url": "#threads-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "pixiv": {
       "filename": "pixiv-patched.apk",
@@ -68,9 +68,9 @@
     },
     "stellarium": {
       "filename": "stellarium-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/stellarium-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.28-b84",
-      "updated_at": "2026-09-28 08:40:43 UTC"
+      "url": "#stellarium-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "adguard": {
       "filename": "adguard-patched.apk",
@@ -134,15 +134,15 @@
     },
     "prime_video": {
       "filename": "prime_video-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/prime_video-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.05-b110",
-      "updated_at": "2026-10-05 01:57:41 UTC"
+      "url": "#prime_video-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "strava": {
       "filename": "strava-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/strava-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.17-b124",
-      "updated_at": "2026-10-17 09:32:45 UTC"
+      "url": "#strava-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "facebook": {
       "filename": "facebook-patched.apk",
@@ -152,21 +152,21 @@
     },
     "nova_launcher": {
       "filename": "nova_launcher-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/nova_launcher-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.28-b84",
-      "updated_at": "2026-09-28 08:40:43 UTC"
+      "url": "#nova_launcher-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "sticker_maker": {
       "filename": "sticker_maker-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/sticker_maker-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.17-b124",
-      "updated_at": "2026-10-17 09:32:45 UTC"
+      "url": "#sticker_maker-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "pvz_free": {
       "filename": "pvz_free-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/pvz_free-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.28-b84",
-      "updated_at": "2026-09-28 08:40:43 UTC"
+      "url": "#pvz_free-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "spotify": {
       "filename": "spotify-patched.apk",
@@ -188,9 +188,9 @@
     },
     "camscanner": {
       "filename": "camscanner-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.17-b124/camscanner-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.17-b124",
-      "updated_at": "2026-10-17 09:32:45 UTC"
+      "url": "#camscanner-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "instagram": {
       "filename": "instagram-patched.apk",
@@ -230,35 +230,21 @@
     },
     "subway_surfers": {
       "filename": "subway_surfers-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/subway_surfers-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b128",
-      "updated_at": "2026-10-19 08:07:38 UTC"
+      "url": "#subway_surfers-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "cloudflare_warp": {
       "filename": "cloudflare_warp-patched.apk",
       "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/cloudflare_warp-patched.apk",
       "tag": "auto-v1.0.5-2026.10.19-b130",
       "updated_at": "2026-10-19 09:51:05 UTC"
-    }
-  },
-  "root_apps": {
-    "youtube": {
-      "filename": "youtube-root.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/youtube-root.apk",
-      "tag": "auto-v1.0.5-2026.09.28-b86",
-      "updated_at": "2026-09-28 19:13:02 UTC"
     },
-    "soundcloud": {
-      "filename": "soundcloud-root.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.03-b106/soundcloud-root.apk",
-      "tag": "auto-v1.0.5-2026.10.03-b106",
-      "updated_at": "2026-10-03 03:12:04 UTC"
-    },
-    "youtube_music": {
-      "filename": "youtube_music-root.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/youtube_music-root.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
+    "pinterest": {
+      "filename": "pinterest-patched.apk",
+      "url": "#pinterest-patched.apk",
+      "tag": "auto-0",
+      "updated_at": "2026-10-22 02:06:32 UTC"
     }
   },
   "single_modules": {

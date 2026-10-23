@@ -13,6 +13,14 @@ import subprocess
 SCRIPT = os.path.join(os.path.dirname(__file__), "..", "update_readme_and_notify.py")
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
+FIXTURE_APPS_YAML = """\
+apps:
+  youtube:
+    name: YouTube
+    enabled: true
+    package: com.google.android.youtube
+"""
+
 FIXTURE_MODULES_YAML = """\
 modules:
   core:
@@ -51,6 +59,8 @@ def run():
         os.makedirs(os.path.join(tmp, "tmp"))
 
         # Fixture files
+        with open(os.path.join(config_dir, "apps.yaml"), "w") as f:
+            f.write(FIXTURE_APPS_YAML)
         with open(os.path.join(config_dir, "modules.yaml"), "w") as f:
             f.write(FIXTURE_MODULES_YAML)
         with open(os.path.join(config_dir, "releases_registry.json"), "w") as f:
@@ -58,8 +68,8 @@ def run():
         with open(os.path.join(tmp, "README.md"), "w") as f:
             f.write(FIXTURE_README)
 
-        open(os.path.join(output_dir, "youtube-patched.apk"), "w").close()
-        open(os.path.join(output_dir, "youtube-root.apk"), "w").close()
+        open(os.path.join(output_dir, "YouTube-19.16.39.apk"), "w").close()
+        open(os.path.join(output_dir, "YouTube-19.16.39-module.zip"), "w").close()
 
         dest_script = os.path.join(scripts_dir, "update_readme_and_notify.py")
         shutil.copy(SCRIPT, dest_script)
@@ -92,16 +102,15 @@ def run():
         readme = open(os.path.join(tmp, "README.md")).read()
         assert "<!-- AUTO-APP-LIST-START -->" in readme, "Missing START marker"
         assert "<!-- AUTO-APP-LIST-END -->" in readme, "Missing END marker"
-        assert "| App | Stock APK | Root APK | Single Root Module | Last Updated |" in readme, "Missing Root APK column header"
+        assert "| App | Patched APK | Single Root Module | Last Updated |" in readme, "Missing Patched APK column header"
         assert "**Youtube**" in readme, "Expected '**Youtube**' in README table"
-        assert "**Youtube Root**" not in readme, "'-root' APK should not be separated into its own row"
-        assert "youtube-patched.apk" in readme, "Expected youtube-patched.apk link in README"
-        assert "youtube-root.apk" in readme, "Expected youtube-root.apk link in README"
+        assert "YouTube-19.16.39.apk" in readme, "Expected YouTube-19.16.39.apk link in README"
+        assert "YouTube-19.16.39-module.zip" in readme, "Expected YouTube-19.16.39-module.zip link in README"
         assert "old content" not in readme, "Old content not replaced"
 
         reg = json.load(open(os.path.join(config_dir, "releases_registry.json")))
         assert "youtube" in reg.get("stock_apps", {}), "Expected youtube in stock_apps registry"
-        assert "youtube" in reg.get("root_apps", {}), "Expected youtube in root_apps registry"
+        assert "root_apps" not in reg, "root_apps should not be present in releases_registry.json"
 
         print("PASS: update_readme_and_notify.py smoke test OK")
     finally:

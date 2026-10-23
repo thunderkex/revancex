@@ -178,6 +178,8 @@ pub struct AppConfig {
     pub max_version: Option<String>,
     #[serde(default)]
     pub post_patch_hooks: Vec<PostPatchHook>,
+    #[serde(alias = "name", default)]
+    pub name: Option<String>,
     #[serde(default)]
     pub display_name: Option<String>,
     #[serde(default = "default_bundle_priority")]
@@ -190,8 +192,15 @@ fn default_bundle_priority() -> u32 {
 
 impl AppConfig {
     pub fn display_name(&self, id: &str) -> String {
+        if let Some(ref n) = self.name {
+            if !n.is_empty() {
+                return n.clone();
+            }
+        }
         if let Some(ref n) = self.display_name {
-            return n.clone();
+            if !n.is_empty() {
+                return n.clone();
+            }
         }
         id.split(['_', '-'])
             .map(|s| {

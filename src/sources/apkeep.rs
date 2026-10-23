@@ -23,12 +23,15 @@ impl ApkSource for ApkeepSource {
                 tracing::info!("apkeep skipped: not configured");
                 return Ok(None);
             }
-            let apkeep_ack = ctx
-                .cfg
-                .apk_sources
-                .get("apkeep")
-                .map(|e| e.acknowledge_dangers)
-                .unwrap_or(false);
+            let apkeep_ack = std::env::var("REVANCEX_APKEEP_ACKNOWLEDGE_DANGERS")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or_else(|_| {
+                    ctx.cfg
+                        .apk_sources
+                        .get("apkeep")
+                        .map(|e| e.acknowledge_dangers)
+                        .unwrap_or(false)
+                });
             if !apkeep_ack {
                 tracing::info!("apkeep skipped: acknowledge_dangers is false");
                 return Ok(None);
@@ -55,12 +58,15 @@ impl ApkSource for ApkeepSource {
                 .strip_prefix("apkeep://")
                 .and_then(|s| s.split('/').next())
                 .unwrap_or("");
-            let apkeep_ack = ctx
-                .cfg
-                .apk_sources
-                .get("apkeep")
-                .map(|e| e.acknowledge_dangers)
-                .unwrap_or(false);
+            let apkeep_ack = std::env::var("REVANCEX_APKEEP_ACKNOWLEDGE_DANGERS")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or_else(|_| {
+                    ctx.cfg
+                        .apk_sources
+                        .get("apkeep")
+                        .map(|e| e.acknowledge_dangers)
+                        .unwrap_or(false)
+                });
             crate::builder::fetch_apkeep(pkg, dest, version, Some(&resolved.arch), apkeep_ack)
                 .await?;
             Ok(PathBuf::from(dest))

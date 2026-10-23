@@ -108,6 +108,7 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
         max_version: None,
         on_unknown_compat: None,
         post_patch_hooks: vec![],
+        name: None,
         display_name: None,
         bundle_priority: 100,
     };

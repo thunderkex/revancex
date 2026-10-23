@@ -16,6 +16,14 @@ patch_sources:
     repo: crimera/piko
     asset_pattern: "*.mpp"
 
+  piko_ig_lite:
+    repo: crimera/piko-ig-lite
+    asset_pattern: "*.mpp"
+
+  piko_newx:
+    repo: crimera/piko-newx
+    asset_pattern: "*.mpp"
+
   morphe_patches:
     repo: MorpheApp/morphe-patches
     asset_pattern: "*.mpp"
@@ -52,10 +60,6 @@ patch_sources:
     repo: jkennethcarino/adobo
     asset_pattern: "*.mpp"
 
-  dhrubonai:
-    repo: dhrubonai/morphe-patches
-    asset_pattern: "*.mpp"
-
   sapitosucio:
     repo: SapitoSucio/FroggoMorphePatches
     asset_pattern: "*.mpp"
@@ -68,12 +72,8 @@ patch_sources:
     repo: BlazeFTL/FTL-Patches
     asset_pattern: "*.mpp"
 
-  rikydev:
-    repo: riky-dev/morphe-patches
-    asset_pattern: "*.mpp"
-
-  miguelninja:
-    repo: MiguelNinja19/miguel-morphe-patches
+  byehi98:
+    repo: byehi98/okish-morphe-patches
     asset_pattern: "*.mpp"
 
   hushfeed:
@@ -88,8 +88,8 @@ patch_sources:
     repo: SysAdminDoc/HushThreads
     asset_pattern: "*.mpp"
 
-  DmoniakPatches:
-    repo: SatanMerde/D-moniakPatches
+  legendsciber:
+    repo: legendsciber/morphe-patches
     asset_pattern: "*.mpp"
 
   bearinmindcat:
@@ -99,6 +99,15 @@ patch_sources:
   jasonwu:
     repo: jasonwu1994/Gboard-patches
     asset_pattern: "*.mpp"
+
+  kveld9:
+    repo: kveld9/kveld-extra-morphe-patches
+    asset_pattern: "*.mpp"
+
+  frip:
+    repo: Fripe070/PixivPatches
+    asset_pattern: "*.mpp"
+
     
 apk_sources:
   uptodown:
@@ -117,11 +126,11 @@ apk_sources:
     acknowledge_dangers: false
 
 apk_source_order:
-  - apkeep
   - github
-  - codeberg
   - gitlab
   - archive
+  - codeberg
+  - apkeep
   - apkpure
   - apkmirror
   - uptodown

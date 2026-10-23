@@ -1610,27 +1610,17 @@ fn test_failed_patch_ensures_no_output_in_release_dir() {
     let tmp = tempfile::tempdir().unwrap();
     let out_dir = tmp.path().to_str().unwrap();
 
-    let fake_patched = tmp.path().join("fake_app-patched.apk");
-    let fake_root = tmp.path().join("fake_app-root.apk");
-    std::fs::write(&fake_patched, b"fake content").unwrap();
-    std::fs::write(&fake_root, b"fake content").unwrap();
+    let fake_app = tmp.path().join("FakeApp-1.0.0.apk");
+    std::fs::write(&fake_app, b"fake content").unwrap();
 
-    assert!(fake_patched.exists());
-    assert!(fake_root.exists());
+    assert!(fake_app.exists());
 
-    let _ = std::fs::remove_file(format!("{out_dir}/fake_app.apk"));
-    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-patched.apk"));
-    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-root.apk"));
-    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-patched.apk.idsig"));
-    let _ = std::fs::remove_file(format!("{out_dir}/fake_app-root.apk.idsig"));
+    let _ = std::fs::remove_file(format!("{out_dir}/FakeApp-1.0.0.apk"));
+    let _ = std::fs::remove_file(format!("{out_dir}/FakeApp-1.0.0.apk.idsig"));
 
     assert!(
-        !fake_patched.exists(),
-        "Failed app must not leave patched APK in output dir"
-    );
-    assert!(
-        !fake_root.exists(),
-        "Failed app must not leave root APK in output dir"
+        !fake_app.exists(),
+        "Failed app must not leave APK in output dir"
     );
 }
 
@@ -1638,11 +1628,11 @@ fn test_failed_patch_ensures_no_output_in_release_dir() {
 fn test_sources_registry_order_and_fallback() {
     let cfg = config::load_config("./config").expect("Failed to load config");
     let expected_order = vec![
-        "apkeep",
         "github",
-        "codeberg",
         "gitlab",
         "archive",
+        "codeberg",
+        "apkeep",
         "apkpure",
         "apkmirror",
         "uptodown",
@@ -2070,6 +2060,7 @@ fn test_build_report_schema_version_and_serialization() {
             ),
             failure_category: Some(FailureCategory::VersionNotSupported),
             attempted_sources: vec![],
+            ..Default::default()
         },
     );
 
@@ -2187,6 +2178,7 @@ fn test_build_report_from_summary_aggregation() {
             error: None,
             failure_category: None,
             attempted_sources: vec![],
+            ..Default::default()
         },
     );
 
@@ -2208,6 +2200,7 @@ fn test_build_report_from_summary_aggregation() {
             error: None,
             failure_category: None,
             attempted_sources: vec![],
+            ..Default::default()
         },
     );
 
@@ -2229,6 +2222,7 @@ fn test_build_report_from_summary_aggregation() {
             error: Some("all download sources exhausted for package 'com.test'".to_string()),
             failure_category: Some(FailureCategory::AllSourcesExhausted),
             attempted_sources: vec![],
+            ..Default::default()
         },
     );
 
@@ -2297,6 +2291,7 @@ fn test_write_build_report_and_check_integration() {
             error: None,
             failure_category: None,
             attempted_sources: vec![],
+            ..Default::default()
         },
     );
 

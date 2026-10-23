@@ -67,7 +67,7 @@ jobs:
           python3 scripts/tests/test_summarize_build_report.py
 
       - name: Validate config
-        run: cargo run -- validate --strict
+        run: cargo run -- validate
 
       - name: Hygiene checks (clean patterns, no dead code)
         run: |

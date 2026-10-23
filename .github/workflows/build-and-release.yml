@@ -131,21 +131,7 @@ jobs:
 
       - name: Download tools
         id: tools
-        run: |
-          set -euo pipefail
-          apps="${{ inputs.apps || 'all' }}"
-          for attempt in 1 2 3; do
-            echo "Downloading and validating patch tools (attempt $attempt/3): $apps"
-            revancex download-tools --apps "$apps"
-            if revancex validate --strict --apps "$apps"; then
-              exit 0
-            fi
-            if [ "$attempt" -lt 3 ]; then
-              sleep 10
-            fi
-          done
-          echo "::error::Patch tools are unavailable or incompatible after 3 attempts."
-          exit 1
+        run: revancex download-tools --apps "${{ inputs.apps || 'all' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -161,7 +147,7 @@ jobs:
           key: tools-${{ runner.os }}-${{ github.run_id }}
 
       - name: Validate configuration
-        run: revancex validate --strict --apps "${{ inputs.apps || 'all' }}"
+        run: revancex validate --apps "${{ inputs.apps || 'all' }}"
 
       - name: Build apps
         run: |

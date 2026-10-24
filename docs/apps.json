@@ -437,7 +437,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/MX-Player-3.4.0.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/MX-Player-3.4.0.apk",
     "enabled": true,
     "id": "mx_player",
     "mode": "patch",
@@ -455,13 +455,13 @@
       "module": null,
       "stock": {
         "filename": "MX-Player-3.4.0.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/MX-Player-3.4.0.apk"
+        "tag": "auto-v1.0.5-2026.10.24-b140",
+        "updated_at": "2026-10-24 01:33:58 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/MX-Player-3.4.0.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.24-b140",
+    "updated_at": "2026-10-24 01:33:58 UTC"
   },
   {
     "architectures": [
@@ -733,7 +733,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Threads-451.0.0.51.80.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/Threads-452.0.0.50.64.apk",
     "enabled": true,
     "id": "threads",
     "mode": "patch",
@@ -748,14 +748,14 @@
     "releases": {
       "module": null,
       "stock": {
-        "filename": "Threads-451.0.0.51.80.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Threads-451.0.0.51.80.apk"
+        "filename": "Threads-452.0.0.50.64.apk",
+        "tag": "auto-v1.0.5-2026.10.24-b140",
+        "updated_at": "2026-10-24 01:33:58 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/Threads-452.0.0.50.64.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.24-b140",
+    "updated_at": "2026-10-24 01:33:58 UTC"
   },
   {
     "architectures": [
@@ -820,7 +820,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/X-Piko-12.35.0-prod.01.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/X-Piko-12.35.0-prod.01.apk",
     "enabled": true,
     "id": "x_piko",
     "mode": "patch",
@@ -836,13 +836,13 @@
       "module": null,
       "stock": {
         "filename": "X-Piko-12.35.0-prod.01.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/X-Piko-12.35.0-prod.01.apk"
+        "tag": "auto-v1.0.5-2026.10.24-b140",
+        "updated_at": "2026-10-24 01:33:58 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/X-Piko-12.35.0-prod.01.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.24-b140",
+    "updated_at": "2026-10-24 01:33:58 UTC"
   },
   {
     "architectures": [

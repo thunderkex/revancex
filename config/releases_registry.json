@@ -32,9 +32,9 @@
     },
     "x_piko": {
       "filename": "X-Piko-12.35.0-prod.01.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/X-Piko-12.35.0-prod.01.apk",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/X-Piko-12.35.0-prod.01.apk",
+      "tag": "auto-v1.0.5-2026.10.24-b140",
+      "updated_at": "2026-10-24 01:33:58 UTC"
     },
     "google_news": {
       "filename": "google_news-patched.apk",
@@ -55,10 +55,10 @@
       "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "threads": {
-      "filename": "Threads-451.0.0.51.80.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Threads-451.0.0.51.80.apk",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
+      "filename": "Threads-452.0.0.50.64.apk",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/Threads-452.0.0.50.64.apk",
+      "tag": "auto-v1.0.5-2026.10.24-b140",
+      "updated_at": "2026-10-24 01:33:58 UTC"
     },
     "pixiv": {
       "filename": "pixiv-patched.apk",
@@ -92,9 +92,9 @@
     },
     "mx_player": {
       "filename": "MX-Player-3.4.0.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/MX-Player-3.4.0.apk",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/MX-Player-3.4.0.apk",
+      "tag": "auto-v1.0.5-2026.10.24-b140",
+      "updated_at": "2026-10-24 01:33:58 UTC"
     },
     "wps_office": {
       "filename": "wps_office-patched.apk",
@@ -264,15 +264,15 @@
   "bundles": {
     "revancex-bundle-core.zip": {
       "filename": "revancex-bundle-core.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/revancex-bundle-core.zip",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/revancex-bundle-core.zip",
+      "tag": "auto-v1.0.5-2026.10.24-b140",
+      "updated_at": "2026-10-24 01:33:58 UTC"
     },
     "revancex-bundle-tools.zip": {
       "filename": "revancex-bundle-tools.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/revancex-bundle-tools.zip",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/revancex-bundle-tools.zip",
+      "tag": "auto-v1.0.5-2026.10.24-b140",
+      "updated_at": "2026-10-24 01:33:58 UTC"
     },
     "revancex-bundle-multimedia.zip": {
       "filename": "revancex-bundle-multimedia.zip",
@@ -288,15 +288,15 @@
     },
     "revancex-bundle-social.zip": {
       "filename": "revancex-bundle-social.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/revancex-bundle-social.zip",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/revancex-bundle-social.zip",
+      "tag": "auto-v1.0.5-2026.10.24-b140",
+      "updated_at": "2026-10-24 01:33:58 UTC"
     },
     "revancex-bundle-all.zip": {
       "filename": "revancex-bundle-all.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/revancex-bundle-all.zip",
-      "tag": "auto-v1.0.5-2026.10.19-b128",
-      "updated_at": "2026-10-19 08:07:38 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/revancex-bundle-all.zip",
+      "tag": "auto-v1.0.5-2026.10.24-b140",
+      "updated_at": "2026-10-24 01:33:58 UTC"
     }
   },
   "custom_bundles": {}

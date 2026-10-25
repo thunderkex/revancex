@@ -62,7 +62,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/CapCut-19.9.0.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/CapCut-19.9.0.apk",
     "enabled": true,
     "id": "capcut",
     "mode": "patch",
@@ -78,13 +78,13 @@
       "module": null,
       "stock": {
         "filename": "CapCut-19.9.0.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/CapCut-19.9.0.apk"
+        "tag": "auto-v1.0.5-2026.10.25-b141",
+        "updated_at": "2026-10-25 01:07:34 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/CapCut-19.9.0.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.25-b141",
+    "updated_at": "2026-10-25 01:07:34 UTC"
   },
   {
     "architectures": [
@@ -178,7 +178,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/facebook-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/Facebook-584.0.0.51.56.apk",
     "enabled": true,
     "id": "facebook",
     "mode": "patch",
@@ -193,14 +193,14 @@
     "releases": {
       "module": null,
       "stock": {
-        "filename": "facebook-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.19-b128",
-        "updated_at": "2026-10-19 08:07:38 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b128/facebook-patched.apk"
+        "filename": "Facebook-584.0.0.51.56.apk",
+        "tag": "auto-v1.0.5-2026.10.25-b141",
+        "updated_at": "2026-10-25 01:07:34 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/Facebook-584.0.0.51.56.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.19-b128",
-    "updated_at": "2026-10-19 08:07:38 UTC"
+    "tag": "auto-v1.0.5-2026.10.25-b141",
+    "updated_at": "2026-10-25 01:07:34 UTC"
   },
   {
     "architectures": [
@@ -762,7 +762,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/TikTok-47.4.3.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/TikTok-47.5.3.apk",
     "enabled": true,
     "id": "tiktok",
     "mode": "patch",
@@ -777,14 +777,14 @@
     "releases": {
       "module": null,
       "stock": {
-        "filename": "TikTok-47.4.3.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/TikTok-47.4.3.apk"
+        "filename": "TikTok-47.5.3.apk",
+        "tag": "auto-v1.0.5-2026.10.25-b141",
+        "updated_at": "2026-10-25 01:07:34 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/TikTok-47.5.3.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.25-b141",
+    "updated_at": "2026-10-25 01:07:34 UTC"
   },
   {
     "architectures": [
@@ -820,7 +820,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/X-Piko-12.35.0-prod.01.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/X-Piko-12.35.0-prod.01.apk",
     "enabled": true,
     "id": "x_piko",
     "mode": "patch",
@@ -836,13 +836,13 @@
       "module": null,
       "stock": {
         "filename": "X-Piko-12.35.0-prod.01.apk",
-        "tag": "auto-v1.0.5-2026.10.24-b140",
-        "updated_at": "2026-10-24 01:33:58 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.24-b140/X-Piko-12.35.0-prod.01.apk"
+        "tag": "auto-v1.0.5-2026.10.25-b141",
+        "updated_at": "2026-10-25 01:07:34 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/X-Piko-12.35.0-prod.01.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.24-b140",
-    "updated_at": "2026-10-24 01:33:58 UTC"
+    "tag": "auto-v1.0.5-2026.10.25-b141",
+    "updated_at": "2026-10-25 01:07:34 UTC"
   },
   {
     "architectures": [

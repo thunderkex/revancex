@@ -62,7 +62,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/CapCut-19.9.0.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk",
     "enabled": true,
     "id": "capcut",
     "mode": "patch",
@@ -78,13 +78,13 @@
       "module": null,
       "stock": {
         "filename": "CapCut-19.9.0.apk",
-        "tag": "auto-v1.0.5-2026.10.25-b141",
-        "updated_at": "2026-10-25 01:07:34 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/CapCut-19.9.0.apk"
+        "tag": "auto-v1.0.5-2026.10.27-b143",
+        "updated_at": "2026-10-27 02:05:34 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.25-b141",
-    "updated_at": "2026-10-25 01:07:34 UTC"
+    "tag": "auto-v1.0.5-2026.10.27-b143",
+    "updated_at": "2026-10-27 02:05:34 UTC"
   },
   {
     "architectures": [
@@ -178,7 +178,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/Facebook-584.0.0.51.56.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Facebook-584.0.0.51.56.apk",
     "enabled": true,
     "id": "facebook",
     "mode": "patch",
@@ -194,13 +194,13 @@
       "module": null,
       "stock": {
         "filename": "Facebook-584.0.0.51.56.apk",
-        "tag": "auto-v1.0.5-2026.10.25-b141",
-        "updated_at": "2026-10-25 01:07:34 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/Facebook-584.0.0.51.56.apk"
+        "tag": "auto-v1.0.5-2026.10.27-b143",
+        "updated_at": "2026-10-27 02:05:34 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Facebook-584.0.0.51.56.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.25-b141",
-    "updated_at": "2026-10-25 01:07:34 UTC"
+    "tag": "auto-v1.0.5-2026.10.27-b143",
+    "updated_at": "2026-10-27 02:05:34 UTC"
   },
   {
     "architectures": [
@@ -236,7 +236,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/gboard-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk",
     "enabled": true,
     "id": "gboard",
     "mode": "patch",
@@ -251,14 +251,14 @@
     "releases": {
       "module": null,
       "stock": {
-        "filename": "gboard-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.11-b116",
-        "updated_at": "2026-10-11 02:05:10 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.11-b116/gboard-patched.apk"
+        "filename": "Gboard-18.5.4.993608717-release-arm64-v8a.apk",
+        "tag": "auto-v1.0.5-2026.10.27-b143",
+        "updated_at": "2026-10-27 02:05:34 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.11-b116",
-    "updated_at": "2026-10-11 02:05:10 UTC"
+    "tag": "auto-v1.0.5-2026.10.27-b143",
+    "updated_at": "2026-10-27 02:05:34 UTC"
   },
   {
     "architectures": [
@@ -323,7 +323,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Instagram-452.0.0.48.64.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk",
     "enabled": true,
     "id": "instagram",
     "mode": "patch",
@@ -338,14 +338,14 @@
     "releases": {
       "module": null,
       "stock": {
-        "filename": "Instagram-452.0.0.48.64.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Instagram-452.0.0.48.64.apk"
+        "filename": "Instagram-452.1.0.53.64.apk",
+        "tag": "auto-v1.0.5-2026.10.27-b143",
+        "updated_at": "2026-10-27 02:05:34 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.27-b143",
+    "updated_at": "2026-10-27 02:05:34 UTC"
   },
   {
     "architectures": [

@@ -526,7 +526,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "#proton_vpn-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.28-b144/Proton-VPN-5.20.98.0.apk",
     "enabled": true,
     "id": "proton_vpn",
     "mode": "patch",
@@ -541,14 +541,14 @@
     "releases": {
       "module": null,
       "stock": {
-        "filename": "proton_vpn-patched.apk",
-        "tag": "auto-0",
-        "updated_at": "2026-10-22 02:06:32 UTC",
-        "url": "#proton_vpn-patched.apk"
+        "filename": "Proton-VPN-5.20.98.0.apk",
+        "tag": "auto-v1.0.5-2026.10.28-b144",
+        "updated_at": "2026-10-28 02:10:52 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.28-b144/Proton-VPN-5.20.98.0.apk"
       }
     },
-    "tag": "auto-0",
-    "updated_at": "2026-10-22 02:06:32 UTC"
+    "tag": "auto-v1.0.5-2026.10.28-b144",
+    "updated_at": "2026-10-28 02:10:52 UTC"
   },
   {
     "architectures": [
@@ -820,7 +820,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/X-Piko-12.35.0-prod.01.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.28-b144/X-Piko-12.35.0-prod.01.apk",
     "enabled": true,
     "id": "x_piko",
     "mode": "patch",
@@ -836,13 +836,13 @@
       "module": null,
       "stock": {
         "filename": "X-Piko-12.35.0-prod.01.apk",
-        "tag": "auto-v1.0.5-2026.10.26-b142",
-        "updated_at": "2026-10-26 01:12:11 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/X-Piko-12.35.0-prod.01.apk"
+        "tag": "auto-v1.0.5-2026.10.28-b144",
+        "updated_at": "2026-10-28 02:10:52 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.28-b144/X-Piko-12.35.0-prod.01.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.26-b142",
-    "updated_at": "2026-10-26 01:12:11 UTC"
+    "tag": "auto-v1.0.5-2026.10.28-b144",
+    "updated_at": "2026-10-28 02:10:52 UTC"
   },
   {
     "architectures": [

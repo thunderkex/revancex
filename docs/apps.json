@@ -4,7 +4,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/AdGuard-4.14.68.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/AdGuard-4.14.68.apk",
     "enabled": true,
     "id": "adguard",
     "mode": "patch",
@@ -20,20 +20,20 @@
       "module": null,
       "stock": {
         "filename": "AdGuard-4.14.68.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/AdGuard-4.14.68.apk"
+        "tag": "auto-v1.0.5-2026.10.29-b145",
+        "updated_at": "2026-10-29 02:23:27 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/AdGuard-4.14.68.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.29-b145",
+    "updated_at": "2026-10-29 02:23:27 UTC"
   },
   {
     "architectures": [
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/CamScanner-7.24.5.2608200000.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/CamScanner-7.24.5.2608200000.apk",
     "enabled": true,
     "id": "camscanner",
     "mode": "patch",
@@ -49,13 +49,13 @@
       "module": null,
       "stock": {
         "filename": "CamScanner-7.24.5.2608200000.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/CamScanner-7.24.5.2608200000.apk"
+        "tag": "auto-v1.0.5-2026.10.29-b145",
+        "updated_at": "2026-10-29 02:23:27 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/CamScanner-7.24.5.2608200000.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.29-b145",
+    "updated_at": "2026-10-29 02:23:27 UTC"
   },
   {
     "architectures": [
@@ -178,7 +178,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Facebook-584.0.0.51.56.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Facebook-584.0.0.51.56.apk",
     "enabled": true,
     "id": "facebook",
     "mode": "patch",
@@ -194,13 +194,13 @@
       "module": null,
       "stock": {
         "filename": "Facebook-584.0.0.51.56.apk",
-        "tag": "auto-v1.0.5-2026.10.27-b143",
-        "updated_at": "2026-10-27 02:05:34 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Facebook-584.0.0.51.56.apk"
+        "tag": "auto-v1.0.5-2026.10.29-b145",
+        "updated_at": "2026-10-29 02:23:27 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Facebook-584.0.0.51.56.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.27-b143",
-    "updated_at": "2026-10-27 02:05:34 UTC"
+    "tag": "auto-v1.0.5-2026.10.29-b145",
+    "updated_at": "2026-10-29 02:23:27 UTC"
   },
   {
     "architectures": [
@@ -526,7 +526,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.28-b144/Proton-VPN-5.20.98.0.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Proton-VPN-5.20.98.0.apk",
     "enabled": true,
     "id": "proton_vpn",
     "mode": "patch",
@@ -542,13 +542,13 @@
       "module": null,
       "stock": {
         "filename": "Proton-VPN-5.20.98.0.apk",
-        "tag": "auto-v1.0.5-2026.10.28-b144",
-        "updated_at": "2026-10-28 02:10:52 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.28-b144/Proton-VPN-5.20.98.0.apk"
+        "tag": "auto-v1.0.5-2026.10.29-b145",
+        "updated_at": "2026-10-29 02:23:27 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Proton-VPN-5.20.98.0.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.28-b144",
-    "updated_at": "2026-10-28 02:10:52 UTC"
+    "tag": "auto-v1.0.5-2026.10.29-b145",
+    "updated_at": "2026-10-29 02:23:27 UTC"
   },
   {
     "architectures": [
@@ -613,7 +613,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Termius-7.11.2.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Termius-7.11.2.apk",
     "enabled": true,
     "id": "serverauditor",
     "mode": "patch",
@@ -631,13 +631,13 @@
       "module": null,
       "stock": {
         "filename": "Termius-7.11.2.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Termius-7.11.2.apk"
+        "tag": "auto-v1.0.5-2026.10.29-b145",
+        "updated_at": "2026-10-29 02:23:27 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Termius-7.11.2.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.29-b145",
+    "updated_at": "2026-10-29 02:23:27 UTC"
   },
   {
     "architectures": [
@@ -673,7 +673,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Sticker-Maker-1.0.12-7.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Sticker-Maker-1.0.12-7.apk",
     "enabled": true,
     "id": "sticker_maker",
     "mode": "patch",
@@ -689,13 +689,13 @@
       "module": null,
       "stock": {
         "filename": "Sticker-Maker-1.0.12-7.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Sticker-Maker-1.0.12-7.apk"
+        "tag": "auto-v1.0.5-2026.10.29-b145",
+        "updated_at": "2026-10-29 02:23:27 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Sticker-Maker-1.0.12-7.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.29-b145",
+    "updated_at": "2026-10-29 02:23:27 UTC"
   },
   {
     "architectures": [
@@ -820,7 +820,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.28-b144/X-Piko-12.35.0-prod.01.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/X-Piko-12.35.0-prod.01.apk",
     "enabled": true,
     "id": "x_piko",
     "mode": "patch",
@@ -836,13 +836,13 @@
       "module": null,
       "stock": {
         "filename": "X-Piko-12.35.0-prod.01.apk",
-        "tag": "auto-v1.0.5-2026.10.28-b144",
-        "updated_at": "2026-10-28 02:10:52 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.28-b144/X-Piko-12.35.0-prod.01.apk"
+        "tag": "auto-v1.0.5-2026.10.29-b145",
+        "updated_at": "2026-10-29 02:23:27 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/X-Piko-12.35.0-prod.01.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.28-b144",
-    "updated_at": "2026-10-28 02:10:52 UTC"
+    "tag": "auto-v1.0.5-2026.10.29-b145",
+    "updated_at": "2026-10-29 02:23:27 UTC"
   },
   {
     "architectures": [

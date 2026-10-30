@@ -526,7 +526,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Proton-VPN-5.20.98.0.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.30-b146/Proton-VPN-5.20.98.0.apk",
     "enabled": true,
     "id": "proton_vpn",
     "mode": "patch",
@@ -542,20 +542,20 @@
       "module": null,
       "stock": {
         "filename": "Proton-VPN-5.20.98.0.apk",
-        "tag": "auto-v1.0.5-2026.10.29-b145",
-        "updated_at": "2026-10-29 02:23:27 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Proton-VPN-5.20.98.0.apk"
+        "tag": "auto-v1.0.5-2026.10.30-b146",
+        "updated_at": "2026-10-30 02:34:59 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.30-b146/Proton-VPN-5.20.98.0.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.29-b145",
-    "updated_at": "2026-10-29 02:23:27 UTC"
+    "tag": "auto-v1.0.5-2026.10.30-b146",
+    "updated_at": "2026-10-30 02:34:59 UTC"
   },
   {
     "architectures": [
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "#pvz_free-patched.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.30-b146/Plants-vs-Zombies-3.18.0.apk",
     "enabled": true,
     "id": "pvz_free",
     "mode": "patch",
@@ -570,14 +570,14 @@
     "releases": {
       "module": null,
       "stock": {
-        "filename": "pvz_free-patched.apk",
-        "tag": "auto-0",
-        "updated_at": "2026-10-22 02:06:32 UTC",
-        "url": "#pvz_free-patched.apk"
+        "filename": "Plants-vs-Zombies-3.18.0.apk",
+        "tag": "auto-v1.0.5-2026.10.30-b146",
+        "updated_at": "2026-10-30 02:34:59 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.30-b146/Plants-vs-Zombies-3.18.0.apk"
       }
     },
-    "tag": "auto-0",
-    "updated_at": "2026-10-22 02:06:32 UTC"
+    "tag": "auto-v1.0.5-2026.10.30-b146",
+    "updated_at": "2026-10-30 02:34:59 UTC"
   },
   {
     "architectures": [
@@ -820,7 +820,7 @@
       "arm64-v8a"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/X-Piko-12.35.0-prod.01.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.30-b146/X-Piko-12.38.1-prod.01.apk",
     "enabled": true,
     "id": "x_piko",
     "mode": "patch",
@@ -835,14 +835,14 @@
     "releases": {
       "module": null,
       "stock": {
-        "filename": "X-Piko-12.35.0-prod.01.apk",
-        "tag": "auto-v1.0.5-2026.10.29-b145",
-        "updated_at": "2026-10-29 02:23:27 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/X-Piko-12.35.0-prod.01.apk"
+        "filename": "X-Piko-12.38.1-prod.01.apk",
+        "tag": "auto-v1.0.5-2026.10.30-b146",
+        "updated_at": "2026-10-30 02:34:59 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.30-b146/X-Piko-12.38.1-prod.01.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.29-b145",
-    "updated_at": "2026-10-29 02:23:27 UTC"
+    "tag": "auto-v1.0.5-2026.10.30-b146",
+    "updated_at": "2026-10-30 02:34:59 UTC"
   },
   {
     "architectures": [

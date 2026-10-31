@@ -384,7 +384,7 @@
       "x86_64"
     ],
     "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/microg.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/microg.apk",
     "enabled": true,
     "id": "microg",
     "mode": "install",
@@ -400,13 +400,13 @@
       "module": null,
       "stock": {
         "filename": "microg.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/microg.apk"
+        "tag": "auto-v1.0.5-2026.10.31-b147",
+        "updated_at": "2026-10-31 02:20:55 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/microg.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.31-b147",
+    "updated_at": "2026-10-31 02:20:55 UTC"
   },
   {
     "architectures": [
@@ -852,7 +852,7 @@
     "dependencies": [
       "microg"
     ],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/YouTube-Music-9.15.51.apk",
+    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/YouTube-Music-9.15.51.apk",
     "enabled": true,
     "id": "youtube",
     "mode": "both",
@@ -867,19 +867,19 @@
     "releases": {
       "module": {
         "filename": "YouTube-20.05.46-module.zip",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/YouTube-20.05.46-module.zip"
+        "tag": "auto-v1.0.5-2026.10.31-b147",
+        "updated_at": "2026-10-31 02:20:55 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/YouTube-20.05.46-module.zip"
       },
       "stock": {
         "filename": "YouTube-Music-9.15.51.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/YouTube-Music-9.15.51.apk"
+        "tag": "auto-v1.0.5-2026.10.31-b147",
+        "updated_at": "2026-10-31 02:20:55 UTC",
+        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/YouTube-Music-9.15.51.apk"
       }
     },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
+    "tag": "auto-v1.0.5-2026.10.31-b147",
+    "updated_at": "2026-10-31 02:20:55 UTC"
   },
   {
     "architectures": [

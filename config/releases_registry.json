@@ -31,10 +31,10 @@
       "updated_at": "2026-10-19 09:51:05 UTC"
     },
     "x_piko": {
-      "filename": "X-Piko-12.38.1-prod.01.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.30-b146/X-Piko-12.38.1-prod.01.apk",
-      "tag": "auto-v1.0.5-2026.10.30-b146",
-      "updated_at": "2026-10-30 02:34:59 UTC"
+      "filename": "X-Piko-12.39.0-prod.01.apk",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/X-Piko-12.39.0-prod.01.apk",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     },
     "google_news": {
       "filename": "google_news-patched.apk",
@@ -122,9 +122,9 @@
     },
     "youtube": {
       "filename": "YouTube-Music-9.15.51.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/YouTube-Music-9.15.51.apk",
-      "tag": "auto-v1.0.5-2026.10.31-b147",
-      "updated_at": "2026-10-31 02:20:55 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/YouTube-Music-9.15.51.apk",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     },
     "serverauditor": {
       "filename": "Termius-7.11.2.apk",
@@ -145,10 +145,10 @@
       "updated_at": "2026-10-22 02:06:32 UTC"
     },
     "facebook": {
-      "filename": "Facebook-584.0.0.51.56.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Facebook-584.0.0.51.56.apk",
-      "tag": "auto-v1.0.5-2026.10.29-b145",
-      "updated_at": "2026-10-29 02:23:27 UTC"
+      "filename": "Facebook-585.0.0.47.54.apk",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/Facebook-585.0.0.47.54.apk",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     },
     "nova_launcher": {
       "filename": "nova_launcher-patched.apk",
@@ -181,10 +181,10 @@
       "updated_at": "2026-10-23 02:26:08 UTC"
     },
     "tiktok": {
-      "filename": "TikTok-47.5.3.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.25-b141/TikTok-47.5.3.apk",
-      "tag": "auto-v1.0.5-2026.10.25-b141",
-      "updated_at": "2026-10-25 01:07:34 UTC"
+      "filename": "TikTok-47.6.3.apk",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/TikTok-47.6.3.apk",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     },
     "camscanner": {
       "filename": "CamScanner-7.24.5.2608200000.apk",
@@ -206,9 +206,9 @@
     },
     "microg": {
       "filename": "microg.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/microg.apk",
-      "tag": "auto-v1.0.5-2026.10.31-b147",
-      "updated_at": "2026-10-31 02:20:55 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/microg.apk",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     },
     "hungry_shark_world": {
       "filename": "hungry_shark_world-patched.apk",
@@ -256,17 +256,17 @@
     },
     "youtube": {
       "filename": "YouTube-20.05.46-module.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/YouTube-20.05.46-module.zip",
-      "tag": "auto-v1.0.5-2026.10.31-b147",
-      "updated_at": "2026-10-31 02:20:55 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/YouTube-20.05.46-module.zip",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     }
   },
   "bundles": {
     "revancex-bundle-core.zip": {
       "filename": "revancex-bundle-core.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/revancex-bundle-core.zip",
-      "tag": "auto-v1.0.5-2026.10.31-b147",
-      "updated_at": "2026-10-31 02:20:55 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/revancex-bundle-core.zip",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     },
     "revancex-bundle-tools.zip": {
       "filename": "revancex-bundle-tools.zip",
@@ -276,9 +276,9 @@
     },
     "revancex-bundle-multimedia.zip": {
       "filename": "revancex-bundle-multimedia.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/revancex-bundle-multimedia.zip",
-      "tag": "auto-v1.0.5-2026.10.31-b147",
-      "updated_at": "2026-10-31 02:20:55 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/revancex-bundle-multimedia.zip",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     },
     "revancex-bundle-productivity.zip": {
       "filename": "revancex-bundle-productivity.zip",
@@ -288,15 +288,15 @@
     },
     "revancex-bundle-social.zip": {
       "filename": "revancex-bundle-social.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.30-b146/revancex-bundle-social.zip",
-      "tag": "auto-v1.0.5-2026.10.30-b146",
-      "updated_at": "2026-10-30 02:34:59 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/revancex-bundle-social.zip",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     },
     "revancex-bundle-all.zip": {
       "filename": "revancex-bundle-all.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.31-b147/revancex-bundle-all.zip",
-      "tag": "auto-v1.0.5-2026.10.31-b147",
-      "updated_at": "2026-10-31 02:20:55 UTC"
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.04-b151/revancex-bundle-all.zip",
+      "tag": "auto-v1.0.5-2026.11.04-b151",
+      "updated_at": "2026-11-04 03:09:22 UTC"
     }
   },
   "custom_bundles": {}

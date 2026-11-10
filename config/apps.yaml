@@ -229,6 +229,7 @@ apps:
     package: com.community.oneroom
     patch_source: hxreborn
     cli_source: MorpheApp/morphe-cli
+    archive_url: https://archive.org/download/moviebox-4-0-03-1020-03_202611/moviebox-4-0-03-1020-03.apk
     uptodown_url: https://com-community-oneroom.en.uptodown.com/android
     aptoide_url: com.community.oneroom
     architectures:

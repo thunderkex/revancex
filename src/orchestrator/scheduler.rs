@@ -14,6 +14,7 @@ pub struct BuildSummary {
     pub failed: Vec<(String, String)>, // (app_id, error_message)
     pub reports: std::collections::BTreeMap<String, AppBuildReport>,
     pub open_breakers: Vec<String>,
+    pub skipped_unconfigured: Vec<String>,
 }
 
 pub async fn run_pipeline(
@@ -68,7 +69,8 @@ pub async fn run_pipeline(
             let handle = tokio::spawn(async move {
                 let _permit = sem.acquire().await.unwrap();
                 let started = std::time::Instant::now();
-                let res = build_single(
+                let budget_secs = app.timeout_secs.unwrap_or(cfg.build.app_timeout_secs);
+                let app_fut = build_single(
                     &cfg,
                     &id,
                     &app,
@@ -78,10 +80,39 @@ pub async fn run_pipeline(
                     &output_dir,
                     Some(cb),
                     Some(breaker_reg.clone()),
+                );
+                let res = match tokio::time::timeout(
+                    std::time::Duration::from_secs(budget_secs),
+                    app_fut,
                 )
-                .await;
+                .await
+                {
+                    Ok(r) => r,
+                    Err(_) => {
+                        let err_msg =
+                            format!("{id}: per-app time budget exceeded ({budget_secs}s)");
+                        tracing::error!("{err_msg}");
+                        (
+                            None,
+                            AppBuildReport {
+                                status: "failed".to_string(),
+                                target_version: app.version.clone(),
+                                target_version_reason: Some(format!(
+                                    "time budget exceeded ({budget_secs}s)"
+                                )),
+                                error: Some(err_msg.clone()),
+                                failure_category: Some(FailureCategory::Other),
+                                warnings: vec![err_msg],
+                                attempted_sources: vec![],
+                                ..Default::default()
+                            },
+                        )
+                    }
+                };
                 breaker_reg.record_app_completed();
                 let elapsed = started.elapsed();
+                let mut res = res;
+                res.1.total_duration_ms = elapsed.as_millis() as u64;
                 ui::record_duration(&id, elapsed);
                 report_item(&id, &app, &res.0, &res.1, elapsed);
                 res
@@ -124,11 +155,22 @@ pub async fn run_pipeline(
     }
 
     let open_breakers = breaker_registry.open_breakers();
+    let unconfigured_candidates = ["github", "gitlab", "codeberg", "apkeep"];
+    let mut skipped_unconfigured = Vec::new();
+    for s in unconfigured_candidates {
+        let any_configured =
+            cfg.apps.values().any(|a| a.sources.contains_key(s)) || cfg.apk_sources.contains_key(s);
+        if !any_configured {
+            skipped_unconfigured.push(s.to_string());
+        }
+    }
+
     Ok(BuildSummary {
         built,
         failed,
         reports,
         open_breakers,
+        skipped_unconfigured,
     })
 }
 
@@ -147,13 +189,37 @@ fn report_item(
         .or_else(|| report.fetched_version.clone())
         .or_else(|| report.target_version.clone())
         .unwrap_or_default();
-    if path.is_some() && report.status == "success" {
+    if path.is_some()
+        && matches!(
+            report.status.as_str(),
+            "success" | "degraded" | "success_unpatched"
+        )
+    {
         let detail = format!(
             "patches: {} applied, {} skipped",
             report.patches_included.len(),
             report.patches_auto_disabled.len()
         );
-        ui::item_ok(&name, &version, &detail, Some(elapsed));
+        match report.status.as_str() {
+            "success" => ui::item_ok(&name, &version, &detail, Some(elapsed)),
+            other => {
+                let tag = if other == "degraded" {
+                    "degraded"
+                } else {
+                    "unpatched"
+                };
+                ui::item(
+                    ui::Status::Warn,
+                    &name,
+                    &version,
+                    &format!("{detail} ({tag})"),
+                    Some(elapsed),
+                );
+                for w in &report.warnings {
+                    ui::warn_once(w);
+                }
+            }
+        }
     } else {
         let err = report.error.as_deref().unwrap_or("build failed");
         ui::item_fail(id, &name, &version, err, Some(elapsed));
@@ -162,6 +228,34 @@ fn report_item(
                 "{id}: build failed but allow_build_failure is set"
             ));
         }
+    }
+}
+
+pub(crate) fn normalize_optimization_mode(effective_mode: &str) -> &'static str {
+    if effective_mode.eq_ignore_ascii_case("lite") {
+        "lite"
+    } else {
+        "full"
+    }
+}
+
+fn detect_supported_archs(apk_path: &str, arch_mode: &str) -> Vec<String> {
+    const CATALOG_ARCHS: &[&str] = &["arm64-v8a", "armeabi-v7a", "x86_64"];
+    if !builder::arch::apk_has_any_native_libs(apk_path).unwrap_or(true) {
+        return vec!["all".to_string()];
+    }
+    let detected: Vec<String> = CATALOG_ARCHS
+        .iter()
+        .filter(|&&a| builder::arch::apk_has_arch(apk_path, a).unwrap_or(false))
+        .map(|&a| a.to_string())
+        .collect();
+    if !detected.is_empty() {
+        return detected;
+    }
+    if CATALOG_ARCHS.contains(&arch_mode) {
+        vec![arch_mode.to_string()]
+    } else {
+        vec!["all".to_string()]
     }
 }
 
@@ -269,12 +363,140 @@ async fn build_single(
         );
     }
 
+    let pin_val = app
+        .version
+        .as_deref()
+        .filter(|v| !v.eq_ignore_ascii_case("auto"));
+    let is_pin_unsupported = pin_val.is_some_and(|pin| {
+        !patch_supported_list.is_empty()
+            && !patch_supported_list
+                .iter()
+                .any(|v| v == pin || crate::utils::version::versions_match(v, pin))
+    });
+
     if effective_mode != "install" && app.patch_source != "none" && !app.patch_source.is_empty() {
+        let explicit_enabled: Vec<String> = app
+            .included_patches
+            .iter()
+            .chain(app.patches.iter())
+            .cloned()
+            .collect();
+        if let Some(ref meta_slice) = meta {
+            if !meta_slice.is_empty()
+                && crate::patcher::metadata::count_applicable_patches(
+                    meta_slice,
+                    &app.package,
+                    &explicit_enabled,
+                    &app.excluded_patches,
+                ) == 0
+            {
+                let err_msg = format!(
+                    "{id}: 0 enabled patches applicable for '{}' (mode='{effective_mode}')",
+                    app.package
+                );
+                return (
+                    None,
+                    AppBuildReport {
+                        status: "failed".to_string(),
+                        target_version: target_ver.clone(),
+                        target_version_reason: Some("no enabled patches applicable".to_string()),
+                        patch_supported_versions: patch_supported_list,
+                        fetched_version: None,
+                        resolved_version: target_ver,
+                        resolved_source: None,
+                        resolution_strategy: Some(strategy_str),
+                        version_conflict,
+                        patches_included: vec![],
+                        patches_auto_disabled: vec![],
+                        patches_auto_disabled_count: 0,
+                        critical_patches_disabled: vec![],
+                        warnings: vec![err_msg.clone()],
+                        error: Some(err_msg),
+                        failure_category: Some(FailureCategory::NoEnabledPatches),
+                        attempted_sources: vec![],
+                        ..Default::default()
+                    },
+                );
+            }
+        }
+
+        if matches!(
+            patch_supported,
+            crate::patcher::metadata::CompatibleVersions::Intersection(ref v) if v.is_empty()
+        ) && target_ver.is_none()
+        {
+            let err_msg = format!(
+                "{id}: version not supported — no enabled patches support package '{}' or compatible version set is empty",
+                app.package
+            );
+            return (
+                None,
+                AppBuildReport {
+                    status: "failed".to_string(),
+                    target_version: target_ver.clone(),
+                    target_version_reason: Some("no compatible version resolved".to_string()),
+                    patch_supported_versions: patch_supported_list,
+                    fetched_version: None,
+                    resolved_version: None,
+                    resolved_source: None,
+                    resolution_strategy: Some(strategy_str),
+                    version_conflict,
+                    patches_included: vec![],
+                    patches_auto_disabled: vec![],
+                    patches_auto_disabled_count: 0,
+                    critical_patches_disabled: vec![],
+                    warnings: vec![err_msg.clone()],
+                    error: Some(err_msg),
+                    failure_category: Some(FailureCategory::VersionNotSupported),
+                    attempted_sources: vec![],
+                    ..Default::default()
+                },
+            );
+        }
+
+        if app.effective_pin_policy() == crate::config::apps::PinPolicy::Strict
+            && is_pin_unsupported
+        {
+            let pin = pin_val.unwrap();
+            let err_msg = format!(
+                "{id}: pinned version v{pin} is not supported by patches and pin_policy is strict"
+            );
+            return (
+                None,
+                AppBuildReport {
+                    status: "failed".to_string(),
+                    target_version: target_ver.clone(),
+                    target_version_reason: target_version_reason.clone(),
+                    patch_supported_versions: patch_supported_list,
+                    fetched_version: None,
+                    resolved_version: target_ver,
+                    resolved_source: None,
+                    resolution_strategy: Some(strategy_str),
+                    version_conflict,
+                    patches_included: vec![],
+                    patches_auto_disabled: vec![],
+                    patches_auto_disabled_count: 0,
+                    critical_patches_disabled: vec![],
+                    warnings: vec![err_msg.clone()],
+                    error: Some(err_msg),
+                    failure_category: Some(FailureCategory::VersionNotSupported),
+                    attempted_sources: vec![],
+                    ..Default::default()
+                },
+            );
+        }
+
         if let Some(ref meta_slice) = meta {
             if let Some(err) =
                 crate::patcher::metadata::check_app_version_compatibility(id, app, meta_slice)
             {
-                if !app.version_pin_strict && patch_supported.is_empty() {
+                if !app.version_pin_strict
+                    && matches!(
+                        patch_supported,
+                        crate::patcher::metadata::CompatibleVersions::Intersection(ref v)
+                            if v.is_empty()
+                    )
+                {
                     let err_msg = format!("{id}: {err}");
                     return (
                         None,
@@ -306,41 +528,62 @@ async fn build_single(
         }
     }
 
-    let (raw_apk, fetch_attempts, fetched_version, fetch_warnings) =
-        match builder::fetch_apk(cfg, id, app, arch, force, uptodown_cb, breaker_registry).await {
-            Ok(succ) => (succ.path, succ.attempts, succ.final_version, succ.warnings),
-            Err(e) => {
-                let (attempts, warnings) =
-                    if let Some(fetch_err) = e.downcast_ref::<builder::FetchApkError>() {
-                        (fetch_err.attempts.clone(), fetch_err.warnings.clone())
-                    } else {
-                        (vec![], vec![])
-                    };
-                let err_msg = format!("{id}: fetch APK failed: {e}");
-                let cat = FailureCategory::from_error_message(&err_msg);
-                return (
-                    None,
-                    AppBuildReport {
-                        status: "failed".to_string(),
-                        target_version: target_ver.clone(),
-                        target_version_reason: target_version_reason.clone(),
-                        patch_supported_versions: patch_supported_list,
-                        fetched_version: None,
-                        resolved_version: target_ver,
-                        resolved_source: None,
-                        resolution_strategy: Some(strategy_str),
-                        version_conflict,
-                        patches_included: vec![],
-                        patches_auto_disabled: vec![],
-                        warnings,
-                        error: Some(err_msg),
-                        failure_category: Some(cat),
-                        attempted_sources: attempts,
-                        ..Default::default()
-                    },
-                );
-            }
-        };
+    let (
+        raw_apk,
+        fetch_attempts,
+        fetched_version,
+        mut fetch_warnings,
+        requested_version,
+        candidates_tried,
+    ) = match builder::fetch_apk(cfg, id, app, arch, force, uptodown_cb, breaker_registry).await {
+        Ok(succ) => (
+            succ.path,
+            succ.attempts,
+            succ.final_version,
+            succ.warnings,
+            succ.requested_version,
+            succ.candidates_tried,
+        ),
+        Err(e) => {
+            let (attempts, warnings, req_v, cand_t) =
+                if let Some(fetch_err) = e.downcast_ref::<builder::FetchApkError>() {
+                    (
+                        fetch_err.attempts.clone(),
+                        fetch_err.warnings.clone(),
+                        fetch_err.requested_version.clone(),
+                        fetch_err.candidates_tried.clone(),
+                    )
+                } else {
+                    (vec![], vec![], target_ver.clone(), vec![])
+                };
+            let err_msg = format!("{id}: fetch APK failed: {e}");
+            let cat = FailureCategory::from_error_message(&err_msg);
+            return (
+                None,
+                AppBuildReport {
+                    status: "failed".to_string(),
+                    requested_version: req_v,
+                    version_candidates_tried: cand_t,
+                    version_downgraded: false,
+                    target_version: target_ver.clone(),
+                    target_version_reason: target_version_reason.clone(),
+                    patch_supported_versions: patch_supported_list,
+                    fetched_version: None,
+                    resolved_version: target_ver,
+                    resolved_source: None,
+                    resolution_strategy: Some(strategy_str),
+                    version_conflict,
+                    patches_included: vec![],
+                    patches_auto_disabled: vec![],
+                    warnings,
+                    error: Some(err_msg),
+                    failure_category: Some(cat),
+                    attempted_sources: attempts,
+                    ..Default::default()
+                },
+            );
+        }
+    };
 
     let resolved_source = fetch_attempts
         .iter()
@@ -356,6 +599,21 @@ async fn build_single(
     let resolved_ver = fetched_version.clone().or_else(|| target_ver.clone());
     let effective_target_ver = fetched_version.clone().or(target_ver);
 
+    let newest_supported = if !patch_supported_list.is_empty() {
+        crate::utils::semver::max_version(&patch_supported_list)
+    } else {
+        None
+    };
+
+    let is_downgraded = if let (Some(ref req), Some(ref res)) = (&requested_version, &resolved_ver)
+    {
+        req != res && !crate::utils::version::versions_match(req, res)
+    } else if let (Some(ref newest), Some(ref res)) = (&newest_supported, &resolved_ver) {
+        newest != res && !crate::utils::version::versions_match(newest, res)
+    } else {
+        false
+    };
+
     // Check APK integrity after download
     if let Err(integrity_err) = crate::utils::apk::verify_apk_integrity(&raw_apk) {
         warn!("{id}: downloaded APK failed integrity check: {integrity_err}");
@@ -364,6 +622,9 @@ async fn build_single(
             None,
             AppBuildReport {
                 status: "failed".to_string(),
+                requested_version: requested_version.clone(),
+                version_candidates_tried: candidates_tried.clone(),
+                version_downgraded: is_downgraded,
                 target_version: effective_target_ver,
                 target_version_reason: target_version_reason.clone(),
                 patch_supported_versions: patch_supported_list,
@@ -383,6 +644,179 @@ async fn build_single(
         );
     }
 
+    let file_sha256 = crate::utils::apk::compute_file_sha256(&raw_apk).ok();
+    let cert_sha = crate::utils::keystore::get_apk_cert_sha256(&raw_apk)
+        .ok()
+        .flatten();
+
+    // Verify package name equals expected package
+    let actual_pkg_res = crate::utils::apk::get_apk_package_name(&raw_apk);
+    let package_ok = match actual_pkg_res {
+        Ok(ref pkg) => app.package.is_empty() || pkg == &app.package,
+        Err(_) => false,
+    };
+    if !package_ok {
+        let err_msg = format!(
+            "{id}: downloaded APK package '{:?}' does not match expected '{}'",
+            actual_pkg_res, app.package
+        );
+        warn!("{err_msg}");
+        return (
+            None,
+            AppBuildReport {
+                status: "failed".to_string(),
+                requested_version: requested_version.clone(),
+                version_candidates_tried: candidates_tried.clone(),
+                version_downgraded: is_downgraded,
+                target_version: effective_target_ver,
+                target_version_reason: target_version_reason.clone(),
+                patch_supported_versions: patch_supported_list,
+                fetched_version: fetched_version.clone(),
+                resolved_version: resolved_ver,
+                resolved_source,
+                resolution_strategy: Some(strategy_str),
+                version_conflict,
+                patches_included: vec![],
+                patches_auto_disabled: vec![],
+                warnings: fetch_warnings,
+                error: Some(err_msg),
+                failure_category: Some(FailureCategory::IntegrityCheckFailed),
+                attempted_sources: fetch_attempts,
+                sha256: file_sha256,
+                cert_sha256: cert_sha,
+                integrity: Some(crate::report::IntegrityStatus {
+                    package_ok: false,
+                    version_ok: true,
+                    cert_ok: false,
+                }),
+                ..Default::default()
+            },
+        );
+    }
+
+    // Verify downloaded versionName equals expected one before patching
+    let actual_ver_res = crate::utils::apk::get_apk_version_name(&raw_apk);
+    let version_ok = if let Some(ref exp_v) = effective_target_ver {
+        if !exp_v.eq_ignore_ascii_case("auto") {
+            actual_ver_res
+                .as_ref()
+                .map(|v| crate::utils::version::versions_match(v, exp_v))
+                .unwrap_or(false)
+        } else {
+            true
+        }
+    } else {
+        true
+    };
+
+    if !version_ok {
+        let act_v = actual_ver_res.unwrap_or_else(|_| "unknown".to_string());
+        let exp_v = effective_target_ver.as_deref().unwrap_or("unknown");
+        let err_msg = format!(
+            "{id}: downloaded APK version v{act_v} does not match expected target v{exp_v}"
+        );
+        warn!("{err_msg}");
+        return (
+            None,
+            AppBuildReport {
+                status: "failed".to_string(),
+                requested_version: requested_version.clone(),
+                version_candidates_tried: candidates_tried.clone(),
+                version_downgraded: is_downgraded,
+                target_version: effective_target_ver,
+                target_version_reason: target_version_reason.clone(),
+                patch_supported_versions: patch_supported_list,
+                fetched_version: Some(act_v),
+                resolved_version: resolved_ver,
+                resolved_source,
+                resolution_strategy: Some(strategy_str),
+                version_conflict,
+                patches_included: vec![],
+                patches_auto_disabled: vec![],
+                warnings: fetch_warnings,
+                error: Some(err_msg),
+                failure_category: Some(FailureCategory::IntegrityCheckFailed),
+                attempted_sources: fetch_attempts,
+                sha256: file_sha256,
+                cert_sha256: cert_sha,
+                integrity: Some(crate::report::IntegrityStatus {
+                    package_ok: true,
+                    version_ok: false,
+                    cert_ok: false,
+                }),
+                ..Default::default()
+            },
+        );
+    }
+
+    let exp_certs = app.expected_certs();
+    let cert_matched = if let Some(ref actual_cert) = cert_sha {
+        exp_certs
+            .iter()
+            .any(|c| c.eq_ignore_ascii_case(actual_cert))
+    } else {
+        false
+    };
+
+    if exp_certs.is_empty() {
+        fetch_warnings.push(format!("{id}: no expected_cert_sha256 configured for app"));
+    } else if !cert_matched {
+        let err_msg = format!(
+            "{id}: downloaded APK cert SHA-256 '{cert_sha:?}' does not match any expected cert fingerprint"
+        );
+        warn!("{err_msg}");
+        return (
+            None,
+            AppBuildReport {
+                status: "failed".to_string(),
+                requested_version: requested_version.clone(),
+                version_candidates_tried: candidates_tried.clone(),
+                version_downgraded: is_downgraded,
+                target_version: effective_target_ver,
+                target_version_reason: target_version_reason.clone(),
+                patch_supported_versions: patch_supported_list,
+                fetched_version: fetched_version.clone(),
+                resolved_version: resolved_ver,
+                resolved_source,
+                resolution_strategy: Some(strategy_str),
+                version_conflict,
+                patches_included: vec![],
+                patches_auto_disabled: vec![],
+                warnings: fetch_warnings,
+                error: Some(err_msg),
+                failure_category: Some(FailureCategory::IntegrityCheckFailed),
+                attempted_sources: fetch_attempts,
+                sha256: file_sha256,
+                cert_sha256: cert_sha,
+                integrity: Some(crate::report::IntegrityStatus {
+                    package_ok: true,
+                    version_ok: true,
+                    cert_ok: false,
+                }),
+                ..Default::default()
+            },
+        );
+    }
+
+    let is_mirror_degraded = if resolved_source.as_deref() == Some("archive") && !cert_matched {
+        fetch_warnings.push(format!(
+            "{id}: downloaded from third-party mirror archive.org without verified certificate match — building degraded"
+        ));
+        true
+    } else {
+        false
+    };
+
+    let integrity_status = Some(crate::report::IntegrityStatus {
+        package_ok: true,
+        version_ok: true,
+        cert_ok: if exp_certs.is_empty() {
+            true
+        } else {
+            cert_matched
+        },
+    });
+
     if effective_mode == "install" || app.patch_source == "none" || app.patch_source.is_empty() {
         let dest = format!("{output_dir}/{id}.apk");
         if let Err(e) = std::fs::copy(&raw_apk, &dest) {
@@ -391,6 +825,9 @@ async fn build_single(
                 None,
                 AppBuildReport {
                     status: "failed".to_string(),
+                    requested_version: requested_version.clone(),
+                    version_candidates_tried: candidates_tried.clone(),
+                    version_downgraded: is_downgraded,
                     target_version: effective_target_ver,
                     target_version_reason: target_version_reason.clone(),
                     patch_supported_versions: vec![],
@@ -410,8 +847,21 @@ async fn build_single(
             );
         }
         info!("{id}: copied unpatched official APK to {dest}");
+        let out_sha256 = crate::utils::apk::compute_file_sha256(&dest)
+            .ok()
+            .or(file_sha256);
+        let out_size = std::fs::metadata(&dest).ok().map(|m| m.len());
+        let supported_archs = detect_supported_archs(&dest, arch);
+        let validation_status = if integrity_status
+            .as_ref()
+            .is_some_and(|i| i.package_ok && i.version_ok && i.cert_ok)
+        {
+            Some("passed".to_string())
+        } else {
+            Some("warning".to_string())
+        };
         return (
-            Some(dest),
+            Some(dest.clone()),
             AppBuildReport {
                 status: "success".to_string(),
                 target_version: effective_target_ver,
@@ -428,6 +878,18 @@ async fn build_single(
                 error: None,
                 failure_category: None,
                 attempted_sources: fetch_attempts,
+                output_file: std::path::Path::new(&dest)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .map(String::from),
+                output_path: Some(dest),
+                sha256: out_sha256,
+                size_bytes: out_size,
+                optimization_mode: Some("full".to_string()),
+                supported_archs,
+                validation_status,
+                cert_sha256: cert_sha,
+                integrity: integrity_status,
                 ..Default::default()
             },
         );
@@ -452,6 +914,9 @@ async fn build_single(
                 None,
                 AppBuildReport {
                     status: "failed".to_string(),
+                    requested_version: requested_version.clone(),
+                    version_candidates_tried: candidates_tried.clone(),
+                    version_downgraded: is_downgraded,
                     target_version: effective_target_ver,
                     target_version_reason: target_version_reason.clone(),
                     patch_supported_versions: patch_supported_list,
@@ -481,6 +946,11 @@ async fn build_single(
     let (patch_res, root_payload_path) = if effective_mode == "both" || needs_module_root {
         match patcher::patch(cfg, id, app, &apk_path, output_dir, false).await {
             Ok((non_root, plan)) => {
+                if effective_mode == "lite" {
+                    if let Err(e) = builder::lite::optimize_apk(&non_root) {
+                        warn!("{id}: lite optimization note: {e}");
+                    }
+                }
                 let root_res = patcher::patch(cfg, id, app, &apk_path, output_dir, true).await;
                 let root_payload = match root_res {
                     Ok((r_path, _)) => Some(r_path),
@@ -517,6 +987,69 @@ async fn build_single(
         Ok((out_path, plan)) => {
             let mut warnings = plan.warnings;
             warnings.extend(fetch_warnings.clone());
+
+            if !plan.critical_disabled.is_empty() {
+                let crit_list = plan.critical_disabled.join(", ");
+                let err_msg = format!("{id}: critical patch(es) [{crit_list}] were auto-disabled as incompatible; refusing degraded build");
+                return (
+                    None,
+                    AppBuildReport {
+                        status: "failed".to_string(),
+                        target_version: effective_target_ver,
+                        target_version_reason: target_version_reason.clone(),
+                        patch_supported_versions: patch_supported_list,
+                        fetched_version: fetched_version.clone(),
+                        resolved_version: resolved_ver,
+                        resolved_source,
+                        resolution_strategy: Some(strategy_str),
+                        version_conflict,
+                        patches_included: plan.included,
+                        patches_auto_disabled_count: plan.auto_disabled.len(),
+                        critical_patches_disabled: plan.critical_disabled,
+                        patches_auto_disabled: plan.auto_disabled,
+                        warnings,
+                        error: Some(err_msg),
+                        failure_category: Some(FailureCategory::VersionNotSupported),
+                        attempted_sources: fetch_attempts,
+                        arch_mode: Some(arch_mode),
+                        ..Default::default()
+                    },
+                );
+            }
+
+            let is_resolved_unsupported = resolved_ver.as_ref().is_some_and(|v| {
+                !patch_supported_list.is_empty()
+                    && !patch_supported_list
+                        .iter()
+                        .any(|s| s == v || crate::utils::version::versions_match(s, v))
+            });
+            if is_resolved_unsupported {
+                warnings.push(format!(
+                    "{id}: resolved version v{} is not in patch-supported set {:?}",
+                    resolved_ver.as_deref().unwrap_or(""),
+                    patch_supported_list
+                ));
+            }
+
+            if let (Some(ref newest), Some(ref res)) = (&newest_supported, &resolved_ver) {
+                if newest != res && !crate::utils::version::versions_match(newest, res) {
+                    warnings.push(format!(
+                        "{id}: resolved version v{res} is not the newest supported version v{newest}"
+                    ));
+                }
+            }
+
+            if let Some(min_p) = app.expected_min_patches {
+                if plan.included.len() < min_p {
+                    let warn_msg = format!(
+                        "{id}: included patches count ({}) is below expected minimum ({min_p})",
+                        plan.included.len()
+                    );
+                    tracing::warn!("{warn_msg}");
+                    warnings.push(warn_msg);
+                }
+            }
+
             let status = if effective_mode != "install"
                 && app.patch_source != "none"
                 && !app.patch_source.is_empty()
@@ -524,6 +1057,11 @@ async fn build_single(
             {
                 warnings.push(format!("{id}: app configured with mode='patch' but 0 patches were applied; output APK is signed stock"));
                 "success_unpatched".to_string()
+            } else if is_resolved_unsupported
+                || !plan.auto_disabled.is_empty()
+                || is_mirror_degraded
+            {
+                "degraded".to_string()
             } else {
                 "success".to_string()
             };
@@ -531,10 +1069,35 @@ async fn build_single(
                 .file_name()
                 .and_then(|n| n.to_str())
                 .map(String::from);
+            let out_sha256 = crate::utils::apk::compute_file_sha256(&out_path)
+                .ok()
+                .or(file_sha256);
+            let out_size = std::fs::metadata(&out_path).ok().map(|m| m.len());
+            let supported_archs = detect_supported_archs(&out_path, &arch_mode);
+            let opt_mode = normalize_optimization_mode(effective_mode).to_string();
+            let validation_status = match status.as_str() {
+                "success" => {
+                    if integrity_status
+                        .as_ref()
+                        .is_none_or(|i| i.package_ok && i.version_ok && i.cert_ok)
+                    {
+                        "passed"
+                    } else {
+                        "warning"
+                    }
+                }
+                "degraded" | "success_unpatched" => "warning",
+                "failed" => "failed",
+                _ => "unknown",
+            }
+            .to_string();
             (
                 Some(out_path.clone()),
                 AppBuildReport {
                     status,
+                    requested_version: requested_version.clone(),
+                    version_candidates_tried: candidates_tried.clone(),
+                    version_downgraded: is_downgraded,
                     target_version: effective_target_ver,
                     target_version_reason: target_version_reason.clone(),
                     patch_supported_versions: patch_supported_list,
@@ -544,6 +1107,8 @@ async fn build_single(
                     resolution_strategy: Some(strategy_str),
                     version_conflict,
                     patches_included: plan.included,
+                    patches_auto_disabled_count: plan.auto_disabled.len(),
+                    critical_patches_disabled: plan.critical_disabled,
                     patches_auto_disabled: plan.auto_disabled,
                     warnings,
                     error: None,
@@ -555,6 +1120,14 @@ async fn build_single(
                     root_payload_path,
                     module_file: None,
                     runtime_test: None,
+                    sha256: out_sha256,
+                    size_bytes: out_size,
+                    optimization_mode: Some(opt_mode),
+                    supported_archs,
+                    validation_status: Some(validation_status),
+                    cert_sha256: cert_sha.clone(),
+                    integrity: integrity_status.clone(),
+                    ..Default::default()
                 },
             )
         }
@@ -565,6 +1138,9 @@ async fn build_single(
                 None,
                 AppBuildReport {
                     status: "failed".to_string(),
+                    requested_version: requested_version.clone(),
+                    version_candidates_tried: candidates_tried.clone(),
+                    version_downgraded: is_downgraded,
                     target_version: effective_target_ver,
                     target_version_reason: target_version_reason.clone(),
                     patch_supported_versions: patch_supported_list,
@@ -575,6 +1151,8 @@ async fn build_single(
                     version_conflict,
                     patches_included: vec![],
                     patches_auto_disabled: vec![],
+                    patches_auto_disabled_count: 0,
+                    critical_patches_disabled: vec![],
                     warnings: fetch_warnings,
                     error: Some(err_msg),
                     failure_category: Some(cat),
@@ -585,6 +1163,10 @@ async fn build_single(
                     root_payload_path: None,
                     module_file: None,
                     runtime_test: None,
+                    sha256: file_sha256,
+                    cert_sha256: cert_sha,
+                    integrity: integrity_status,
+                    ..Default::default()
                 },
             )
         }

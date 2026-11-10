@@ -4,4 +4,6 @@ version={{VERSION}}
 versionCode={{VERSION_CODE}}
 author={{AUTHOR}}
 description={{DESCRIPTION}}
+minMagisk={{MIN_MAGISK}}
+minKernelSU={{MIN_KERNELSU}}
 updateJson={{UPDATE_JSON}}

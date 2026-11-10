@@ -34,6 +34,7 @@ concurrency:
 
 jobs:
   validate:
+    name: Validate check
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -49,13 +50,22 @@ jobs:
           cache-on-failure: true
 
       - name: Code format check (cargo fmt)
-        run: cargo fmt --check
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Format check (cargo fmt)" cargo fmt --check
 
       - name: Linter check (cargo clippy)
-        run: cargo clippy --quiet --all-targets -- -D warnings
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Linter check (cargo clippy)" cargo clippy --quiet --all-targets -- -D warnings
 
       - name: Run unit & integration tests
-        run: cargo test --quiet
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Run tests (cargo test)" cargo test --quiet
 
       # pip cache skips PyPI network round-trips; pip install --quiet no-ops fast on warm cache
       - name: Cache pip dependencies
@@ -67,15 +77,47 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Smoke-test Python scripts
+        shell: bash
         run: |
+          source scripts/ci-log.sh
           pip install -q --disable-pip-version-check -r scripts/requirements.txt
-          python3 scripts/tests/test_update_readme.py
-          python3 scripts/tests/test_summarize_build_report.py
+          step_run "Smoke-test scripts" bash -c "python3 scripts/tests/test_update_readme.py && python3 scripts/tests/test_summarize_build_report.py && bash scripts/tests/test_ci_log.sh"
 
       - name: Validate config
-        run: cargo run --quiet -- validate
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Validate config" cargo run --quiet -- validate
+
+      - name: Validate apps.json generation and JSON Schema
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Validate apps.json schema" bash -c "
+            cargo run --quiet -- gen-apps-json --registry config/releases_registry.json --out /tmp/apps1.json
+            cargo run --quiet -- gen-apps-json --registry config/releases_registry.json --out /tmp/apps2.json
+            diff -u /tmp/apps1.json /tmp/apps2.json
+            python3 scripts/validate_apps_json.py /tmp/apps1.json docs/apps.schema.json
+          "
 
       - name: Hygiene checks (clean patterns, no dead code)
+        shell: bash
         run: |
-          ! grep -rnF '|| true' --exclude-dir='.git' --exclude='ci.yml' .github/workflows/ || (echo "::error title=Hygiene::found forbidden || true in workflows" && exit 1)
-          ! grep -rn 'allow(dead_code)' src/ || (echo "::error title=Hygiene::found allow(dead_code) in src/" && exit 1)
+          source scripts/ci-log.sh
+          step_run "Hygiene checks" bash -c "! grep -rnF '|| true' --exclude-dir='.git' --exclude='ci.yml' .github/workflows/ && ! grep -rn 'allow(dead_code)' src/"
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ github.job }}-main
+          path: build/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Render Process Summary
+        if: always()
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_summary "build-logs-${{ github.job }}-main"

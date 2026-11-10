@@ -143,10 +143,18 @@ struct HostState {
 }
 
 impl Fetcher {
+    fn resolve_trawl_url(config: &FetchConfig) -> String {
+        std::env::var("TRAWL_URL")
+            .ok()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+            .unwrap_or_else(|| config.trawl.url.trim().to_string())
+    }
+
     pub fn new(client: Client, config: FetchConfig) -> Self {
         let fs_enabled = config.flaresolverr.enabled != "false";
-        let trawl_enabled = config.trawl.enabled != "false"
-            && (!config.trawl.url.is_empty() || std::env::var("TRAWL_URL").is_ok());
+        let trawl_enabled =
+            config.trawl.enabled != "false" && !Self::resolve_trawl_url(&config).is_empty();
 
         Self {
             client,
@@ -206,8 +214,7 @@ impl Fetcher {
             }
         }
 
-        let trawl_url =
-            std::env::var("TRAWL_URL").unwrap_or_else(|_| self.config.trawl.url.clone());
+        let trawl_url = Self::resolve_trawl_url(&self.config);
         if !trawl_url.is_empty() && self.config.trawl.enabled != "false" {
             let probe_res = self
                 .client
@@ -227,6 +234,8 @@ impl Fetcher {
                     self.trawl_available.store(false, Ordering::SeqCst);
                 }
             }
+        } else {
+            self.trawl_available.store(false, Ordering::SeqCst);
         }
         Ok(())
     }
@@ -306,7 +315,7 @@ impl Fetcher {
             }
         };
 
-        let mut req = self.client.get(url);
+        let mut req = self.client.get(url).timeout(Duration::from_secs(20));
         if let Some(ua) = &saved_ua {
             req = req.header(USER_AGENT, ua);
         }
@@ -448,6 +457,17 @@ impl Fetcher {
         }
     }
 
+    async fn http_error_with_body(service: &str, resp: reqwest::Response) -> anyhow::Error {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        let snippet: String = body.trim().chars().take(300).collect();
+        if snippet.is_empty() {
+            anyhow::anyhow!("{service} HTTP status {status}")
+        } else {
+            anyhow::anyhow!("{service} HTTP status {status}: {snippet}")
+        }
+    }
+
     async fn solve_with_flaresolverr(&self, url: &str, _host: &str) -> Result<SolvedSolution> {
         let fs_url = std::env::var("FLARESOLVERR_URL")
             .unwrap_or_else(|_| self.config.flaresolverr.url.clone());
@@ -475,7 +495,7 @@ impl Fetcher {
             .with_context(|| format!("Failed to connect to FlareSolverr at {endpoint}"))?;
 
         if !resp.status().is_success() {
-            bail!("FlareSolverr HTTP status {}", resp.status());
+            return Err(Self::http_error_with_body("FlareSolverr", resp).await);
         }
 
         let parsed: FlareSolverrResponse = resp
@@ -508,22 +528,18 @@ impl Fetcher {
     }
 
     async fn solve_with_trawl(&self, url: &str, _host: &str) -> Result<SolvedSolution> {
-        let trawl_url =
-            std::env::var("TRAWL_URL").unwrap_or_else(|_| self.config.trawl.url.clone());
+        let trawl_url = Self::resolve_trawl_url(&self.config);
         let endpoint = if trawl_url.ends_with("/scrape") {
             trawl_url.clone()
         } else {
             format!("{}/scrape", trawl_url.trim_end_matches('/'))
         };
 
-        let mut headers = HashMap::new();
-        headers.insert("Referer", url);
-
         let req_body = TrawlRequest {
             url,
             max_timeout: 60000,
             skip_http: true,
-            headers,
+            headers: HashMap::new(),
         };
 
         let resp = self
@@ -536,7 +552,7 @@ impl Fetcher {
             .with_context(|| format!("Failed to connect to Trawl at {endpoint}"))?;
 
         if !resp.status().is_success() {
-            bail!("Trawl HTTP status {}", resp.status());
+            return Err(Self::http_error_with_body("Trawl", resp).await);
         }
 
         let parsed: TrawlResponse = resp

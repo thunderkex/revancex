@@ -1,5 +1,5 @@
 use crate::config::sources::CircuitBreakersConfig;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -46,7 +46,7 @@ impl std::fmt::Display for BreakerState {
 #[derive(Debug)]
 struct BreakerInner {
     state: BreakerState,
-    failed_apps: HashSet<String>,
+    consecutive_transport_failures: u32,
     opened_at: Option<Instant>,
     apps_since_opened: usize,
     probe_in_flight: bool,
@@ -73,7 +73,7 @@ impl SourceCircuitBreaker {
             cooldown_apps,
             inner: Mutex::new(BreakerInner {
                 state: BreakerState::Closed,
-                failed_apps: HashSet::new(),
+                consecutive_transport_failures: 0,
                 opened_at: None,
                 apps_since_opened: 0,
                 probe_in_flight: false,
@@ -103,9 +103,8 @@ impl SourceCircuitBreaker {
                     Ok(BreakerState::HalfOpen)
                 } else {
                     let reason = format!(
-                        "circuit-breaker open ({}/{} failed apps)",
-                        inner.failed_apps.len(),
-                        self.threshold
+                        "circuit-breaker open ({}/{} consecutive transport failures)",
+                        inner.consecutive_transport_failures, self.threshold
                     );
                     Err((BreakerState::Open, reason))
                 }
@@ -143,7 +142,7 @@ impl SourceCircuitBreaker {
     pub fn record_success(&self) {
         let mut inner = self.inner.lock().unwrap();
         inner.state = BreakerState::Closed;
-        inner.failed_apps.clear();
+        inner.consecutive_transport_failures = 0;
         inner.probe_in_flight = false;
         inner.probe_app = None;
         inner.probe_started_at = None;
@@ -155,6 +154,7 @@ impl SourceCircuitBreaker {
         let mut inner = self.inner.lock().unwrap();
         match block_kind {
             BlockKind::NotFound => {
+                // Not a transport-level failure; do NOT count as breaker failure
                 if inner.state == BreakerState::HalfOpen
                     && inner.probe_app.as_deref() == Some(app_id)
                 {
@@ -168,14 +168,14 @@ impl SourceCircuitBreaker {
                 inner.state = BreakerState::Open;
                 inner.opened_at = Some(Instant::now());
                 inner.ever_opened = true;
-                inner.failed_apps.insert(app_id.to_string());
+                inner.consecutive_transport_failures = self.threshold;
                 inner.probe_in_flight = false;
                 inner.probe_app = None;
                 inner.probe_started_at = None;
                 inner.apps_since_opened = 0;
             }
             _ => {
-                inner.failed_apps.insert(app_id.to_string());
+                inner.consecutive_transport_failures += 1;
                 if inner.state == BreakerState::HalfOpen {
                     // Half-open probe failed -> re-open
                     inner.state = BreakerState::Open;
@@ -184,7 +184,7 @@ impl SourceCircuitBreaker {
                     inner.probe_app = None;
                     inner.probe_started_at = None;
                     inner.apps_since_opened = 0;
-                } else if inner.failed_apps.len() >= self.threshold as usize {
+                } else if inner.consecutive_transport_failures >= self.threshold {
                     inner.state = BreakerState::Open;
                     inner.opened_at = Some(Instant::now());
                     inner.ever_opened = true;
@@ -304,7 +304,7 @@ impl BreakerRegistry {
         let lock = self.breakers.lock().unwrap();
         let mut open = Vec::new();
         for (name, cb) in lock.iter() {
-            if cb.ever_opened() || cb.state() == BreakerState::Open {
+            if cb.state() == BreakerState::Open {
                 open.push(name.clone());
             }
         }
@@ -315,7 +315,18 @@ impl BreakerRegistry {
 
 pub fn classify_error(err_str: &str) -> BlockKind {
     let lower = err_str.to_lowercase();
-    if lower.contains("1020")
+    if lower.contains("404")
+        || lower.contains("not found")
+        || lower.contains("not_found")
+        || lower.contains("no apk")
+        || lower.contains("no release links found")
+        || lower.contains("no variant links found")
+        || lower.contains("source not configured or release not found")
+        || lower.contains("not in recent releases")
+        || lower.contains("empty directory")
+    {
+        BlockKind::NotFound
+    } else if lower.contains("1020")
         || lower.contains("ipreputation")
         || lower.contains("ip_reputation")
         || lower.contains("access denied")
@@ -327,13 +338,17 @@ pub fn classify_error(err_str: &str) -> BlockKind {
         || lower.contains("rate_limited")
     {
         BlockKind::RateLimited
-    } else if lower.contains("404") || lower.contains("not found") || lower.contains("not_found") {
-        BlockKind::NotFound
-    } else if lower.contains("turnstile")
-        || lower.contains("challenge")
+    } else if lower.contains("403")
+        || lower.contains("forbidden")
+        || lower.contains("turnstile")
         || lower.contains("just a moment")
         || lower.contains("cf-chl")
-        || lower.contains("cloudflare")
+        || lower.contains("cf-ray")
+        || lower.contains("challenge-running")
+        || lower.contains("challenge-platform")
+        || lower.contains("cloudflare challenge")
+        || lower.contains("cloudflare ray id")
+        || (lower.contains("challenge") && !lower.contains("unchallenged"))
     {
         BlockKind::TurnstileChallenge
     } else {

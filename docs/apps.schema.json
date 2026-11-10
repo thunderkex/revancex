@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://thunderkex.github.io/revancex/apps.schema.json",
+  "title": "ReVanceX Catalogue Schema",
+  "type": "object",
+  "required": ["schema_version", "build_health", "apps", "bundles", "custom_bundles"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "build_health": {
+      "type": "object",
+      "required": ["release_tag", "cli_version", "built_at", "pass_rate", "active_sources"],
+      "properties": {
+        "release_tag": { "type": ["string", "null"] },
+        "cli_version": { "type": "string" },
+        "built_at": { "type": ["string", "null"], "format": "date-time" },
+        "pass_rate": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "active_sources": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "apps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/appEntry" }
+    },
+    "bundles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/bundleEntry" }
+    },
+    "custom_bundles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/bundleEntry" }
+    }
+  },
+  "$defs": {
+    "archList": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["arm64-v8a", "armeabi-v7a", "x86_64", "all"]
+      }
+    },
+    "optimizationMode": {
+      "type": "string",
+      "enum": ["full", "lite"]
+    },
+    "validationStatus": {
+      "type": "string",
+      "enum": ["passed", "warning", "failed", "unknown"]
+    },
+    "releaseAsset": {
+      "type": "object",
+      "required": [
+        "filename",
+        "url",
+        "download_url",
+        "tag",
+        "release_tag",
+        "updated_at",
+        "source_repo",
+        "asset_pattern",
+        "version",
+        "sha256",
+        "size_bytes",
+        "supported_archs",
+        "optimization_mode",
+        "validation_status"
+      ],
+      "properties": {
+        "filename": { "type": "string" },
+        "url": { "type": "string" },
+        "download_url": { "type": "string" },
+        "tag": { "type": "string" },
+        "release_tag": { "type": "string" },
+        "updated_at": { "type": ["string", "null"], "format": "date-time" },
+        "source_repo": { "type": ["string", "null"] },
+        "asset_pattern": { "type": ["string", "null"] },
+        "version": { "type": ["string", "null"] },
+        "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
+        "size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "supported_archs": { "$ref": "#/$defs/archList" },
+        "optimization_mode": { "$ref": "#/$defs/optimizationMode" },
+        "validation_status": { "$ref": "#/$defs/validationStatus" },
+        "module_id": { "type": ["string", "null"] }
+      }
+    },
+    "appEntry": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "enabled",
+        "package",
+        "patch_source",
+        "source_repo",
+        "asset_pattern",
+        "categories",
+        "architectures",
+        "supported_archs",
+        "mode",
+        "optimization_mode",
+        "patches",
+        "dependencies",
+        "module",
+        "version",
+        "sha256",
+        "size_bytes",
+        "validation_status",
+        "download_url",
+        "tag",
+        "release_tag",
+        "updated_at",
+        "releases"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "package": { "type": "string" },
+        "patch_source": { "type": "string" },
+        "source_repo": { "type": ["string", "null"] },
+        "asset_pattern": { "type": ["string", "null"] },
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "architectures": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "supported_archs": { "$ref": "#/$defs/archList" },
+        "mode": { "type": "string" },
+        "optimization_mode": { "$ref": "#/$defs/optimizationMode" },
+        "patches": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "module": {
+          "type": "object",
+          "required": ["single", "bundle"],
+          "properties": {
+            "single": { "type": "boolean" },
+            "bundle": { "type": "boolean" }
+          }
+        },
+        "version": { "type": ["string", "null"] },
+        "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
+        "size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "validation_status": { "$ref": "#/$defs/validationStatus" },
+        "download_url": { "type": ["string", "null"] },
+        "tag": { "type": ["string", "null"] },
+        "release_tag": { "type": ["string", "null"] },
+        "updated_at": { "type": ["string", "null"], "format": "date-time" },
+        "releases": {
+          "type": "object",
+          "required": ["stock", "module"],
+          "properties": {
+            "stock": {
+              "anyOf": [
+                { "type": "null" },
+                { "$ref": "#/$defs/releaseAsset" }
+              ]
+            },
+            "module": {
+              "anyOf": [
+                { "type": "null" },
+                { "$ref": "#/$defs/releaseAsset" }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "payloadEntry": {
+      "type": "object",
+      "required": ["app", "package", "version", "path"],
+      "properties": {
+        "app": { "type": "string" },
+        "package": { "type": "string" },
+        "version": { "type": ["string", "null"] },
+        "path": { "type": "string", "pattern": "^apks/.+\\.apk$" }
+      }
+    },
+    "bundleEntry": {
+      "type": "object",
+      "required": [
+        "id",
+        "module_id",
+        "name",
+        "category",
+        "filename",
+        "source_repo",
+        "asset_pattern",
+        "sources",
+        "sha256",
+        "size_bytes",
+        "release_tag",
+        "tag",
+        "updated_at",
+        "supported_archs",
+        "optimization_mode",
+        "download_url",
+        "validation_status",
+        "payload"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "module_id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "filename": { "type": "string" },
+        "source_repo": { "type": ["string", "null"] },
+        "asset_pattern": { "type": ["string", "null"] },
+        "sources": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sha256": { "type": ["string", "null"], "pattern": "^[0-9a-fA-F]{64}$" },
+        "size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "release_tag": { "type": ["string", "null"] },
+        "tag": { "type": ["string", "null"] },
+        "updated_at": { "type": ["string", "null"], "format": "date-time" },
+        "supported_archs": { "$ref": "#/$defs/archList" },
+        "optimization_mode": { "$ref": "#/$defs/optimizationMode" },
+        "download_url": { "type": ["string", "null"] },
+        "validation_status": { "$ref": "#/$defs/validationStatus" },
+        "payload": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/payloadEntry" }
+        }
+      }
+    }
+  }
+}

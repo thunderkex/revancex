@@ -74,6 +74,7 @@ pub fn make_browser_client(cfg: &Config) -> Result<Client> {
         .cookie_store(true)
         .default_headers(headers)
         .redirect(reqwest::redirect::Policy::limited(10))
+        .connect_timeout(std::time::Duration::from_secs(5))
         .timeout(timeout)
         .build()
         .map_err(Into::into)
@@ -745,6 +746,15 @@ pub async fn download_file_with_client(
         match try_download(client, url, dest, referer).await {
             Ok(_) => return Ok(dest.to_string()),
             Err(e) if attempt < retries => {
+                let err_str = e.to_string().to_lowercase();
+                if err_str.contains("403")
+                    || err_str.contains("forbidden")
+                    || err_str.contains("turnstile")
+                    || err_str.contains("challenge")
+                    || err_str.contains("blocked")
+                {
+                    return Err(e);
+                }
                 tracing::warn!("Download attempt {attempt} failed: {e}, retrying...");
                 tokio::time::sleep(std::time::Duration::from_secs(2u64.pow(attempt))).await;
             }
@@ -906,10 +916,21 @@ async fn try_download(client: &Client, url: &str, dest: &str, referer: Option<&s
     let tmp_dest = format!("{dest}.download.tmp");
     let mut stream = resp.bytes_stream();
     let mut file = std::fs::File::create(&tmp_dest)?;
-    while let Some(chunk) = stream.next().await {
-        if let Err(e) = std::io::Write::write_all(&mut file, &chunk?) {
-            let _ = std::fs::remove_file(&tmp_dest);
-            return Err(e.into());
+    let stall_timeout = std::time::Duration::from_secs(20);
+    loop {
+        match tokio::time::timeout(stall_timeout, stream.next()).await {
+            Ok(Some(chunk_res)) => {
+                let chunk = chunk_res?;
+                if let Err(e) = std::io::Write::write_all(&mut file, &chunk) {
+                    let _ = std::fs::remove_file(&tmp_dest);
+                    return Err(e.into());
+                }
+            }
+            Ok(None) => break,
+            Err(_) => {
+                let _ = std::fs::remove_file(&tmp_dest);
+                anyhow::bail!("Download stream stalled (no data received for >20s) for {url}");
+            }
         }
     }
     drop(file);
@@ -1043,6 +1064,18 @@ pub fn write_build_report(summary: &BuildSummary, path: &str) -> Result<()> {
     let json = serde_json::to_string_pretty(&report)?;
     std::fs::write(path, &json).with_context(|| format!("Writing build report to {path}"))?;
     info!("Build report written to {path}");
+
+    let md_content = crate::report::generate_markdown_report(&report);
+    let md_path = if let Some(parent) = std::path::Path::new(path).parent() {
+        parent.join("BUILD_REPORT.md")
+    } else {
+        std::path::PathBuf::from("BUILD_REPORT.md")
+    };
+    let _ = std::fs::write(&md_path, &md_content);
+    info!(
+        "Human-readable build report written to {}",
+        md_path.display()
+    );
     Ok(())
 }
 

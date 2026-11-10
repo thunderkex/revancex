@@ -113,6 +113,14 @@ impl<'a> SourceCtx<'a> {
                 Ok(body) => {
                     return (body, reqwest::header::HeaderMap::new());
                 }
+                Err(crate::net::FetchError::Blocked { .. }) => {
+                    return (String::new(), reqwest::header::HeaderMap::new());
+                }
+                Err(crate::net::FetchError::Http { status, .. })
+                    if status == reqwest::StatusCode::FORBIDDEN =>
+                {
+                    return (String::new(), reqwest::header::HeaderMap::new());
+                }
                 Err(crate::net::FetchError::Http { status, .. }) => {
                     tracing::info!(
                         "fetcher: non-challenge HTTP {} for {} — falling back to direct",
@@ -125,10 +133,19 @@ impl<'a> SourceCtx<'a> {
                 }
             }
         }
-        match self.client.get(url).send().await {
+        match self
+            .client
+            .get(url)
+            .timeout(std::time::Duration::from_secs(20))
+            .send()
+            .await
+        {
             Ok(resp) => {
                 let headers = resp.headers().clone();
                 let status = resp.status();
+                if status == reqwest::StatusCode::FORBIDDEN {
+                    return (String::new(), headers);
+                }
                 let body = resp.text().await.unwrap_or_default();
                 if !status.is_success() {
                     tracing::info!(
@@ -296,13 +313,30 @@ pub fn source_order<'a>(
     } else if app.source_priority.is_empty() {
         cfg_order
     } else {
-        app.source_priority.iter().map(|s| s.as_str()).collect()
+        let mut list: Vec<&str> = app.source_priority.iter().map(|s| s.as_str()).collect();
+        for &s in &cfg_order {
+            if !list.contains(&s) {
+                list.push(s);
+            }
+        }
+        list
     };
 
     let mut ordered: Vec<&dyn ApkSource> = Vec::new();
     let mut seen = std::collections::HashSet::new();
     for name in &priority {
         if seen.insert(*name) {
+            let is_unconfigured = match *name {
+                "github" | "gitlab" | "codeberg" => !app.sources.contains_key(*name),
+                "apkeep" => {
+                    !app.sources.contains_key("apkeep") && !cfg.apk_sources.contains_key("apkeep")
+                }
+                _ => false,
+            };
+            if is_unconfigured {
+                continue;
+            }
+
             if let Some(src) = registry.iter().find(|s| s.name() == *name) {
                 ordered.push(src.as_ref());
             }

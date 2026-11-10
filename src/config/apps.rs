@@ -98,6 +98,22 @@ pub struct AppSourceConfig {
     pub version_regex: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum ExpectedCert {
+    Single(String),
+    Multiple(Vec<String>),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum PinPolicy {
+    #[default]
+    PreferSupported,
+    Strict,
+    Force,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct AppConfig {
     pub enabled: bool,
@@ -133,7 +149,7 @@ pub struct AppConfig {
     #[serde(default)]
     pub allow_build_failure: bool,
     #[serde(default)]
-    pub expected_cert_sha256: Option<String>,
+    pub expected_cert_sha256: Option<ExpectedCert>,
     #[serde(default)]
     pub on_unknown_compat: Option<String>,
     #[serde(alias = "apk_source", default)]
@@ -163,6 +179,12 @@ pub struct AppConfig {
     #[serde(default)]
     pub version_pin_strict: bool,
     #[serde(default)]
+    pub pin_policy: Option<PinPolicy>,
+    #[serde(default)]
+    pub timeout_secs: Option<u64>,
+    #[serde(default)]
+    pub expected_min_patches: Option<usize>,
+    #[serde(default)]
     pub patches: Vec<String>,
     #[serde(default)]
     pub keystore: Option<KeystoreRef>,
@@ -191,6 +213,24 @@ fn default_bundle_priority() -> u32 {
 }
 
 impl AppConfig {
+    pub fn effective_pin_policy(&self) -> PinPolicy {
+        if let Some(p) = self.pin_policy {
+            p
+        } else if self.version_pin_strict {
+            PinPolicy::Strict
+        } else {
+            PinPolicy::PreferSupported
+        }
+    }
+
+    pub fn expected_certs(&self) -> Vec<String> {
+        match &self.expected_cert_sha256 {
+            Some(ExpectedCert::Single(s)) if !s.is_empty() => vec![s.clone()],
+            Some(ExpectedCert::Multiple(v)) => v.clone(),
+            _ => vec![],
+        }
+    }
+
     pub fn display_name(&self, id: &str) -> String {
         if let Some(ref n) = self.name {
             if !n.is_empty() {

@@ -43,6 +43,15 @@ fn parse_numeric(v: &str) -> Vec<u64> {
     v.split('.').filter_map(|s| s.parse::<u64>().ok()).collect()
 }
 
+pub fn extract_version_from_url_or_filename(s: &str) -> Option<String> {
+    let re = regex::Regex::new(r"(?:[vV]|[\-_/])(\d{1,5}(?:\.\d{1,5}){1,4})").ok()?;
+    if let Some(cap) = re.captures(s) {
+        return Some(cap[1].to_string());
+    }
+    let re_loose = regex::Regex::new(r"(\d{1,5}(?:\.\d{1,5}){1,4})").ok()?;
+    re_loose.captures(s).map(|c| c[1].to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

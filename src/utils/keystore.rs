@@ -153,6 +153,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         patches_version: None,
         version: None,
         version_pin_strict: false,
+        pin_policy: None,
         patches: vec![],
         keystore: None,
         module: None,
@@ -165,6 +166,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         display_name: None,
         name: None,
         bundle_priority: 100,
+        ..Default::default()
     };
     let ks = resolve(cfg, &app_dummy).await?;
     println!("Keystore file:  {}", ks.file);
@@ -203,16 +205,8 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
     Ok(())
 }
 
-pub fn verify_apk_cert_sha256(apk_path: &str, expected_cert_sha256: &str) -> Result<bool> {
-    let expected_norm: String = expected_cert_sha256
-        .chars()
-        .filter(|c| c.is_ascii_hexdigit())
-        .collect::<String>()
-        .to_ascii_lowercase();
-
-    if expected_norm.is_empty() {
-        return Ok(true);
-    }
+pub fn get_apk_cert_sha256(apk_path: &str) -> Result<Option<String>> {
+    use std::io::Read;
 
     if let Ok(out) = std::process::Command::new("apksigner")
         .args(["verify", "--print-certs", apk_path])
@@ -231,13 +225,10 @@ pub fn verify_apk_cert_sha256(apk_path: &str, expected_cert_sha256: &str) -> Res
                     .filter(|c| c.is_ascii_hexdigit())
                     .collect::<String>()
                     .to_ascii_lowercase();
-                if actual_norm == expected_norm {
-                    return Ok(true);
+                if !actual_norm.is_empty() {
+                    return Ok(Some(actual_norm));
                 }
             }
-        }
-        if out.status.success() {
-            return Ok(false);
         }
     }
 
@@ -257,14 +248,57 @@ pub fn verify_apk_cert_sha256(apk_path: &str, expected_cert_sha256: &str) -> Res
                     .filter(|c| c.is_ascii_hexdigit())
                     .collect::<String>()
                     .to_ascii_lowercase();
-                if actual_norm == expected_norm {
-                    return Ok(true);
+                if !actual_norm.is_empty() {
+                    return Ok(Some(actual_norm));
                 }
             }
         }
-        if kt_out.status.success() {
-            return Ok(false);
+    }
+
+    if let Ok(file) = std::fs::File::open(apk_path) {
+        if let Ok(mut zip) = zip::ZipArchive::new(file) {
+            for i in 0..zip.len() {
+                if let Ok(mut entry) = zip.by_index(i) {
+                    if let Ok(name) = entry.name() {
+                        if name.starts_with("META-INF/")
+                            && (name.ends_with(".RSA")
+                                || name.ends_with(".DSA")
+                                || name.ends_with(".EC"))
+                        {
+                            let mut bytes = Vec::new();
+                            if entry.read_to_end(&mut bytes).is_ok() && !bytes.is_empty() {
+                                use ring::digest::{digest, SHA256};
+                                let d = digest(&SHA256, &bytes);
+                                let hex = d
+                                    .as_ref()
+                                    .iter()
+                                    .map(|b| format!("{:02x}", b))
+                                    .collect::<String>();
+                                return Ok(Some(hex));
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    Ok(None)
+}
+
+pub fn verify_apk_cert_sha256(apk_path: &str, expected_cert_sha256: &str) -> Result<bool> {
+    let expected_norm: String = expected_cert_sha256
+        .chars()
+        .filter(|c| c.is_ascii_hexdigit())
+        .collect::<String>()
+        .to_ascii_lowercase();
+
+    if expected_norm.is_empty() {
+        return Ok(true);
+    }
+
+    if let Ok(Some(actual)) = get_apk_cert_sha256(apk_path) {
+        return Ok(actual == expected_norm);
     }
 
     Ok(false)

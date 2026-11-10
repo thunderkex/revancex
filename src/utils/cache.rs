@@ -3,12 +3,63 @@ use std::collections::HashMap;
 use std::path::Path;
 use tracing::info;
 
+pub const NEGATIVE_CACHE_TTL_SECS: i64 = 8 * 3600; // 8 hours TTL
+
 #[derive(serde::Serialize, serde::Deserialize, Default, Clone, Debug)]
 pub struct VersionCache {
     #[serde(default)]
     pub patch_source_tags: HashMap<String, String>,
     #[serde(default)]
     pub app_versions: HashMap<String, String>,
+    #[serde(default)]
+    pub negative_cache: HashMap<String, i64>,
+}
+
+pub fn is_negative_cached(
+    cache: &VersionCache,
+    source: &str,
+    package: &str,
+    version: Option<&str>,
+) -> bool {
+    let key = format!("{}:{}:{}", source, package, version.unwrap_or("latest"));
+    if let Some(&ts) = cache.negative_cache.get(&key) {
+        let now = chrono::Utc::now().timestamp();
+        if now - ts < NEGATIVE_CACHE_TTL_SECS {
+            return true;
+        }
+    }
+    false
+}
+
+pub fn record_negative_cache(
+    cache: &mut VersionCache,
+    source: &str,
+    package: &str,
+    version: Option<&str>,
+) {
+    let key = format!("{}:{}:{}", source, package, version.unwrap_or("latest"));
+    let now = chrono::Utc::now().timestamp();
+    cache.negative_cache.insert(key, now);
+}
+
+static CACHE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+pub fn is_negative_cached_file(
+    path: &str,
+    source: &str,
+    package: &str,
+    version: Option<&str>,
+) -> bool {
+    let _guard = CACHE_LOCK.lock().unwrap();
+    let cache = load_version_cache(path);
+    is_negative_cached(&cache, source, package, version)
+}
+
+pub fn record_negative_cache_file(path: &str, source: &str, package: &str, version: Option<&str>) {
+    let _guard = CACHE_LOCK.lock().unwrap();
+    let mut cache = load_version_cache(path);
+    record_negative_cache(&mut cache, source, package, version);
+    save_version_cache(path, &cache);
 }
 
 pub fn prune_stale_cache_keys(cache: &mut VersionCache, cfg: &crate::config::Config) {
@@ -27,6 +78,11 @@ pub fn prune_stale_cache_keys(cache: &mut VersionCache, cfg: &crate::config::Con
     for k in pruned {
         tracing::info!("Pruned stale cache key from patch_source_tags: {k}");
     }
+
+    let now = chrono::Utc::now().timestamp();
+    cache
+        .negative_cache
+        .retain(|_, &mut ts| now - ts < NEGATIVE_CACHE_TTL_SECS);
 }
 
 pub fn load_version_cache(path: &str) -> VersionCache {

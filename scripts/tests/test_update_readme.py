@@ -111,6 +111,9 @@ def run():
 
         reg = json.load(open(os.path.join(config_dir, "releases_registry.json")))
         assert "youtube" in reg.get("stock_apps", {}), "Expected youtube in stock_apps registry"
+        assert "sha256" in reg["stock_apps"]["youtube"], "Expected sha256 in stock_apps entry"
+        assert "size_bytes" in reg["stock_apps"]["youtube"], "Expected size_bytes in stock_apps entry"
+        assert reg["stock_apps"]["youtube"]["updated_at"].endswith("Z"), "Expected ISO-8601 UTC updated_at"
         assert "root_apps" not in reg, "root_apps should not be present in releases_registry.json"
 
         print("PASS: update_readme_and_notify.py smoke test OK")

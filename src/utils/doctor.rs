@@ -99,6 +99,7 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
         patches_version: None,
         version: None,
         version_pin_strict: false,
+        pin_policy: None,
         patches: vec![],
         keystore: None,
         module: None,
@@ -111,6 +112,7 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
         name: None,
         display_name: None,
         bundle_priority: 100,
+        ..Default::default()
     };
     match crate::utils::keystore::resolve(cfg, &dummy_app).await {
         Ok(ks) => {

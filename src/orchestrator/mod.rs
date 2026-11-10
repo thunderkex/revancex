@@ -99,7 +99,12 @@ pub async fn build_apps(
 pub fn print_summary(cfg: &Config, summary: &BuildSummary) {
     let mut rows = Vec::new();
     for (id, rep) in &summary.reports {
-        let ok = rep.status == "success";
+        let (status, fail) = match rep.status.as_str() {
+            "success" => (ui::Status::Ok, Some(0)),
+            "degraded" | "success_unpatched" => (ui::Status::Warn, Some(0)),
+            "skipped" => (ui::Status::Skip, None),
+            _ => (ui::Status::Fail, None),
+        };
         let name = cfg
             .apps
             .get(id)
@@ -120,10 +125,10 @@ pub fn print_summary(cfg: &Config, summary: &BuildSummary) {
                 .unwrap_or_default(),
             ok: rep.patches_included.len(),
             skip: rep.patches_auto_disabled.len(),
-            fail: if ok { Some(0) } else { None },
+            fail,
             size,
             dur: ui::duration_of(id),
-            status: if ok { ui::Status::Ok } else { ui::Status::Fail },
+            status,
         });
     }
     for id in &summary.open_breakers {

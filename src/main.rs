@@ -71,8 +71,17 @@ enum Commands {
         #[arg(long, default_value_t = true)]
         include_webui: bool,
 
+        #[arg(long, conflicts_with = "include_webui")]
+        no_webui: bool,
+
         #[arg(short, long, default_value = "./modules")]
         output: String,
+
+        #[arg(long)]
+        version_code: Option<i32>,
+
+        #[arg(long)]
+        release_tag: Option<String>,
     },
 
     CheckUpdates {
@@ -115,6 +124,18 @@ enum Commands {
     GenAppsJson {
         #[arg(long, default_value = "config/releases_registry.json")]
         registry: String,
+        #[arg(long)]
+        report: Option<String>,
+        #[arg(long)]
+        test_report: Option<String>,
+        #[arg(long)]
+        output_dir: Option<String>,
+        #[arg(long)]
+        release_tag: Option<String>,
+        #[arg(long, default_value = "docs/apps.json")]
+        out: String,
+        #[arg(long, default_value = "docs/update")]
+        update_dir: String,
     },
 
     FetchApk {
@@ -169,6 +190,8 @@ enum Commands {
         continue_on_error: bool,
         #[arg(long)]
         fail_threshold: Option<u32>,
+        #[arg(long)]
+        report: Option<String>,
     },
 
     Doctor,
@@ -294,14 +317,36 @@ async fn run(cli: Cli) -> Result<()> {
             bundle,
             apps,
             include_webui,
+            no_webui,
             output,
+            version_code,
+            release_tag,
         } => {
             let config = config::sync_and_reload_modules(&cli.config_dir, config)?;
+            let effective_webui = include_webui && !no_webui;
+            let build_opts = module::ModuleBuildOptions {
+                version_code,
+                release_tag,
+                include_webui: effective_webui,
+            };
             if single {
-                module::single::build_single_module(&config, &apps, &output).await?;
+                module::single::build_single_module_with_options(
+                    &config,
+                    &apps,
+                    &output,
+                    &build_opts,
+                )
+                .await?;
             }
             if bundle {
-                module::bundle::build_bundle_module(&config, &apps, include_webui, &output).await?;
+                module::bundle::build_bundle_module_with_options(
+                    &config,
+                    &apps,
+                    effective_webui,
+                    &output,
+                    &build_opts,
+                )
+                .await?;
             }
         }
 
@@ -426,11 +471,35 @@ async fn run(cli: Cli) -> Result<()> {
             }
         }
 
-        Commands::GenAppsJson { registry } => {
-            let json = pages::generate_apps_json_with_registry(&config, Some(&registry))?;
-            std::fs::create_dir_all("docs")?;
-            std::fs::write("docs/apps.json", &json)?;
-            println!("docs/apps.json written ({} bytes)", json.len());
+        Commands::GenAppsJson {
+            registry,
+            report,
+            test_report,
+            output_dir,
+            release_tag,
+            out,
+            update_dir,
+        } => {
+            let opts = pages::GenAppsJsonOptions {
+                registry_path: Some(registry),
+                build_report_path: report,
+                test_report_path: test_report,
+                output_dir,
+                release_tag,
+            };
+            let json = pages::generate_apps_json_with_options(&config, &opts)?;
+            if let Some(parent) = std::path::Path::new(&out).parent() {
+                if !parent.as_os_str().is_empty() {
+                    std::fs::create_dir_all(parent)?;
+                }
+            }
+            std::fs::write(&out, &json)?;
+            println!("{out} written ({} bytes)", json.len());
+            if !update_dir.trim().is_empty() {
+                let files =
+                    pages::generate_ota_endpoints_with_options(&config, &opts, &update_dir)?;
+                println!("{update_dir} updated ({} file(s))", files.len());
+            }
         }
 
         Commands::FetchApk {
@@ -517,6 +586,7 @@ async fn run(cli: Cli) -> Result<()> {
             json,
             continue_on_error,
             fail_threshold,
+            report: test_report_out,
         } => {
             let report = testing::run_device_tests(
                 &apps,
@@ -528,6 +598,22 @@ async fn run(cli: Cli) -> Result<()> {
             .await?;
 
             let filter_report = testing::filter_release_artifacts(&output, &report)?;
+
+            let report_path = test_report_out.or_else(|| {
+                std::path::Path::new(&output)
+                    .exists()
+                    .then(|| format!("{output}/TEST_REPORT.json"))
+            });
+            if let Some(ref rp) = report_path {
+                if let Some(parent) = std::path::Path::new(rp).parent() {
+                    if !parent.as_os_str().is_empty() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                }
+                if let Ok(serialized) = serde_json::to_string_pretty(&report) {
+                    let _ = std::fs::write(rp, serialized);
+                }
+            }
 
             if json {
                 println!("{}", serde_json::to_string_pretty(&report)?);

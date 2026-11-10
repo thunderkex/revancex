@@ -2,7 +2,12 @@ use crate::config::Config;
 use anyhow::Result;
 use tracing::info;
 
-async fn build_single_app(cfg: &Config, id: &str, output_dir: &str) -> Result<()> {
+async fn build_single_app(
+    cfg: &Config,
+    id: &str,
+    output_dir: &str,
+    build_opts: &super::ModuleBuildOptions,
+) -> Result<()> {
     if id.eq_ignore_ascii_case("microg") {
         return Ok(());
     }
@@ -103,19 +108,35 @@ async fn build_single_app(cfg: &Config, id: &str, output_dir: &str) -> Result<()
         crate::patcher::name::ArtifactKind::Module,
     );
 
-    super::bundle::build_custom_module(
+    super::bundle::build_custom_module_with_options(
         cfg,
         &found,
-        true,
+        build_opts.include_webui,
         output_dir,
         Some(&mod_id),
         Some(&mod_name),
         Some(&zip_name),
+        build_opts,
     )
     .await
 }
 
 pub async fn build_single_module(cfg: &Config, apps_input: &str, output_dir: &str) -> Result<()> {
+    build_single_module_with_options(
+        cfg,
+        apps_input,
+        output_dir,
+        &super::ModuleBuildOptions::default(),
+    )
+    .await
+}
+
+pub async fn build_single_module_with_options(
+    cfg: &Config,
+    apps_input: &str,
+    output_dir: &str,
+    build_opts: &super::ModuleBuildOptions,
+) -> Result<()> {
     std::fs::create_dir_all(output_dir)?;
 
     if apps_input == "all" || apps_input == "all-enabled" {
@@ -132,7 +153,7 @@ pub async fn build_single_module(cfg: &Config, apps_input: &str, output_dir: &st
                     }
                 }
                 info!("Building single module for {id} in {output_dir}...");
-                if let Err(e) = build_single_app(cfg, &id, output_dir).await {
+                if let Err(e) = build_single_app(cfg, &id, output_dir, build_opts).await {
                     tracing::warn!("Failed building single module for {id}: {e}");
                 }
             }
@@ -160,7 +181,7 @@ pub async fn build_single_module(cfg: &Config, apps_input: &str, output_dir: &st
                 }
             }
             info!("Building single module for {id} in {output_dir}...");
-            build_single_app(cfg, id, output_dir).await?;
+            build_single_app(cfg, id, output_dir, build_opts).await?;
         }
         Ok(())
     }

@@ -43,6 +43,23 @@ pub async fn build_bundle_module(
     include_webui: bool,
     output_dir: &str,
 ) -> Result<()> {
+    build_bundle_module_with_options(
+        cfg,
+        apps_or_paths,
+        include_webui,
+        output_dir,
+        &super::ModuleBuildOptions::default(),
+    )
+    .await
+}
+
+pub async fn build_bundle_module_with_options(
+    cfg: &Config,
+    apps_or_paths: &str,
+    include_webui: bool,
+    output_dir: &str,
+    build_opts: &super::ModuleBuildOptions,
+) -> Result<()> {
     let lower = apps_or_paths.to_lowercase().trim().to_string();
 
     if lower == "all" || lower == "all-enabled" || lower == "categories" {
@@ -75,7 +92,7 @@ pub async fn build_bundle_module(
                     .get(&key)
                     .and_then(|m| m.zip_name.clone())
                     .unwrap_or_else(|| format!("revancex-bundle-{key}.zip"));
-                build_custom_module(
+                build_custom_module_with_options(
                     cfg,
                     &module_apps,
                     include_webui,
@@ -83,6 +100,7 @@ pub async fn build_bundle_module(
                     Some(&mod_id),
                     Some(&mod_name),
                     Some(&zip_filename),
+                    build_opts,
                 )
                 .await?;
             }
@@ -109,7 +127,7 @@ pub async fn build_bundle_module(
             .zip_name
             .clone()
             .unwrap_or_else(|| format!("revancex-bundle-{lower}.zip"));
-        build_custom_module(
+        build_custom_module_with_options(
             cfg,
             &module_apps,
             include_webui,
@@ -117,10 +135,11 @@ pub async fn build_bundle_module(
             Some(&mod_id),
             Some(&mod_name),
             Some(&zip_filename),
+            build_opts,
         )
         .await
     } else {
-        build_custom_module(
+        build_custom_module_with_options(
             cfg,
             apps_or_paths,
             include_webui,
@@ -128,6 +147,7 @@ pub async fn build_bundle_module(
             None,
             None,
             None,
+            build_opts,
         )
         .await
     }
@@ -141,6 +161,30 @@ pub async fn build_custom_module(
     module_id: Option<&str>,
     module_name: Option<&str>,
     zip_filename: Option<&str>,
+) -> Result<()> {
+    build_custom_module_with_options(
+        cfg,
+        apps_or_paths,
+        include_webui,
+        output_dir,
+        module_id,
+        module_name,
+        zip_filename,
+        &super::ModuleBuildOptions::default(),
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn build_custom_module_with_options(
+    cfg: &Config,
+    apps_or_paths: &str,
+    include_webui: bool,
+    output_dir: &str,
+    module_id: Option<&str>,
+    module_name: Option<&str>,
+    zip_filename: Option<&str>,
+    build_opts: &super::ModuleBuildOptions,
 ) -> Result<()> {
     std::fs::create_dir_all(output_dir)?;
 
@@ -321,9 +365,10 @@ pub async fn build_custom_module(
         return Ok(());
     }
 
-    let ts = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)?
-        .as_secs();
+    let version_code = super::resolve_module_version_code(
+        build_opts.version_code,
+        Some("config/releases_registry.json"),
+    );
 
     let default_id = cfg.module_meta.resolved_id();
     let default_name = cfg.module_meta.resolved_name();
@@ -332,7 +377,7 @@ pub async fn build_custom_module(
     let actual_zip_name = zip_filename.unwrap_or("revancex-bundle.zip");
     let zip_path = format!("{output_dir}/{actual_zip_name}");
     info!(
-        "Creating module '{mod_id}': {zip_path} with {} APKs",
+        "Creating module '{mod_id}': {zip_path} with {} APKs (versionCode={version_code})",
         apks.len()
     );
 
@@ -346,7 +391,15 @@ pub async fn build_custom_module(
     zip.start_file("META-INF/com/google/android/updater-script", opts)?;
     zip.write_all(b"#MAGISK\n")?;
 
-    let version = env!("CARGO_PKG_VERSION");
+    let env_tag = std::env::var("REVANCEX_RELEASE_TAG")
+        .ok()
+        .filter(|s| !s.trim().is_empty());
+    let version = build_opts
+        .release_tag
+        .as_deref()
+        .or(env_tag.as_deref())
+        .map(String::from)
+        .unwrap_or_else(|| format!("v{}", env!("CARGO_PKG_VERSION")));
     let author = cfg.module_meta.resolved_author();
     let default_desc = cfg.module_meta.resolved_description();
     let description =
@@ -355,17 +408,27 @@ pub async fn build_custom_module(
         } else {
             format!("Patched module for {mod_name} via ReVanceX")
         };
-    let update_json = cfg.module_meta.resolved_update_json();
+    let configured_update = cfg.module_meta.resolved_update_json();
+    let update_json = if configured_update.is_empty() || module_id.is_some() {
+        super::ota_update_json_url(mod_id)
+    } else {
+        configured_update.to_string()
+    };
     let min_magisk = cfg.module_meta.min_magisk;
     let min_kernelsu = cfg.module_meta.min_kernelsu;
 
     zip.start_file("module.prop", opts)?;
-    let mut prop_str = format!(
-        "id={mod_id}\nname={mod_name}\nversion=v{version}\nversionCode={ts}\nauthor={author}\ndescription={description}\nminMagisk={min_magisk}\nminKernelSU={min_kernelsu}\n"
+    let prop_str = super::render_module_prop(
+        mod_id,
+        mod_name,
+        &version,
+        version_code,
+        author,
+        &description,
+        min_magisk,
+        min_kernelsu,
+        &update_json,
     );
-    if !update_json.is_empty() {
-        prop_str.push_str(&format!("updateJson={update_json}\n"));
-    }
     zip.write_all(prop_str.as_bytes())?;
 
     let strip_crlf =

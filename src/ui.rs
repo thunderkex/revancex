@@ -129,7 +129,6 @@ impl State {
             "KEYSTORE_PASSWORD",
             "TG_TOKEN",
             "TELEGRAM_BOT_TOKEN",
-            "TRAWL_URL",
         ] {
             if let Ok(v) = std::env::var(key) {
                 if v.len() >= 6 {
@@ -275,21 +274,21 @@ pub fn render_table(rows: &[Row], unicode: bool) -> Vec<String> {
 pub fn hint_for(err: &str) -> &'static str {
     let e = err.to_lowercase();
     if e.contains("0/") && e.contains("patches applied") {
-        "kemungkinan: versi APK tidak tercakup patch; pin versi yang didukung atau update patch bundle"
+        "likely: the APK version is not covered by the patches; pin a supported version or update the patch bundle"
     } else if e.contains("integrity") || e.contains("not a valid zip") || e.contains("captcha") {
-        "kemungkinan: unduhan rusak / halaman captcha; ulangi atau pakai sumber lain"
+        "likely: the download is corrupted or returned a CAPTCHA page; retry or use another source"
     } else if e.contains("rate limit") || e.contains("429") {
-        "kemungkinan: rate limit; set GITHUB_TOKEN atau coba lagi nanti"
+        "likely: rate limited; set GITHUB_TOKEN or try again later"
     } else if e.contains("patch bundle download failed") {
-        "kemungkinan: gagal mengunduh patch bundle; cek koneksi / GITHUB_TOKEN"
+        "likely: failed to download the patch bundle; check your connection / GITHUB_TOKEN"
     } else if e.contains("version mismatch") {
-        "kemungkinan: APK terunduh tidak sama dengan versi target; bersihkan cache lalu --force"
+        "likely: the downloaded APK does not match the target version; clear the cache and retry with --force"
     } else if e.contains("java") {
-        "kemungkinan: JDK 21+ belum terpasang / tidak ada di PATH"
+        "likely: JDK 21+ is not installed or is not in PATH"
     } else if e.contains("circuit") || e.contains("unavailable on any source") {
-        "kemungkinan: semua sumber unduhan gagal / diblokir; coba `revancex sources probe <app>`"
+        "likely: all download sources failed or are blocked; try `revancex sources probe <app>`"
     } else {
-        "lihat file log untuk detail"
+        "see the log file for details"
     }
 }
 
@@ -593,7 +592,7 @@ fn warnings_block(s: &mut State) {
         return;
     }
     let warnings = std::mem::take(&mut s.warnings);
-    let mut text = format!("Peringatan ({} unik):", warnings.len());
+    let mut text = format!("Warning ({} items):", warnings.len());
     for (msg, n) in &warnings {
         let suffix = if *n > 1 {
             format!("  (x{n})")
@@ -622,12 +621,12 @@ pub fn summary(rows: &[Row], artifacts: &[String]) {
     }
     let _ = write!(
         text,
-        "\n  Total: {ok} sukses, {skip} dilewati, {fail} gagal — {}",
+        "\n  Total: {ok} success, {skip} skipped, {fail} failed — {}",
         fmt_dur(total)
     );
-    let _ = write!(text, "\n  Peringatan unik: {unique_warnings}");
+    let _ = write!(text, "\n  Warning: {unique_warnings}");
     if !artifacts.is_empty() {
-        let _ = write!(text, "\n  Artefak:");
+        let _ = write!(text, "\n  Artifacts:");
         for a in artifacts {
             let _ = write!(text, "\n    {a}");
         }
@@ -636,22 +635,31 @@ pub fn summary(rows: &[Row], artifacts: &[String]) {
     raw(&mut s, &text);
 
     if let Some(path) = std::env::var_os("GITHUB_STEP_SUMMARY") {
-        let mut md = String::from("## Ringkasan Build\n\n");
-        md.push_str("| App | Versi | Patch (ok/skip/gagal) | Ukuran | Durasi | Status |\n");
+        let warn_cnt = rows.iter().filter(|r| r.status == Status::Warn).count();
+        let mut md = String::from("### Build Results\n\n");
+        md.push_str("| App | Version | Patches | Size | Duration | Status |\n");
         md.push_str("| --- | --- | --- | --- | --- | --- |\n");
         for r in rows {
+            let patches = if r.ok == 0 && r.skip == 0 && r.fail.is_none() {
+                "-".to_string()
+            } else {
+                format!(
+                    "{}/{}/{}",
+                    r.ok,
+                    r.skip,
+                    r.fail.map_or("-".to_string(), |f| f.to_string())
+                )
+            };
             let _ = writeln!(
                 md,
-                "| {} | {} | {} / {} / {} | {} | {} | {} |",
+                "| {} | {} | {} | {} | {} | {} |",
                 r.app,
                 if r.version.is_empty() {
                     "-"
                 } else {
                     &r.version
                 },
-                r.ok,
-                r.skip,
-                r.fail.map_or("-".to_string(), |f| f.to_string()),
+                patches,
                 r.size.map_or("-".into(), fmt_size),
                 r.dur.map_or("-".into(), fmt_dur),
                 match r.status {
@@ -663,17 +671,19 @@ pub fn summary(rows: &[Row], artifacts: &[String]) {
                 }
             );
         }
-        let _ = write!(
-            md,
-            "\n**Total:** {ok} sukses, {skip} dilewati, {fail} gagal — {}  \n**Peringatan unik:** {unique_warnings}\n",
-            fmt_dur(total)
-        );
-        if !artifacts.is_empty() {
-            md.push_str("\n**Artefak:**\n");
-            for a in artifacts {
-                let _ = writeln!(md, "- `{a}`");
-            }
+        let mut parts = vec![format!("{ok} ok")];
+        if warn_cnt > 0 {
+            parts.push(format!("{warn_cnt} degraded"));
         }
+        if skip > 0 {
+            parts.push(format!("{skip} skipped"));
+        }
+        parts.push(format!("{fail} failed"));
+        let _ = write!(md, "\n**Total:** {} ({})", parts.join(", "), fmt_dur(total));
+        if unique_warnings > 0 {
+            let _ = write!(md, " · **Warnings:** {unique_warnings}");
+        }
+        md.push('\n');
         let md = redact_with(&s.secrets, &md);
         if let Ok(mut f) = std::fs::OpenOptions::new()
             .create(true)
@@ -698,7 +708,7 @@ pub fn fatal(err: &anyhow::Error) {
         let _ = write!(text, "\n    penyebab: {}", first_line(&cause.to_string()));
     }
     let _ = write!(text, "\n    log detail: {}", s.log_dir.display());
-    let _ = write!(text, "\n    ulangi dengan --verbose untuk detail");
+    let _ = write!(text, "\n    add --verbose for detail");
     log_append(&s, "revancex", &format!("[FATAL] {err:?}\n"));
     let text = redact_with(&s.secrets, &text);
     if s.ci {

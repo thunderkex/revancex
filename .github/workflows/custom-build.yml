@@ -9,6 +9,7 @@ on:
         description: 'Comma-separated app IDs to build'
         required: true
         default: 'youtube,youtube_music,microg'
+        type: string
       arch:
         description: 'Target architecture'
         required: true
@@ -16,8 +17,31 @@ on:
         type: choice
         options:
           - arm64-v8a
-          - x86_64
           - armeabi-v7a
+          - x86_64
+          - all
+      mode:
+        description: 'Optimization mode'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - lite
+      packaging:
+        description: 'Output packaging format'
+        required: true
+        default: 'bundle'
+        type: choice
+        options:
+          - bundle
+          - single_module
+          - apk
+      include_webui:
+        description: 'Include embedded Material WebUI in module zips'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -28,30 +52,84 @@ concurrency:
 
 jobs:
   resolve:
+    name: Resolve & Validate Inputs
     runs-on: ubuntu-24.04
     outputs:
       apps: ${{ steps.inputs.outputs.apps }}
       arch: ${{ steps.inputs.outputs.arch }}
+      mode: ${{ steps.inputs.outputs.mode }}
+      packaging: ${{ steps.inputs.outputs.packaging }}
+      include_webui: ${{ steps.inputs.outputs.include_webui }}
     steps:
-      - name: Resolve inputs (dispatch vs manual)
+      - name: Resolve and validate inputs (dispatch vs manual)
         id: inputs
         run: |
           if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            echo "apps=${{ github.event.client_payload.apps }}" >> $GITHUB_OUTPUT
-            echo "arch=${{ github.event.client_payload.arch }}" >> $GITHUB_OUTPUT
+            APPS="${{ github.event.client_payload.apps }}"
+            ARCH="${{ github.event.client_payload.arch }}"
+            MODE="${{ github.event.client_payload.mode }}"
+            PACKAGING="${{ github.event.client_payload.packaging }}"
+            WEBUI="${{ github.event.client_payload.include_webui }}"
           else
-            echo "apps=${{ inputs.apps }}" >> $GITHUB_OUTPUT
-            echo "arch=${{ inputs.arch }}" >> $GITHUB_OUTPUT
+            APPS="${{ inputs.apps }}"
+            ARCH="${{ inputs.arch }}"
+            MODE="${{ inputs.mode }}"
+            PACKAGING="${{ inputs.packaging }}"
+            WEBUI="${{ inputs.include_webui }}"
           fi
 
+          ARCH="${ARCH:-arm64-v8a}"
+          MODE="${MODE:-full}"
+          PACKAGING="${PACKAGING:-bundle}"
+          WEBUI="${WEBUI:-true}"
+
+          if [ -z "$APPS" ] || ! echo "$APPS" | grep -Eq '^[a-zA-Z0-9_,.-]+$'; then
+            echo "::error title=Invalid apps input::apps must be a non-empty comma-separated list of app IDs"
+            exit 1
+          fi
+
+          case "$ARCH" in
+            arm64-v8a|armeabi-v7a|x86_64|all) ;;
+            *) echo "::error title=Invalid arch::$ARCH"; exit 1 ;;
+          esac
+
+          case "$MODE" in
+            full|lite) ;;
+            *) echo "::error title=Invalid mode::$MODE"; exit 1 ;;
+          esac
+
+          case "$PACKAGING" in
+            bundle|single_module|apk) ;;
+            *) echo "::error title=Invalid packaging::$PACKAGING"; exit 1 ;;
+          esac
+
+          case "$WEBUI" in
+            true|false) ;;
+            *) echo "::error title=Invalid include_webui::$WEBUI"; exit 1 ;;
+          esac
+
+          if [ "$PACKAGING" = "apk" ]; then
+            WEBUI="false"
+          fi
+
+          echo "apps=$APPS" >> $GITHUB_OUTPUT
+          echo "arch=$ARCH" >> $GITHUB_OUTPUT
+          echo "mode=$MODE" >> $GITHUB_OUTPUT
+          echo "packaging=$PACKAGING" >> $GITHUB_OUTPUT
+          echo "include_webui=$WEBUI" >> $GITHUB_OUTPUT
+
   build:
+    name: Custom Build
     needs: resolve
     uses: ./.github/workflows/build-and-release.yml
     with:
       apps: ${{ needs.resolve.outputs.apps }}
       arch: ${{ needs.resolve.outputs.arch }}
+      mode: ${{ needs.resolve.outputs.mode }}
+      packaging: ${{ needs.resolve.outputs.packaging }}
+      include_webui: ${{ needs.resolve.outputs.include_webui == 'true' }}
       tag_prefix: custom
       prerelease: true
       make_latest: false
-      build_single_modules: false
+      build_single_modules: ${{ needs.resolve.outputs.packaging == 'single_module' }}
     secrets: inherit

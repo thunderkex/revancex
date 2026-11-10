@@ -3,274 +3,133 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>ReVanceX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ReVanceX — Module Manager</title>
+  <link rel="stylesheet" href="tokens.css">
   <style>
-    :root {
-      --bg: #f5f8fc;
-      --surface: #ffffff;
-      --surface-variant: #f0f4fa;
-      --surface-card: #ffffff;
-      --card-border: #e2e8f4;
-      --primary: #0e336b;
-      --primary-light: #1d4b8f;
-      --accent: #2563eb;
-      --accent-soft: #e0ecff;
-      --text: #1a2233;
-      --text-muted: #6b7a99;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --radius-sm: 10px;
-      --radius-md: 18px;
-      --radius-lg: 24px;
-      --shadow: 0 4px 16px rgba(14, 51, 107, 0.05)
-    }
-
-    @media (prefers-color-scheme:dark) {
-      :root {
-        --bg: #0d121d;
-        --surface: #151c2b;
-        --surface-variant: #1c2538;
-        --surface-card: #151c2b;
-        --card-border: #242f47;
-        --primary: #194685;
-        --primary-light: #285da6;
-        --accent: #3b82f6;
-        --accent-soft: rgba(59, 130, 246, 0.15);
-        --text: #f0f4fc;
-        --text-muted: #8c9cb8;
-        --shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
-      }
-    }
-
-    * {
+    *,
+    *::before,
+    *::after {
       box-sizing: border-box;
       margin: 0;
-      padding: 0
+      padding: 0;
+    }
+
+    html {
+      font-size: 16px;
+      scrollbar-color: var(--card-border) transparent;
     }
 
     html,
     body {
       width: 100%;
       max-width: 100%;
-      overflow-x: hidden
+      overflow-x: hidden;
+    }
+
+    ::selection {
+      background: var(--accent-soft);
+      color: var(--text);
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      font-family: var(--font-sans);
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding-bottom: 90px;
-      -webkit-tap-highlight-color: transparent
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 88px);
+      line-height: 1.45;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button,
+    input {
+      font-family: inherit;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     .app-wrap {
       width: 100%;
-      max-width: 540px;
+      max-width: 560px;
       margin: 0 auto;
-      padding: 14px 16px;
-      overflow-x: hidden
+      padding: calc(env(safe-area-inset-top, 0px) + 14px) 16px 16px;
     }
 
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-top: calc(env(safe-area-inset-top, 0px) + 6px);
-      margin-bottom: 18px
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .brand-head {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .brand-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.35px;
+      line-height: 1.2;
+    }
+
+    .brand-sub {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
     }
 
     .icon-btn {
-      width: 40px;
+      min-width: 40px;
       height: 40px;
+      padding: 0 10px;
       border-radius: 12px;
       background: var(--surface);
       border: 1px solid var(--card-border);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--primary);
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03)
-    }
-
-    .top-title {
-      font-size: 0.95rem;
+      gap: 6px;
+      color: var(--text);
+      font-size: 0.8rem;
       font-weight: 700;
-      color: var(--text);
-      letter-spacing: 0.2px
+      cursor: pointer;
+      box-shadow: var(--shadow);
     }
 
-    .badge-dot {
-      position: relative
-    }
-
-    .badge-dot::after {
-      content: '';
-      position: absolute;
-      top: 9px;
-      right: 9px;
-      width: 8px;
-      height: 8px;
-      background: var(--accent);
-      border-radius: 50%;
-      border: 2px solid var(--surface)
-    }
-
-    .greeting-sec {
-      margin-bottom: 16px
-    }
-
-    .greeting-title {
-      font-size: 1.55rem;
-      font-weight: 800;
-      color: var(--text);
-      letter-spacing: -0.4px;
-      line-height: 1.2
-    }
-
-    .greeting-sub {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-      font-weight: 500;
-      word-break: break-word
-    }
-
-    .search-wrap {
-      position: relative;
-      margin-bottom: 18px;
-      width: 100%
-    }
-
-    .search-icon {
-      position: absolute;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-muted);
-      pointer-events: none
-    }
-
-    .search-input {
-      width: 100%;
-      background: var(--surface);
-      border: 1px solid var(--card-border);
-      border-radius: 28px;
-      padding: 12px 16px 12px 44px;
-      font-size: 0.85rem;
-      color: var(--text);
-      outline: none;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      transition: all 0.2s
-    }
-
-    .search-input:focus {
+    .icon-btn:hover {
       border-color: var(--accent);
-      box-shadow: 0 4px 14px var(--accent-soft)
+    }
+
+    .demo-banner {
+      background: var(--warning-soft);
+      color: var(--warning-text);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 14px;
     }
 
     .hero-banner {
       background: var(--surface);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-md);
-      padding: 16px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 18px;
-      box-shadow: var(--shadow);
-      width: 100%
-    }
-
-    .hero-content h3 {
-      font-size: 0.98rem;
-      font-weight: 700;
-      color: var(--primary)
-    }
-
-    .hero-content p {
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      margin-top: 3px
-    }
-
-    .hero-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 8px;
-      padding: 4px 10px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      border-radius: 20px;
-      font-size: 0.72rem;
-      font-weight: 600
-    }
-
-    .stats-card {
-      background: var(--surface);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      display: flex;
-      justify-content: space-around;
-      text-align: center;
-      margin-bottom: 20px;
-      box-shadow: var(--shadow);
-      width: 100%
-    }
-
-    .stat-box {
-      flex: 1
-    }
-
-    .stat-num {
-      font-size: 1.2rem;
-      font-weight: 800;
-      color: var(--primary)
-    }
-
-    .stat-lbl {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      margin-top: 2px;
-      font-weight: 500
-    }
-
-    .sec-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      padding: 0 2px
-    }
-
-    .sec-title {
-      font-size: 1.02rem;
-      font-weight: 700;
-      color: var(--text)
-    }
-
-    .sec-link {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--accent);
-      cursor: pointer
-    }
-
-    .apps-list-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 100%;
-      margin-bottom: 24px
-    }
-
-    .app-card {
-      background: var(--surface-card);
       border: 1px solid var(--card-border);
       border-radius: var(--radius-md);
       padding: 14px 16px;
@@ -278,27 +137,234 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
+      margin-bottom: 14px;
       box-shadow: var(--shadow);
-      width: 100%;
-      box-sizing: border-box;
-      transition: transform 0.15s, border-color 0.15s
     }
 
-    .app-card:active {
-      transform: scale(0.99)
+    .hero-content {
+      min-width: 0;
+    }
+
+    .hero-content h2 {
+      font-size: 0.96rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .hero-content p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .hero-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .hero-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: var(--radius-pill);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .hero-chip.is-paused {
+      background: var(--warning-soft);
+      color: var(--warning-text);
+    }
+
+    .hero-chip.is-demo {
+      background: var(--surface-variant);
+      color: var(--text-muted);
+    }
+
+    .hero-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .hero-abi {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .hero-abi-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .hero-abi-val {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-family: var(--font-mono);
+    }
+
+    .stats-card {
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 12px 6px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-box {
+      flex: 1;
+      padding: 0 10px;
+      min-width: 0;
+    }
+
+    .stat-box + .stat-box {
+      border-left: 1px solid var(--card-border);
+    }
+
+    .stat-num {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stat-num.is-selinux {
+      font-size: 0.92rem;
+      padding-top: 3px;
+    }
+
+    .stat-lbl {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    .search-wrap {
+      position: relative;
+      margin-bottom: 14px;
+      width: 100%;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-pill);
+      padding: 11px 42px 11px 42px;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+
+    .search-input:focus {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+      border-color: var(--accent);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: none;
+      background: var(--surface-variant);
+      color: var(--text-muted);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-clear[hidden] {
+      display: none;
+    }
+
+    .sec-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 0 2px;
+    }
+
+    .sec-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .sec-count {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .apps-list-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+
+    .app-card {
+      background: var(--surface-card);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: var(--shadow);
+      width: 100%;
     }
 
     .app-c-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
       background: var(--surface-variant);
       border: 1px solid var(--card-border);
       display: flex;
       align-items: center;
       justify-content: center;
       color: var(--accent);
-      flex-shrink: 0
+      flex-shrink: 0;
     }
 
     .app-c-info {
@@ -306,107 +372,117 @@
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 3px
-    }
-
-    .app-c-header {
-      display: flex;
-      align-items: center;
-      gap: 6px
+      gap: 3px;
     }
 
     .app-c-name {
-      font-size: 0.92rem;
+      font-size: 0.94rem;
       font-weight: 700;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis
+      text-overflow: ellipsis;
     }
 
     .app-c-pkg {
-      font-size: 0.72rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-family: var(--font-mono);
       white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis
+      text-overflow: ellipsis;
     }
 
     .app-c-tags {
       display: flex;
+      flex-wrap: wrap;
       gap: 6px;
       align-items: center;
-      margin-top: 3px
+      margin-top: 3px;
     }
 
     .badge {
-      font-size: 0.68rem;
-      padding: 2px 7px;
-      border-radius: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.2px
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      font-weight: 700;
+      letter-spacing: 0.15px;
     }
 
     .badge-ok {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--success);
-      border: 1px solid rgba(16, 185, 129, 0.3)
+      background: var(--success-soft);
+      color: var(--success-text);
     }
 
     .badge-mounted {
-      background: rgba(37, 99, 235, 0.12);
+      background: var(--accent-soft);
       color: var(--accent);
-      border: 1px solid rgba(37, 99, 235, 0.3)
     }
 
     .badge-warn {
-      background: rgba(239, 68, 68, 0.12);
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.3)
+      background: var(--danger-soft);
+      color: var(--danger-text);
     }
 
     .badge-mode {
       background: var(--surface-variant);
       color: var(--text-muted);
-      border: 1px solid var(--card-border)
+      border: 1px solid var(--card-border);
     }
 
     .card-actions {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      flex-shrink: 0
+      flex-shrink: 0;
     }
 
     .card-btn {
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 0.75rem;
+      min-height: 36px;
+      min-width: 78px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
       font-weight: 700;
       cursor: pointer;
       text-align: center;
       border: 1px solid var(--card-border);
       background: var(--surface-variant);
       color: var(--text);
-      transition: all 0.15s;
-      min-width: 64px
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .card-btn.btn-open {
       background: var(--primary);
       color: #ffffff;
-      border: none
+      border-color: var(--primary);
     }
 
-    .card-btn.btn-open:active {
-      opacity: 0.9
+    .card-btn.btn-mount {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: transparent;
     }
 
-    .card-btn.btn-stop:active {
-      border-color: var(--danger);
-      color: var(--danger)
+    .card-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .empty-state {
+      background: var(--surface);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
     }
 
     .bottom-nav {
@@ -418,319 +494,458 @@
       border-top: 1px solid var(--card-border);
       display: flex;
       justify-content: space-around;
-      align-items: center;
-      padding: 8px 16px;
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+      align-items: stretch;
+      padding: 6px 10px calc(env(safe-area-inset-bottom, 0px) + 6px);
       z-index: 100;
-      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05)
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
     }
 
     .nav-item {
+      flex: 1;
+      min-height: 46px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       gap: 3px;
-      font-size: 0.65rem;
+      font-size: 0.75rem;
+      font-weight: 600;
       color: var(--text-muted);
       cursor: pointer;
-      text-decoration: none;
-      flex: 1
     }
 
-    .nav-item.active {
+    .nav-item[aria-pressed="true"] {
       color: var(--accent);
-      font-weight: 700
-    }
-
-    .nav-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center
-    }
-
-    .nav-fab {
-      position: relative;
-      top: -16px;
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 6px 18px rgba(14, 51, 107, 0.35);
-      border: 4px solid var(--surface);
-      cursor: pointer;
-      flex-shrink: 0
+      background: var(--accent-soft);
+      font-weight: 700;
     }
 
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
+      background: rgba(8, 12, 22, 0.62);
       z-index: 200;
       display: none;
-      align-items: flex-end
+      align-items: flex-end;
     }
 
     .modal-overlay.open {
-      display: flex
+      display: flex;
     }
 
     .modal-box {
       width: 100%;
-      max-width: 500px;
+      max-width: 520px;
       margin: 0 auto;
       background: var(--surface);
+      border-top: 1px solid var(--card-border);
       border-top-left-radius: var(--radius-lg);
       border-top-right-radius: var(--radius-lg);
-      padding: 22px 20px;
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
-      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2)
+      padding: 20px 18px calc(env(safe-area-inset-bottom, 0px) + 20px);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
     }
 
     .modal-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px
+      gap: 12px;
+    }
+
+    .modal-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    .modal-close {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--card-border);
+      background: var(--surface-variant);
+      color: var(--text);
+      font-size: 1.25rem;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-state-note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: var(--surface-variant);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
     }
 
     .modal-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px
+      gap: 10px;
     }
 
     .modal-btn {
-      padding: 14px;
+      min-height: 76px;
+      padding: 12px 10px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--card-border);
       background: var(--surface-variant);
       color: var(--text);
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
       cursor: pointer;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 6px
+      justify-content: center;
+      gap: 6px;
+      text-align: center;
+    }
+
+    .modal-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
     }
 
     .modal-btn.primary {
       background: var(--primary);
       color: #ffffff;
-      border: none
+      border-color: var(--primary);
+    }
+
+    .modal-btn.danger {
+      color: var(--danger-text);
+    }
+
+    .confirm-box {
+      background: var(--danger-soft);
+      color: var(--danger-text);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .confirm-box[hidden] {
+      display: none;
+    }
+
+    .confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .confirm-btn {
+      min-height: 38px;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--card-border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .confirm-btn.is-danger {
+      background: var(--danger-text);
+      color: #ffffff;
+      border-color: transparent;
+    }
+
+    .help-drawer {
+      background: var(--surface-variant);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .help-drawer summary {
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .help-drawer p {
+      margin-top: 6px;
+      line-height: 1.45;
     }
 
     .toast {
       position: fixed;
-      top: 20px;
+      top: calc(env(safe-area-inset-top, 0px) + 14px);
       left: 50%;
       transform: translateX(-50%);
-      background: #1a2233;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-radius: 24px;
+      background: var(--text);
+      color: var(--bg);
+      padding: 10px 18px;
+      border-radius: var(--radius-pill);
       font-size: 0.8rem;
-      font-weight: 600;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      font-weight: 700;
+      box-shadow: var(--shadow-lg);
       opacity: 0;
-      transition: opacity 0.25s, transform 0.25s;
+      transition: opacity 0.2s ease, transform 0.2s ease;
       pointer-events: none;
-      z-index: 999
+      z-index: 999;
+      max-width: 90vw;
+      text-align: center;
     }
 
     .toast.show {
       opacity: 1;
-      transform: translateX(-50%) translateY(8px)
+      transform: translateX(-50%) translateY(4px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        transition-duration: 0.01ms !important;
+      }
     }
   </style>
 </head>
 
 <body>
-
   <div class="app-wrap">
-    <div class="top-bar">
-      <div class="icon-btn" onclick="toggleModal()">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="14" width="7" height="7" rx="1.5" />
-          <rect x="3" y="14" width="7" height="7" rx="1.5" />
-        </svg>
+    <header class="top-bar">
+      <div class="brand-head">
+        <h1 class="brand-title">ReVanceX</h1>
+        <p class="brand-sub" id="greetingSub">Checking device context…</p>
       </div>
-      <div class="top-title">Dashboard</div>
-      <div class="icon-btn badge-dot" onclick="showToast('Module Active')">
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
+      <div class="top-actions">
+        <button type="button" class="icon-btn" id="refreshBtn" aria-label="Refresh app and mount status">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span>Refresh</span>
+        </button>
+        <button type="button" class="icon-btn" id="themeBtn" aria-label="Toggle color theme" aria-pressed="false">
+          <span id="themeIcon" aria-hidden="true">◐</span>
+        </button>
       </div>
+    </header>
+
+    <div id="demoBanner" class="demo-banner" hidden>
+      Preview mode: no KernelSU, APatch, or Magisk root bridge detected. Root mount actions are disabled.
     </div>
 
-    <div class="greeting-sec">
-      <h2 class="greeting-title">ReVanceX</h2>
-      <p class="greeting-sub" id="greetingSub">Checking system info...</p>
-    </div>
-
-    <div class="search-wrap">
-      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2.4" stroke-linecap="round">
-        <circle cx="11" cy="11" r="8" />
-        <path d="m21 21-4.3-4.3" />
-      </svg>
-      <input type="text" id="searchBox" class="search-input" placeholder="Search installed apps or packages..."
-        oninput="filterApps()">
-    </div>
-
-    <div class="hero-banner">
+    <section class="hero-banner" aria-label="Self-Mount Engine status">
       <div class="hero-content">
-        <h3>Self-Mount Engine</h3>
-        <p>Direct bind-mount over /data/app/</p>
-        <div class="hero-chip">
-          <span style="width:6px;height:6px;background:var(--accent);border-radius:50%;"></span>
-          <span id="rootStatusText">Checking root context...</span>
+        <h2>Self-Mount Engine</h2>
+        <p>Bind-mounts patched APKs over <code style="font-family:var(--font-mono);">/data/app/</code></p>
+        <div class="hero-chips">
+          <span class="hero-chip is-demo" id="rootStatusChip">
+            <span class="hero-dot" aria-hidden="true"></span>
+            <span id="rootStatusText">Checking root…</span>
+          </span>
+          <span class="hero-chip is-demo" id="globalMountChip">
+            <span class="hero-dot" aria-hidden="true"></span>
+            <span id="globalMountText">Mounts: Checking</span>
+          </span>
         </div>
       </div>
-      <div style="text-align:right;">
-        <div style="font-size:0.7rem;color:var(--text-muted);font-weight:700;">ARCH</div>
-        <div id="heroAbi" style="font-size:0.95rem;font-weight:800;color:var(--primary);">arm64-v8a</div>
+      <div class="hero-abi">
+        <div class="hero-abi-label">Arch</div>
+        <div class="hero-abi-val" id="heroAbi">—</div>
       </div>
-    </div>
+    </section>
 
-    <!-- Real Metrics Strip -->
-    <div class="stats-card">
+    <section class="stats-card" aria-label="Module telemetry">
       <div class="stat-box">
         <div class="stat-num" id="statAppsCount">0</div>
         <div class="stat-lbl">Bundled</div>
       </div>
-      <div class="stat-box" style="border-left:1px solid var(--card-border);border-right:1px solid var(--card-border);">
+      <div class="stat-box">
+        <div class="stat-num" id="statMountedCount">0</div>
+        <div class="stat-lbl">Mounted</div>
+      </div>
+      <div class="stat-box">
         <div class="stat-num" id="statInstalledCount">0</div>
         <div class="stat-lbl">Installed</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" id="statSelinux" style="font-size:0.92rem;padding-top:4px;">Enforcing</div>
+        <div class="stat-num is-selinux" id="statSelinux">—</div>
         <div class="stat-lbl">SELinux</div>
       </div>
-    </div>
+    </section>
 
-    <!-- Apps Header -->
-    <div class="sec-head">
-      <div class="sec-title">Applications</div>
-      <div class="sec-link" onclick="refreshApps()">Refresh</div>
-    </div>
-
-    <!-- Dynamic Auto-Fit App List -->
-    <div class="apps-list-wrap" id="appsList">
-      <div style="text-align:center;padding:24px;color:var(--text-muted);">Loading apps...</div>
-    </div>
-  </div>
-
-  <!-- Bottom Navigation Bar with FAB -->
-  <div class="bottom-nav">
-    <div class="nav-item active" onclick="showToast('Dashboard')">
-      <div class="nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
-        </svg>
-      </div>
-      <span>Home</span>
-    </div>
-    <div class="nav-item" onclick="toggleModal()">
-      <div class="nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
-      </div>
-      <span>Mounts</span>
-    </div>
-    <div class="nav-fab" onclick="toggleModal()">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
-        stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19" />
-        <line x1="5" y1="12" x2="19" y2="12" />
+    <div class="search-wrap">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.3-4.3"></path>
       </svg>
+      <input
+        type="search"
+        id="searchBox"
+        class="search-input"
+        placeholder="Search bundled apps or package IDs…"
+        aria-label="Search bundled apps or package IDs"
+        autocomplete="off"
+      >
+      <button type="button" id="searchClearBtn" class="search-clear" aria-label="Clear search" hidden>&times;</button>
     </div>
-    <div class="nav-item" onclick="restartAllApps()">
-      <div class="nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <rect x="9" y="9" width="6" height="6" rx="1" />
-        </svg>
-      </div>
-      <span>Stop</span>
+
+    <div class="sec-head">
+      <h2 class="sec-title">Applications</h2>
+      <span class="sec-count" id="appsVisibleCount">Loading…</span>
     </div>
-    <div class="nav-item" onclick="rebootDevice()">
-      <div class="nav-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10" />
-        </svg>
-      </div>
-      <span>Reboot</span>
-    </div>
+
+    <main id="appsList" class="apps-list-wrap" aria-live="polite">
+      <div class="empty-state">Loading bundled apps…</div>
+    </main>
   </div>
 
-  <!-- Module Controls Drawer -->
-  <div id="modalOverlay" class="modal-overlay" onclick="onOverlayClick(event)">
-    <div class="modal-box">
+  <nav class="bottom-nav" aria-label="Filter apps and module controls">
+    <button type="button" class="nav-item" data-status-filter="all" aria-pressed="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+      </svg>
+      <span>All</span>
+    </button>
+    <button type="button" class="nav-item" data-status-filter="mounted" aria-pressed="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+      </svg>
+      <span>Mounted</span>
+    </button>
+    <button type="button" class="nav-item" data-status-filter="installed" aria-pressed="false">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>Installed</span>
+    </button>
+    <button type="button" class="nav-item" id="openActionsBtn" aria-haspopup="dialog" aria-controls="modalOverlay">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span>Actions</span>
+    </button>
+  </nav>
+
+  <!-- Module Actions Dialog -->
+  <div id="modalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-box" tabindex="-1">
       <div class="modal-head">
-        <h3 style="font-size:1.05rem;font-weight:700;">Module Controls</h3>
-        <div style="cursor:pointer;display:flex;align-items:center;" onclick="toggleModal()">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </div>
+        <h2 class="modal-title" id="modalTitle">Module Actions</h2>
+        <button type="button" id="modalCloseBtn" class="modal-close" aria-label="Close module actions">&times;</button>
       </div>
+
+      <p class="modal-state-note" id="modalStateNote">Checking global module state…</p>
+
       <div class="modal-grid">
-        <button class="modal-btn primary" onclick="toggleMount()">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        <button type="button" class="modal-btn primary" id="toggleMountBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
           </svg>
-          <span>Toggle Mounts</span>
+          <span id="toggleMountLabel">Toggle All Mounts</span>
         </button>
-        <button class="modal-btn" onclick="remountAll()">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10" />
-            <polyline points="1 20 1 14 7 14" />
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        <button type="button" class="modal-btn" id="remountAllBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
           </svg>
           <span>Re-Mount All</span>
         </button>
-        <button class="modal-btn" onclick="restartAllApps()">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="3" />
+        <button type="button" class="modal-btn danger" id="stopAllBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
           </svg>
-          <span>Force Stop Apps</span>
+          <span>Force Stop All</span>
         </button>
-        <button class="modal-btn" style="color:var(--danger);" onclick="rebootDevice()">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10" />
+        <button type="button" class="modal-btn danger" id="rebootBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"></path>
           </svg>
           <span>Reboot Device</span>
         </button>
       </div>
+
+      <div id="modalConfirmBox" class="confirm-box" hidden>
+        <p id="modalConfirmText"></p>
+        <div class="confirm-actions">
+          <button type="button" id="modalConfirmCancel" class="confirm-btn">Cancel</button>
+          <button type="button" id="modalConfirmRun" class="confirm-btn is-danger">Confirm</button>
+        </div>
+      </div>
+
+      <details class="help-drawer">
+        <summary>How mounts &amp; actions work</summary>
+        <p><strong>Toggle All Mounts</strong> runs <code style="font-family:var(--font-mono);">action.sh</code> to pause or resume all bind-mounts across reboots. <strong>Re-Mount All</strong> runs <code style="font-family:var(--font-mono);">service.sh</code> to rebind installed patch targets. Per-app <strong>Mount / Unmount</strong> toggles bind only that package.</p>
+      </details>
     </div>
   </div>
 
-  <div id="toast" class="toast">Action completed</div>
+  <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <script>
+    const THEME_KEY = 'revancex_webui_theme';
+    const state = {
+      apps: [],
+      installedMap: new Map(),
+      mountedSet: new Set(),
+      isRoot: false,
+      modDir: '',
+      mountsPaused: false,
+      filterStatus: 'all',
+      query: '',
+      pendingConfirm: null,
+      lastFocused: null,
+    };
+
+    let toastTimer = null;
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function shellQuote(val) {
+      return `'${String(val).replace(/'/g, "'\\''")}'`;
+    }
+
+    function isValidPkg(pkg) {
+      return typeof pkg === 'string' && /^[a-zA-Z0-9._-]+$/.test(pkg);
+    }
+
+    function isValidAppId(id) {
+      return typeof id === 'string' && /^[a-zA-Z0-9_-]+$/.test(id);
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
     function ksuExec(cmd) {
       return new Promise((resolve) => {
         try {
@@ -738,37 +953,56 @@
             try {
               const res = ksu.exec(cmd);
               if (typeof res === 'string') {
-                return resolve(res);
+                return resolve({ ok: true, errno: 0, stdout: res, stderr: '' });
               }
               if (res && typeof res.then === 'function') {
-                return res.then(r => {
-                  if (typeof r === 'string') return resolve(r);
-                  if (r && r.stdout !== undefined) return resolve(r.stdout);
-                  return resolve(String(r || ''));
-                }).catch(() => resolve(''));
+                return res
+                  .then((r) => {
+                    if (typeof r === 'string') return resolve({ ok: true, errno: 0, stdout: r, stderr: '' });
+                    if (r && typeof r === 'object') {
+                      const errno = typeof r.errno === 'number' ? r.errno : 0;
+                      return resolve({
+                        ok: errno === 0,
+                        errno,
+                        stdout: String(r.stdout ?? ''),
+                        stderr: String(r.stderr ?? ''),
+                      });
+                    }
+                    return resolve({ ok: true, errno: 0, stdout: String(r || ''), stderr: '' });
+                  })
+                  .catch((err) => resolve({ ok: false, errno: -1, stdout: '', stderr: String(err?.message || err || 'Command rejected') }));
               }
-            } catch (e) {
+            } catch {
+              // Fall through to callback signature
             }
           }
-        } catch (e) { }
+        } catch {
+          // Ignore
+        }
 
         const cbName = 'ksu_cb_' + Math.random().toString(36).substring(2, 9);
-        let resolved = false;
+        let settled = false;
 
         const timer = setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
+          if (!settled) {
+            settled = true;
             delete window[cbName];
-            resolve('');
+            resolve({ ok: false, errno: 124, stdout: '', stderr: 'Shell command timed out' });
           }
-        }, 5000);
+        }, 6000);
 
         window[cbName] = function (errno, stdout, stderr) {
-          if (!resolved) {
-            resolved = true;
+          if (!settled) {
+            settled = true;
             clearTimeout(timer);
             delete window[cbName];
-            resolve(errno === 0 ? (stdout || '') : (stderr || ''));
+            const code = Number.isFinite(Number(errno)) ? Number(errno) : 0;
+            resolve({
+              ok: code === 0,
+              errno: code,
+              stdout: String(stdout || ''),
+              stderr: String(stderr || ''),
+            });
           }
         };
 
@@ -776,7 +1010,7 @@
           if (typeof ksu !== 'undefined' && ksu && typeof ksu.exec === 'function') {
             try {
               ksu.exec(cmd, cbName);
-            } catch (e) {
+            } catch {
               ksu.exec(cmd, '{}', cbName);
             }
           } else if (typeof apatch !== 'undefined' && apatch && typeof apatch.exec === 'function') {
@@ -784,108 +1018,245 @@
           } else {
             clearTimeout(timer);
             delete window[cbName];
-            resolve('');
+            resolve({ ok: false, errno: 127, stdout: '', stderr: 'No root bridge available' });
           }
-        } catch (e) {
+        } catch (err) {
           clearTimeout(timer);
           delete window[cbName];
-          resolve('');
+          resolve({ ok: false, errno: -1, stdout: '', stderr: String(err?.message || err || 'Exec error') });
         }
       });
     }
 
-    function showToast(msg) {
-      const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), 2500);
-    }
+    function initTheme() {
+      const btn = document.getElementById('themeBtn');
+      const icon = document.getElementById('themeIcon');
 
-    function toggleModal() {
-      const el = document.getElementById('modalOverlay');
-      el.classList.toggle('open');
-    }
+      const apply = (pref) => {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const effective = pref || (prefersDark ? 'dark' : 'light');
+        if (pref) {
+          document.documentElement.setAttribute('data-theme', pref);
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+        btn.setAttribute('aria-pressed', effective === 'dark' ? 'true' : 'false');
+        icon.textContent = effective === 'dark' ? '☀' : '☾';
+      };
 
-    function onOverlayClick(e) {
-      if (e.target.id === 'modalOverlay') toggleModal();
-    }
+      let saved = null;
+      try { saved = localStorage.getItem(THEME_KEY); } catch { }
+      apply(saved === 'dark' || saved === 'light' ? saved : null);
 
-    let loadedApps = [];
+      btn.addEventListener('click', () => {
+        const currentAttr = document.documentElement.getAttribute('data-theme');
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const currentEffective = currentAttr || (prefersDark ? 'dark' : 'light');
+        const next = currentEffective === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem(THEME_KEY, next); } catch { }
+        apply(next);
+      });
+    }
 
     function formatAppName(id) {
-      return id
+      return String(id || '')
         .replace(/_/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase())
+        .replace(/\b\w/g, (c) => c.toUpperCase())
         .replace(/Youtube/g, 'YouTube')
         .replace(/Microg/g, 'MicroG')
-        .replace(/Piko/g, 'Piko')
         .replace(/Vpn/g, 'VPN');
     }
 
     function getAppIcon(id) {
-      const lower = id.toLowerCase();
+      const lower = String(id || '').toLowerCase();
       if (lower.includes('music')) {
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
       }
       if (lower.includes('youtube')) {
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
       }
       if (lower.includes('microg') || lower.includes('gms') || lower.includes('adguard') || lower.includes('vpn')) {
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
       }
       if (lower.includes('photo') || lower.includes('camera') || lower.includes('insta')) {
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
-      }
-      if (lower.includes('record')) {
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
       }
       if (lower.includes('twitter') || lower.includes('piko')) {
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
       }
       if (lower.includes('reddit')) {
-        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+        return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
       }
-      return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><polyline points="2.5 8.27 12 13.73 21.5 8.27"/><polyline points="12 22.5 12 13.73"/><path d="m21.5 8.27-9.5-5.5-9.5 5.5v11l9.5 5.5 9.5-5.5z"/></svg>';
+      return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><polyline points="2.5 8.27 12 13.73 21.5 8.27"/><polyline points="12 22.5 12 13.73"/><path d="m21.5 8.27-9.5-5.5-9.5 5.5v11l9.5 5.5 9.5-5.5z"/></svg>';
+    }
+
+    function parseMounts(mountsOut, apps) {
+      const mounted = new Set();
+      if (!mountsOut) return mounted;
+      const lines = mountsOut.split('\n');
+      for (const app of apps) {
+        if (!app.package && !app.id) continue;
+        const pkgNeedle = app.package ? `/${app.package}` : '';
+        const apkNeedle = `/data/adb/rvex/${app.id}.apk`;
+        const hit = lines.some((line) => {
+          if (line.includes(apkNeedle)) return true;
+          if (pkgNeedle && (line.includes(`${pkgNeedle}-`) || line.includes(`${pkgNeedle}/`))) return true;
+          return false;
+        });
+        if (hit) mounted.add(app.package || app.id);
+      }
+      return mounted;
+    }
+
+    function syncModalState() {
+      const note = document.getElementById('modalStateNote');
+      const toggleLabel = document.getElementById('toggleMountLabel');
+      const actionBtns = ['toggleMountBtn', 'remountAllBtn', 'stopAllBtn', 'rebootBtn'];
+      for (const id of actionBtns) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !state.isRoot;
+      }
+
+      if (!state.isRoot) {
+        note.textContent = 'Preview mode active: root bridge unavailable. Actions require KernelSU, APatch, or Magisk.';
+        toggleLabel.textContent = 'Toggle All Mounts';
+        return;
+      }
+
+      note.textContent = state.mountsPaused
+        ? 'Global mount state: Paused (disabled_by_action marker is present).'
+        : `Global mount state: Active (${state.mountedSet.size} app${state.mountedSet.size === 1 ? '' : 's'} currently bind-mounted).`;
+      toggleLabel.textContent = state.mountsPaused ? 'Resume All Mounts' : 'Pause All Mounts';
+    }
+
+    function renderAppsList() {
+      const list = document.getElementById('appsList');
+      const countEl = document.getElementById('appsVisibleCount');
+      const total = state.apps.length;
+
+      if (!total) {
+        countEl.textContent = '0 apps';
+        list.innerHTML = '<div class="empty-state"><p>No apps bundled in this module.</p></div>';
+        return;
+      }
+
+      const enriched = state.apps.map((app) => {
+        const activePkg = app.package || '';
+        const isInstalled = state.installedMap.has(activePkg);
+        const isMounted = state.mountedSet.has(activePkg) || state.mountedSet.has(app.id);
+        const rank = isMounted ? 0 : isInstalled ? 1 : 2;
+        return { app, activePkg, isInstalled, isMounted, rank };
+      });
+
+      enriched.sort((a, b) => a.rank - b.rank || String(a.app.name || a.app.id).localeCompare(String(b.app.name || b.app.id)));
+
+      const q = state.query.toLowerCase();
+      const filtered = enriched.filter(({ app, activePkg, isInstalled, isMounted }) => {
+        if (state.filterStatus === 'mounted' && !isMounted) return false;
+        if (state.filterStatus === 'installed' && !isInstalled) return false;
+        if (q) {
+          const hay = `${app.name || ''} ${app.id || ''} ${activePkg}`.toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+
+      countEl.textContent = `Showing ${filtered.length} of ${total}`;
+
+      if (filtered.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <p><strong>No matching apps</strong></p>
+            <p>No bundled apps match the current search or filter.</p>
+            <button type="button" class="card-btn btn-mount" id="clearFiltersEmptyBtn">Clear search &amp; filter</button>
+          </div>
+        `;
+        document.getElementById('clearFiltersEmptyBtn')?.addEventListener('click', () => {
+          state.query = '';
+          state.filterStatus = 'all';
+          document.getElementById('searchBox').value = '';
+          document.getElementById('searchClearBtn').hidden = true;
+          syncNavFilterButtons();
+          renderAppsList();
+        });
+        return;
+      }
+
+      list.innerHTML = filtered
+        .map(({ app, activePkg, isInstalled, isMounted }) => {
+          const statusText = isMounted ? 'Mounted' : isInstalled ? 'Installed' : 'Not Installed';
+          const badgeClass = isMounted ? 'badge-mounted' : isInstalled ? 'badge-ok' : 'badge-warn';
+          const modeText = app.mode === 'install' ? 'Install' : 'Bind-Mount';
+          const displayName = app.name || formatAppName(app.id);
+          const safeId = escapeHtml(app.id);
+          const safePkg = escapeHtml(activePkg);
+
+          const canToggleMount = state.isRoot && isInstalled && app.mode !== 'install' && isValidAppId(app.id) && isValidPkg(activePkg);
+          const mountToggleBtn = app.mode !== 'install'
+            ? `<button type="button" class="card-btn btn-mount" data-action="${isMounted ? 'unmount' : 'mount'}" data-id="${safeId}" data-pkg="${safePkg}" ${!canToggleMount ? 'disabled title="Requires installed package and active root bridge"' : ''}>${isMounted ? 'Unmount' : 'Mount'}</button>`
+            : '';
+
+          return `
+            <article class="app-card">
+              <div class="app-c-icon">${getAppIcon(app.id)}</div>
+              <div class="app-c-info">
+                <div class="app-c-name">${escapeHtml(displayName)}</div>
+                <div class="app-c-pkg" title="${safePkg}">${safePkg}</div>
+                <div class="app-c-tags">
+                  <span class="badge ${badgeClass}">${statusText}</span>
+                  <span class="badge badge-mode">${modeText}</span>
+                  ${app.tag ? `<span class="badge badge-mode" title="${escapeHtml(app.updated_at || '')}">${escapeHtml(app.tag)}</span>` : ''}
+                </div>
+              </div>
+              <div class="card-actions">
+                ${mountToggleBtn}
+                <button type="button" class="card-btn btn-open" data-action="open" data-pkg="${safePkg}" ${!(state.isRoot && isInstalled) ? 'disabled' : ''}>Open</button>
+                <button type="button" class="card-btn" data-action="stop" data-pkg="${safePkg}" ${!(state.isRoot && isInstalled) ? 'disabled' : ''}>Stop</button>
+              </div>
+            </article>
+          `;
+        })
+        .join('');
     }
 
     async function loadDynamicApps() {
-      loadedApps = [];
+      state.apps = [];
 
       try {
         const res = await fetch('./apps.json');
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data)) loadedApps = data;
-          else if (data && Array.isArray(data.apps)) loadedApps = data.apps;
+          if (Array.isArray(data)) state.apps = data;
+          else if (data && Array.isArray(data.apps)) state.apps = data.apps;
         }
-      } catch (e) { }
+      } catch {
+        // Fallback to module apps.list below
+      }
 
-      if (!loadedApps.length) {
-        const listOut = await ksuExec('for f in /data/adb/modules/revancex*/apps.list /data/adb/modules_update/revancex*/apps.list /data/adb/modules/revanced-extended/apps.list ./apps.list; do [ -f "$f" ] && cat "$f" && break; done');
-        if (listOut) {
-          const lines = listOut.split('\n').map(l => l.trim()).filter(Boolean);
+      if (!state.apps.length) {
+        const listRes = await ksuExec('for f in /data/adb/modules/revancex*/apps.list /data/adb/modules_update/revancex*/apps.list /data/adb/modules/revanced-extended/apps.list ./apps.list; do [ -f "$f" ] && cat "$f" && break; done');
+        if (listRes.ok && listRes.stdout) {
+          const lines = listRes.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
           for (const line of lines) {
             const parts = line.split(':');
             if (parts.length >= 2) {
-              loadedApps.push({
+              state.apps.push({
                 id: parts[0],
                 name: formatAppName(parts[0]),
                 package: parts[1],
-                mode: parts[2] || 'patch'
+                mode: parts[2] || 'patch',
               });
             }
           }
         }
       }
 
-      const countEl = document.getElementById('statAppsCount');
-      if (countEl) countEl.textContent = loadedApps.length;
-
+      document.getElementById('statAppsCount').textContent = state.apps.length;
       await loadRealSystemAndApps();
     }
 
     async function loadRealSystemAndApps() {
-      const sysOut = await ksuExec('echo "ROOT:$(id -u)"; echo "MODEL:$(getprop ro.product.model)"; echo "OS:$(getprop ro.build.version.release)"; echo "SELINUX:$(getenforce)"; echo "KERNEL:$(uname -r)"; echo "ABI:$(getprop ro.product.cpu.abi)"');
+      const sysRes = await ksuExec('MOD=""; for d in /data/adb/modules/revancex* /data/adb/modules/revanced-extended; do [ -d "$d" ] && MOD="$d" && break; done; echo "ROOT:$(id -u)"; echo "MODEL:$(getprop ro.product.model)"; echo "OS:$(getprop ro.build.version.release)"; echo "SELINUX:$(getenforce)"; echo "KERNEL:$(uname -r)"; echo "ABI:$(getprop ro.product.cpu.abi)"; echo "MODDIR:$MOD"; [ -n "$MOD" ] && [ -f "$MOD/disabled_by_action" ] && echo "PAUSED:1" || echo "PAUSED:0"');
 
       let rootUid = '';
       let model = '';
@@ -893,9 +1264,11 @@
       let selinux = '';
       let kernel = '';
       let abi = '';
+      let modDir = '';
+      let paused = false;
 
-      if (sysOut) {
-        for (const line of sysOut.split('\n')) {
+      if (sysRes.ok && sysRes.stdout) {
+        for (const line of sysRes.stdout.split('\n')) {
           const t = line.trim();
           if (t.startsWith('ROOT:')) rootUid = t.substring(5);
           else if (t.startsWith('MODEL:')) model = t.substring(6);
@@ -903,158 +1276,285 @@
           else if (t.startsWith('SELINUX:')) selinux = t.substring(8);
           else if (t.startsWith('KERNEL:')) kernel = t.substring(7);
           else if (t.startsWith('ABI:')) abi = t.substring(4);
+          else if (t.startsWith('MODDIR:')) modDir = t.substring(7);
+          else if (t.startsWith('PAUSED:')) paused = t.substring(7) === '1';
         }
       }
 
-      const isRoot = (rootUid === '0');
-      const rootEnv = (typeof ksu !== 'undefined' && ksu) ? 'KernelSU' : ((typeof apatch !== 'undefined' && apatch) ? 'APatch' : (isRoot ? 'Root' : 'Browser'));
+      state.isRoot = rootUid === '0';
+      state.modDir = modDir;
+      state.mountsPaused = paused;
 
-      document.getElementById('greetingSub').textContent = [model || 'Device', osVer ? 'Android ' + osVer : '', kernel ? 'Linux ' + kernel.split('-')[0] : ''].filter(Boolean).join(' • ');
-      document.getElementById('rootStatusText').textContent = isRoot ? `${rootEnv} Active (UID 0)` : 'Demo Mode';
-      document.getElementById('heroAbi').textContent = abi || 'arm64-v8a';
+      const rootEnv = (typeof ksu !== 'undefined' && ksu)
+        ? 'KernelSU'
+        : ((typeof apatch !== 'undefined' && apatch) ? 'APatch' : (state.isRoot ? 'Root' : 'Browser'));
+
+      document.getElementById('greetingSub').textContent = state.isRoot
+        ? ([model || 'Android Device', osVer ? 'Android ' + osVer : '', kernel ? 'Linux ' + kernel.split('-')[0] : ''].filter(Boolean).join(' · '))
+        : 'Browser preview (no root bridge)';
+
+      document.getElementById('demoBanner').hidden = state.isRoot;
+
+      const rootChip = document.getElementById('rootStatusChip');
+      rootChip.className = `hero-chip ${state.isRoot ? '' : 'is-demo'}`;
+      document.getElementById('rootStatusText').textContent = state.isRoot ? `${rootEnv} Active (UID 0)` : 'Demo Mode';
+
+      const mountChip = document.getElementById('globalMountChip');
+      mountChip.className = `hero-chip ${!state.isRoot ? 'is-demo' : (state.mountsPaused ? 'is-paused' : '')}`;
+      document.getElementById('globalMountText').textContent = !state.isRoot
+        ? 'Mounts: Unavailable'
+        : (state.mountsPaused ? 'Mounts: Paused' : 'Mounts: Active');
+
+      document.getElementById('heroAbi').textContent = abi || '—';
 
       const selinuxEl = document.getElementById('statSelinux');
-      if (selinuxEl) {
-        selinuxEl.textContent = selinux || 'Enforcing';
-        selinuxEl.style.color = (selinux.toLowerCase() === 'enforcing') ? 'var(--success)' : 'var(--warning)';
+      selinuxEl.textContent = selinux || '—';
+      if (!selinux) {
+        selinuxEl.style.color = 'var(--text-muted)';
+      } else {
+        selinuxEl.style.color = selinux.toLowerCase() === 'enforcing' ? 'var(--success-text)' : 'var(--warning-text)';
       }
 
-      const [pkgsOut, mountsOut] = await Promise.all([
+      const [pkgsRes, mountsRes] = await Promise.all([
         ksuExec('pm list packages -f 2>/dev/null'),
-        ksuExec('cat /proc/mounts 2>/dev/null')
+        ksuExec('cat /proc/mounts 2>/dev/null'),
       ]);
 
       const installedMap = new Map();
-      if (pkgsOut) {
-        for (const line of pkgsOut.split('\n')) {
+      if (pkgsRes.ok && pkgsRes.stdout) {
+        for (const line of pkgsRes.stdout.split('\n')) {
           const trimmed = line.trim();
           if (trimmed.startsWith('package:')) {
             const eqIdx = trimmed.lastIndexOf('=');
             if (eqIdx !== -1) {
-              const apkPath = trimmed.substring(8, eqIdx);
-              const pkgName = trimmed.substring(eqIdx + 1);
-              installedMap.set(pkgName, apkPath);
+              installedMap.set(trimmed.substring(eqIdx + 1), trimmed.substring(8, eqIdx));
             }
           }
         }
       }
 
-      await renderList(loadedApps, installedMap, mountsOut || '');
+      state.installedMap = installedMap;
+      state.mountedSet = parseMounts(mountsRes.ok ? mountsRes.stdout : '', state.apps);
+
+      document.getElementById('statInstalledCount').textContent = state.apps.filter((a) => installedMap.has(a.package)).length;
+      document.getElementById('statMountedCount').textContent = state.mountedSet.size;
+
+      syncModalState();
+      renderAppsList();
     }
 
-    async function renderList(apps, installedMap, mountsOut) {
-      const list = document.getElementById('appsList');
-      if (!apps.length) {
-        list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);">No apps bundled.</div>';
+    function syncNavFilterButtons() {
+      document.querySelectorAll('.nav-item[data-status-filter]').forEach((btn) => {
+        btn.setAttribute('aria-pressed', btn.dataset.statusFilter === state.filterStatus ? 'true' : 'false');
+      });
+    }
+
+    function openModal() {
+      state.lastFocused = document.activeElement;
+      state.pendingConfirm = null;
+      document.getElementById('modalConfirmBox').hidden = true;
+      syncModalState();
+      const overlay = document.getElementById('modalOverlay');
+      overlay.classList.add('open');
+      document.getElementById('modalCloseBtn').focus();
+    }
+
+    function closeModal() {
+      const overlay = document.getElementById('modalOverlay');
+      if (!overlay.classList.contains('open')) return;
+      overlay.classList.remove('open');
+      state.pendingConfirm = null;
+      document.getElementById('modalConfirmBox').hidden = true;
+      if (state.lastFocused && typeof state.lastFocused.focus === 'function') {
+        state.lastFocused.focus();
+      }
+    }
+
+    async function launchApp(pkg) {
+      if (!state.isRoot || !isValidPkg(pkg)) return;
+      const qPkg = shellQuote(pkg);
+      const res = await ksuExec(`monkey -p ${qPkg} -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || am start $(cmd package resolve-activity --brief ${qPkg} 2>/dev/null | tail -n 1) >/dev/null 2>&1`);
+      showToast(res.ok ? `Launched ${pkg}` : `Failed to launch ${pkg}: ${res.stderr || 'no launcher activity'}`);
+    }
+
+    async function stopApp(pkg) {
+      if (!state.isRoot || !isValidPkg(pkg)) return;
+      const res = await ksuExec(`am force-stop ${shellQuote(pkg)}`);
+      if (res.ok) {
+        showToast(`Stopped ${pkg}`);
+        await loadRealSystemAndApps();
+      } else {
+        showToast(`Failed to stop ${pkg}: ${res.stderr || 'error'}`);
+      }
+    }
+
+    async function toggleSingleMount(appId, pkg, shouldMount) {
+      if (!state.isRoot || !isValidAppId(appId) || !isValidPkg(pkg)) return;
+      const qId = shellQuote(appId);
+      const qPkg = shellQuote(pkg);
+      const script = shouldMount
+        ? `MOD=""; for d in /data/adb/modules/revancex* /data/adb/modules/revanced-extended; do [ -f "$d/utils.sh" ] && MOD="$d" && break; done; [ -n "$MOD" ] || exit 1; . "$MOD/utils.sh"; APK="$MOD/apks/"${qId}".apk"; [ -f "$APK" ] || APK="/data/adb/rvex/"${qId}".apk"; [ -f "$APK" ] || exit 2; mount_app_apk ${qId} ${qPkg} "$APK"`
+        : `MOD=""; for d in /data/adb/modules/revancex* /data/adb/modules/revanced-extended; do [ -f "$d/utils.sh" ] && MOD="$d" && break; done; [ -n "$MOD" ] || exit 1; . "$MOD/utils.sh"; umount_app ${qPkg}`;
+      const res = await ksuExec(script);
+      if (res.ok) {
+        showToast(`${shouldMount ? 'Mounted' : 'Unmounted'} ${pkg}`);
+        await loadRealSystemAndApps();
+      } else {
+        showToast(`Mount operation failed (${res.errno}): ${res.stderr || 'check module files'}`);
+      }
+    }
+
+    async function toggleGlobalMount() {
+      if (!state.isRoot) return;
+      const res = await ksuExec('for f in /data/adb/modules/revancex*/action.sh /data/adb/modules/revanced-extended/action.sh; do [ -f "$f" ] && sh "$f" && exit 0; done; exit 1');
+      closeModal();
+      if (res.ok) {
+        await loadRealSystemAndApps();
+        showToast(state.mountsPaused ? 'Module mounts paused' : 'Module mounts active');
+      } else {
+        showToast(`Failed to toggle mounts: ${res.stderr || 'action.sh missing'}`);
+      }
+    }
+
+    async function remountAll() {
+      if (!state.isRoot) return;
+      const res = await ksuExec('for f in /data/adb/modules/revancex*/service.sh /data/adb/modules/revanced-extended/service.sh; do [ -f "$f" ] && sh "$f" && exit 0; done; exit 1');
+      closeModal();
+      if (res.ok) {
+        setTimeout(loadRealSystemAndApps, 600);
+        showToast('Re-mount script executed');
+      } else {
+        showToast(`Re-mount failed: ${res.stderr || 'service.sh missing'}`);
+      }
+    }
+
+    async function forceStopAllInstalled() {
+      if (!state.isRoot) return;
+      const pkgs = state.apps
+        .map((a) => a.package)
+        .filter((p) => p && state.installedMap.has(p) && isValidPkg(p));
+      if (!pkgs.length) {
+        showToast('No installed bundled apps to stop');
         return;
       }
-
-      list.innerHTML = '';
-      let installedCount = 0;
-
-      for (const app of apps) {
-        const activePkg = app.package;
-        const isInstalled = installedMap.has(activePkg);
-
-        if (isInstalled) {
-          installedCount++;
-        }
-
-        const isMounted = mountsOut.includes(activePkg) || mountsOut.includes(app.id) || mountsOut.includes(app.package);
-
-        let statusText = isMounted ? 'Mounted' : (isInstalled ? 'Installed' : 'Not Installed');
-        let badgeClass = isMounted ? 'badge-mounted' : (isInstalled ? 'badge-ok' : 'badge-warn');
-        let modeText = (app.mode === 'install') ? 'Install' : 'Patch';
-
-        const card = document.createElement('div');
-        card.className = 'app-card';
-        card.dataset.query = `${app.name} ${app.id} ${activePkg}`.toLowerCase();
-
-        card.innerHTML = `
-          <div class="app-c-icon">${getAppIcon(app.id)}</div>
-          <div class="app-c-info">
-            <div class="app-c-header">
-              <span class="app-c-name">${app.name || formatAppName(app.id)}</span>
-            </div>
-            <div class="app-c-pkg" title="${activePkg}">${activePkg}</div>
-            <div class="app-c-tags">
-              <span class="badge ${badgeClass}">${statusText}</span>
-              <span class="badge badge-mode">${modeText}</span>
-              ${app.tag ? `<span class="badge" style="opacity:0.75;" title="Updated: ${app.updated_at || ''}">${app.tag}</span>` : ''}
-            </div>
-          </div>
-          <div class="card-actions">
-            ${app.download_url ? `<a class="card-btn btn-dl" href="${app.download_url}" target="_blank" download style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;background:var(--primary);color:#ffffff;border:none;">Download</a>` : ''}
-            <button class="card-btn btn-open" ${!isInstalled ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="launchApp('${activePkg}')">Open</button>
-            <button class="card-btn btn-stop" ${!isInstalled ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} onclick="stopApp('${activePkg}')">Stop</button>
-          </div>
-        `;
-
-        list.appendChild(card);
-      }
-
-      document.getElementById('statInstalledCount').textContent = installedCount;
+      const cmd = pkgs.map((p) => `am force-stop ${shellQuote(p)}`).join('; ');
+      const res = await ksuExec(cmd);
+      closeModal();
+      await loadRealSystemAndApps();
+      showToast(res.ok ? `Force-stopped ${pkgs.length} installed app(s)` : `Some apps failed to stop: ${res.stderr || 'error'}`);
     }
 
-    function filterApps() {
-      const q = document.getElementById('searchBox').value.toLowerCase().trim();
-      const cards = document.querySelectorAll('.app-card');
-      cards.forEach(card => {
-        if (!q || card.dataset.query.includes(q)) {
-          card.style.display = 'flex';
-        } else {
-          card.style.display = 'none';
+    async function rebootDeviceNow() {
+      if (!state.isRoot) return;
+      const res = await ksuExec('/system/bin/reboot');
+      if (!res.ok) {
+        showToast(`Reboot failed: ${res.stderr || 'permission denied'}`);
+      }
+    }
+
+    function requestModalConfirm(type, message) {
+      state.pendingConfirm = type;
+      document.getElementById('modalConfirmText').textContent = message;
+      document.getElementById('modalConfirmBox').hidden = false;
+      document.getElementById('modalConfirmRun').focus();
+    }
+
+    function bindEvents() {
+      document.getElementById('refreshBtn').addEventListener('click', async () => {
+        await loadDynamicApps();
+        showToast('Status refreshed');
+      });
+
+      const searchBox = document.getElementById('searchBox');
+      const clearBtn = document.getElementById('searchClearBtn');
+      searchBox.addEventListener('input', () => {
+        state.query = searchBox.value.trim();
+        clearBtn.hidden = state.query.length === 0;
+        renderAppsList();
+      });
+
+      clearBtn.addEventListener('click', () => {
+        state.query = '';
+        searchBox.value = '';
+        clearBtn.hidden = true;
+        renderAppsList();
+        searchBox.focus();
+      });
+
+      document.querySelectorAll('.nav-item[data-status-filter]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.filterStatus = btn.dataset.statusFilter;
+          syncNavFilterButtons();
+          renderAppsList();
+        });
+      });
+
+      document.getElementById('openActionsBtn').addEventListener('click', openModal);
+      document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+      document.getElementById('modalOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'modalOverlay') closeModal();
+      });
+
+      document.getElementById('toggleMountBtn').addEventListener('click', toggleGlobalMount);
+      document.getElementById('remountAllBtn').addEventListener('click', remountAll);
+      document.getElementById('stopAllBtn').addEventListener('click', () => {
+        requestModalConfirm('stopAll', 'Force-stop every installed bundled app now?');
+      });
+      document.getElementById('rebootBtn').addEventListener('click', () => {
+        requestModalConfirm('reboot', 'Reboot your Android device immediately?');
+      });
+
+      document.getElementById('modalConfirmCancel').addEventListener('click', () => {
+        state.pendingConfirm = null;
+        document.getElementById('modalConfirmBox').hidden = true;
+      });
+      document.getElementById('modalConfirmRun').addEventListener('click', async () => {
+        const action = state.pendingConfirm;
+        state.pendingConfirm = null;
+        document.getElementById('modalConfirmBox').hidden = true;
+        if (action === 'stopAll') await forceStopAllInstalled();
+        if (action === 'reboot') await rebootDeviceNow();
+      });
+
+      document.getElementById('appsList').addEventListener('click', async (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn || btn.disabled) return;
+        const { action, id, pkg } = btn.dataset;
+        if (action === 'open') await launchApp(pkg);
+        else if (action === 'stop') await stopApp(pkg);
+        else if (action === 'mount') await toggleSingleMount(id, pkg, true);
+        else if (action === 'unmount') await toggleSingleMount(id, pkg, false);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        const overlay = document.getElementById('modalOverlay');
+        if (!overlay.classList.contains('open')) return;
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeModal();
+          return;
+        }
+        if (e.key === 'Tab') {
+          const focusable = Array.from(
+            overlay.querySelectorAll('button, summary, [tabindex]:not([tabindex="-1"])')
+          ).filter((el) => !el.disabled && !el.hidden && el.offsetParent !== null);
+          if (!focusable.length) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
         }
       });
     }
 
-    async function launchApp(pkg) {
-      showToast('Launching ' + pkg);
-      await ksuExec(`monkey -p ${pkg} -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || am start $(cmd package resolve-activity --brief ${pkg} 2>/dev/null | tail -n 1) >/dev/null 2>&1`);
-    }
-
-    async function stopApp(pkg) {
-      showToast('Stopping ' + pkg);
-      await ksuExec(`am force-stop ${pkg}`);
-      refreshApps();
-    }
-
-    async function toggleMount() {
-      showToast('Toggling module mounts...');
-      toggleModal();
-      await ksuExec('for f in /data/adb/modules/revancex*/action.sh /data/adb/modules/revanced-extended/action.sh; do [ -f "$f" ] && sh "$f"; done');
-      setTimeout(refreshApps, 1500);
-    }
-
-    async function remountAll() {
-      showToast('Re-mounting all apps...');
-      toggleModal();
-      await ksuExec('for f in /data/adb/modules/revancex*/service.sh /data/adb/modules/revanced-extended/service.sh; do [ -f "$f" ] && sh "$f"; done');
-      setTimeout(refreshApps, 1500);
-    }
-
-    async function restartAllApps() {
-      showToast('Force-stopping apps...');
-      for (const app of loadedApps) {
-        if (app.package) {
-          await ksuExec(`am force-stop ${app.package} 2>/dev/null || :`);
-        }
-      }
-      refreshApps();
-    }
-
-    async function rebootDevice() {
-      if (confirm('Reboot device now?')) {
-        await ksuExec('/system/bin/reboot');
-      }
-    }
-
-    async function refreshApps() {
-      showToast('Refreshing...');
-      await loadDynamicApps();
-    }
-
     document.addEventListener('DOMContentLoaded', async () => {
+      initTheme();
+      bindEvents();
       await loadDynamicApps();
     });
   </script>

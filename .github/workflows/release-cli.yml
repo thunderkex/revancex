@@ -32,6 +32,7 @@ concurrency:
 
 jobs:
   test:
+    name: CI Validation
     uses: ./.github/workflows/ci.yml
 
   check_release:
@@ -131,20 +132,24 @@ jobs:
       - name: Build release binary
         shell: bash
         run: |
+          source scripts/ci-log.sh
           if [ "${{ matrix.cross }}" = "true" ]; then
-            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --quiet --target ${{ matrix.target }}
+            step_run "Build binary (${{ matrix.target }})" bash -c "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --quiet --target ${{ matrix.target }}"
           else
-            cargo build --release --quiet --target ${{ matrix.target }}
+            step_run "Build binary (${{ matrix.target }})" cargo build --release --quiet --target ${{ matrix.target }}
           fi
 
       - name: Package binary (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          cd target/${{ matrix.target }}/release
-          tar -czf ../../../${{ matrix.artifact_name }} ${{ matrix.bin_name }}
-          cd ../../..
-          sha256sum ${{ matrix.artifact_name }} > ${{ matrix.artifact_name }}.sha256
+          source scripts/ci-log.sh
+          step_run "Package binary (${{ matrix.target }})" bash -c "
+            cd target/${{ matrix.target }}/release
+            tar -czf ../../../${{ matrix.artifact_name }} ${{ matrix.bin_name }}
+            cd ../../..
+            sha256sum ${{ matrix.artifact_name }} > ${{ matrix.artifact_name }}.sha256
+          "
 
       - name: Package binary (Windows)
         if: runner.os == 'Windows'
@@ -156,15 +161,28 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.target }}
+          name: cli-${{ matrix.target }}
           path: |
             ${{ matrix.artifact_name }}
             ${{ matrix.artifact_name }}.sha256
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ github.job }}-${{ matrix.target }}
+          path: build/logs/
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Report Build & Cache Summary
         if: always()
         shell: bash
         run: |
+          if [ -f scripts/ci-log.sh ]; then
+            source scripts/ci-log.sh
+            step_summary "build-logs-${{ github.job }}-${{ matrix.target }}"
+          fi
           echo "### ⚡ Build & Cache Summary (${{ matrix.target }})" >> $GITHUB_STEP_SUMMARY
           echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
           echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
@@ -183,8 +201,19 @@ jobs:
       - name: Download all built artifacts
         uses: actions/download-artifact@v8
         with:
+          pattern: cli-*
           path: release_assets
           merge-multiple: true
+
+      - name: Verify release assets
+        run: |
+          for f in release_assets/*; do
+            [ -f "$f" ] || continue
+            if [ ! -s "$f" ]; then
+              echo "::warning title=Empty Asset::$f is 0 bytes; removed before release upload"
+              rm -f "$f"
+            fi
+          done
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v3
@@ -218,7 +247,9 @@ jobs:
             .\revancex.exe build --apps youtube,microg --arch arm64-v8a
             ```
           files: |
-            release_assets/*
+            release_assets/*.tar.gz
+            release_assets/*.zip
+            release_assets/*.sha256
           fail_on_unmatched_files: false
           make_latest: true
         env:

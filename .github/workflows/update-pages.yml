@@ -9,10 +9,11 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    name: Deploy Pages
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -20,9 +21,10 @@ jobs:
           fetch-depth: 0
 
       - name: Pull latest changes
+        shell: bash
         run: |
-          git fetch origin ${{ github.ref_name }}
-          git reset --hard origin/${{ github.ref_name }}
+          source scripts/ci-log.sh
+          step_run "Pull latest changes" bash -c "git fetch origin ${{ github.ref_name }} && git reset --hard origin/${{ github.ref_name }}"
 
       - name: Download docs artifact from build if present
         uses: actions/download-artifact@v8
@@ -52,7 +54,17 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Regenerate docs/apps.json
-        run: revancex gen-apps-json --registry config/releases_registry.json
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Regenerate docs/apps.json" revancex gen-apps-json --registry config/releases_registry.json
+
+      - name: Validate docs/apps.json against JSON Schema
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          pip install -q --disable-pip-version-check -r scripts/requirements.txt
+          step_run "Validate apps.json schema" python3 scripts/validate_apps_json.py docs/apps.json docs/apps.schema.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -60,3 +72,19 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
           keep_files: true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ github.job }}-main
+          path: build/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Render Process Summary
+        if: always()
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_summary "build-logs-${{ github.job }}-main"

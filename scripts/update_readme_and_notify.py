@@ -2,6 +2,8 @@ import os
 import sys
 import re
 import json
+import hashlib
+import zipfile
 import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
@@ -227,11 +229,111 @@ def main():
             return prefix_lower
         return clean.lower()
 
-    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     new_files = []
     
     if os.path.exists(output_dir):
-        new_files = os.listdir(output_dir)
+        new_files = sorted(os.listdir(output_dir))
+
+    build_report = {}
+    build_report_path = os.path.join(output_dir, "BUILD_REPORT.json")
+    if os.path.exists(build_report_path):
+        try:
+            with open(build_report_path, "r", encoding="utf-8") as f:
+                build_report = json.load(f)
+        except Exception:
+            build_report = {}
+
+    test_report = {}
+    test_report_path = os.path.join(output_dir, "TEST_REPORT.json")
+    if os.path.exists(test_report_path):
+        try:
+            with open(test_report_path, "r", encoding="utf-8") as f:
+                test_report = json.load(f)
+        except Exception:
+            test_report = {}
+
+    test_by_app = {
+        it.get("app"): it for it in (test_report.get("items") or []) if isinstance(it, dict) and it.get("app")
+    }
+    report_apps = build_report.get("apps", {}) if isinstance(build_report, dict) else {}
+
+    def _file_sha256_and_size(path):
+        h = hashlib.sha256()
+        size = 0
+        with open(path, "rb") as fp:
+            while True:
+                chunk = fp.read(65536)
+                if not chunk:
+                    break
+                h.update(chunk)
+                size += len(chunk)
+        return h.hexdigest(), size
+
+    def _apk_archs(path):
+        found = set()
+        has_native = False
+        try:
+            with zipfile.ZipFile(path, "r") as zf:
+                for n in zf.namelist():
+                    if n.startswith("lib/") and n.endswith(".so"):
+                        has_native = True
+                        parts = n.split("/")
+                        if len(parts) >= 2 and parts[1] in ("arm64-v8a", "armeabi-v7a", "x86_64"):
+                            found.add(parts[1])
+        except Exception:
+            return None
+        if not has_native:
+            return ["all"]
+        return [a for a in ("arm64-v8a", "armeabi-v7a", "x86_64") if a in found] or None
+
+    def _validation_for_app(app_key):
+        ti = test_by_app.get(app_key)
+        rep = report_apps.get(app_key, {}) if isinstance(report_apps, dict) else {}
+        if ti:
+            st = ti.get("status")
+            if st == "passed":
+                if rep.get("status") in ("degraded", "success_unpatched") or rep.get("warnings"):
+                    return "warning"
+                return "passed"
+            if st == "failed":
+                return "failed"
+            return "unknown"
+        if rep:
+            if rep.get("validation_status"):
+                return rep["validation_status"]
+            st = rep.get("status")
+            if st == "success":
+                return "passed"
+            if st in ("degraded", "success_unpatched"):
+                return "warning"
+            if st == "failed":
+                return "failed"
+        return "unknown"
+
+    def _inspect_zip_payload(zip_path):
+        items = []
+        version_code = None
+        try:
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                if "module.prop" in zf.namelist():
+                    prop_text = zf.read("module.prop").decode("utf-8", errors="replace")
+                    for line in prop_text.splitlines():
+                        if line.startswith("versionCode="):
+                            raw_vc = line.split("=", 1)[1].strip()
+                            if raw_vc.isdigit():
+                                version_code = int(raw_vc)
+                for n in sorted(zf.namelist()):
+                    if n.startswith("apks/") and n.endswith(".apk"):
+                        stem = os.path.basename(n)[:-4]
+                        app_id = _resolve_app_key(stem + ".apk", is_module=False)
+                        pkg = apps_cfg.get(app_id, {}).get("package", "") if isinstance(apps_cfg.get(app_id), dict) else ""
+                        rep = report_apps.get(app_id, {}) if isinstance(report_apps, dict) else {}
+                        ver = rep.get("resolved_version") or rep.get("fetched_version")
+                        items.append({"app": app_id, "package": pkg, "version": ver, "path": n})
+        except Exception:
+            return None, None
+        return items, version_code
 
     for fname in new_files:
         fpath = os.path.join(output_dir, fname)
@@ -239,40 +341,100 @@ def main():
             continue
         
         url = f"https://github.com/{repo_slug}/releases/download/{tag_name}/{fname}" if repo_slug else f"#{fname}"
-        
+        sha256, size_bytes = _file_sha256_and_size(fpath)
+
         if fname.endswith(".apk") and not fname.endswith(".idsig"):
             if "-root" in fname:
                 continue
             app_key = _resolve_app_key(fname, is_module=False)
-            registry["stock_apps"][app_key] = {
+            rep = report_apps.get(app_key, {}) if isinstance(report_apps, dict) else {}
+            archs = _apk_archs(fpath) or rep.get("supported_archs")
+            opt_mode = rep.get("optimization_mode") or (
+                "lite" if (apps_cfg.get(app_key, {}) or {}).get("mode") == "lite" else "full"
+            )
+            entry = {
                 "filename": fname,
                 "url": url,
                 "tag": tag_name,
-                "updated_at": now_iso
+                "updated_at": now_iso,
+                "sha256": sha256,
+                "size_bytes": size_bytes,
+                "optimization_mode": opt_mode,
+                "validation_status": _validation_for_app(app_key),
             }
+            if rep.get("resolved_version"):
+                entry["version"] = rep["resolved_version"]
+            if archs:
+                entry["supported_archs"] = archs
+            registry["stock_apps"][app_key] = entry
         elif fname.endswith(".zip"):
+            payload, zip_vc = _inspect_zip_payload(fpath)
+            env_vc = os.environ.get("VERSION_CODE", "").strip()
+            resolved_vc = zip_vc or (int(env_vc) if env_vc.isdigit() else None)
             if "custom" in fname or "custom" in tag_name:
-                registry["custom_bundles"][fname] = {
+                entry = {
                     "filename": fname,
                     "url": url,
                     "tag": tag_name,
-                    "updated_at": now_iso
+                    "updated_at": now_iso,
+                    "sha256": sha256,
+                    "size_bytes": size_bytes,
                 }
+                if resolved_vc is not None:
+                    entry["version_code"] = resolved_vc
+                if payload is not None:
+                    entry["payload"] = payload
+                registry["custom_bundles"][fname] = entry
             elif "bundle" in fname:
-                registry["bundles"][fname] = {
+                entry = {
                     "filename": fname,
                     "url": url,
                     "tag": tag_name,
-                    "updated_at": now_iso
+                    "updated_at": now_iso,
+                    "sha256": sha256,
+                    "size_bytes": size_bytes,
                 }
+                if resolved_vc is not None:
+                    entry["version_code"] = resolved_vc
+                if payload is not None:
+                    entry["payload"] = payload
+                registry["bundles"][fname] = entry
             else:
                 app_key = _resolve_app_key(fname, is_module=True)
-                registry["single_modules"][app_key] = {
+                rep = report_apps.get(app_key, {}) if isinstance(report_apps, dict) else {}
+                entry = {
                     "filename": fname,
                     "url": url,
                     "tag": tag_name,
-                    "updated_at": now_iso
+                    "updated_at": now_iso,
+                    "sha256": sha256,
+                    "size_bytes": size_bytes,
+                    "optimization_mode": rep.get("optimization_mode") or "full",
+                    "validation_status": _validation_for_app(app_key),
                 }
+                if resolved_vc is not None:
+                    entry["version_code"] = resolved_vc
+                if rep.get("resolved_version"):
+                    entry["version"] = rep["resolved_version"]
+                if rep.get("supported_archs"):
+                    entry["supported_archs"] = rep["supported_archs"]
+                registry["single_modules"][app_key] = entry
+
+    if tag_name.startswith("auto-v"):
+        total_t = (test_report.get("passed", 0) + test_report.get("failed", 0) + test_report.get("skipped", 0)) if test_report else 0
+        if total_t > 0:
+            pass_rate = round(test_report["passed"] / total_t, 4)
+        else:
+            summ = build_report.get("summary", {}) if isinstance(build_report, dict) else {}
+            tot_b = summ.get("total", 0)
+            pass_rate = round((summ.get("success", 0) + summ.get("degraded", 0)) / tot_b, 4) if tot_b > 0 else None
+        registry["build_health"] = {
+            "release_tag": tag_name,
+            "cli_version": build_report.get("revancex_version") or "1.1.0",
+            "built_at": now_iso,
+            "pass_rate": pass_rate,
+            "active_sources": [],
+        }
 
     modules_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "modules.yaml")
     modules_cfg = {}
@@ -296,7 +458,7 @@ def main():
         }
 
     with open(RELEASES_REGISTRY_PATH, "w", encoding="utf-8") as f:
-        json.dump(registry, f, indent=2)
+        json.dump(registry, f, indent=2, sort_keys=True)
 
     app_names = sorted(list(set(
         list(registry["stock_apps"].keys()) +

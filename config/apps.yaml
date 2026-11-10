@@ -397,6 +397,11 @@ apps:
     uptodown_url: https://wps-office.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/wps-software-pte-ltd/wps-office-pdf/
     archive_url: https://archive.org/download/geologically/apks/cn.wps.moffice_eng
+    source_priority:
+    - archive
+    - apkmirror
+    - uptodown
+    - apkpure
 
   x_piko:
     name: "X Piko"
@@ -434,10 +439,16 @@ apps:
     uptodown_url: https://youtube.en.uptodown.com/android
     apkmirror_url: https://apkmirror.com/apk/google-inc/youtube
     archive_url: https://archive.org/download/geologically/apks/com.google.android.youtube
+    source_priority:
+    - archive
+    - apkmirror
+    - uptodown
+    - apkpure
     architectures:
     - arm64-v8a
     - x86_64
     mode: both
+    expected_min_patches: 2
     included_patches: []
     excluded_patches:
     - Custom branding icon for YouTube
@@ -459,7 +470,7 @@ apps:
     name: "Pinterest"
     enabled: true  
     package: com.pinterest
-    version: 14.23.0
+    version: 14.43.0
     patch_source: browzomje
     cli_source: MorpheApp/morphe-cli
     excluded_patches:
@@ -685,10 +696,16 @@ apps:
     uptodown_url: https://youtube-music.en.uptodown.com/android
     apkmirror_url: https://apkmirror.com/apk/google-inc/youtube-music
     archive_url: https://archive.org/download/geologically/apks/com.google.android.apps.youtube.music
+    source_priority:
+    - archive
+    - apkmirror
+    - uptodown
+    - apkpure
     architectures:
     - arm64-v8a
     - x86_64
     mode: both
+    expected_min_patches: 2
     included_patches: []
     excluded_patches:
     - Custom branding icon for YouTube Music

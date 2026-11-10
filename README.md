@@ -10,13 +10,14 @@ Automated patch orchestration ecosystem written in Rust. It streamlines patching
 
 ## Features
 
-- **35+ Pre-Configured Apps**: YouTube, YouTube Music, Spotify, Reddit, MicroG, TikTok, Instagram, Twitter/X, Pinterest, Gboard, Google Photos, and more.
-- **Fast Rust CLI (`revancex`)**: High-performance local building, version resolution, and APK patching with no runtime dependencies beyond Java JDK 17 (Rust 1.85+ MSRV).
-- **Multi-Source APK Acquisition**: Resilient fallback pipeline (APKMirror, Uptodown, APKPure API, Aptoide, APKCombo, APKFab, Archive.org, GitHub, GitLab, Codeberg, apkeep) protected by domain-aware circuit breakers.
-- **Root & Non-Root Packaging**: Generate standalone signed APKs, individual Magisk/KernelSU modules, or multi-app bundle zips.
+- **31 Pre-Configured Apps**: YouTube, YouTube Music, Reddit, MicroG, TikTok, Instagram, Facebook, Threads, X Piko, Pinterest, Gboard, Google Maps, Proton VPN, AdGuard, Lightroom, CapCut, Termius, and more.
+- **Fast Rust CLI (`revancex`)**: High-performance local building, version resolution, and APK patching with no runtime dependencies beyond Java JDK 17+ (JDK 21 in CI; Rust 1.85+ MSRV).
+- **Multi-Source APK Acquisition & Resilience**: Resilient fallback pipeline (GitHub, GitLab, Archive.org, Codeberg, apkeep, APKPure API/WinUDF, APKMirror, Uptodown, Aptoide, APKFab, APKCombo) with per-app `source_priority`, `strict_sources`, negative caching, per-app timeout budgets, and domain-aware circuit breakers.
+- **Preflight & Integrity Verification**: Preflight patch-compatibility and `pin_policy` resolution (`prefer_supported`, `strict`, `force`), minimum patch count checks (`expected_min_patches`), and post-download verification of ZIP/DEX/Manifest structure, package ID, version, file SHA-256, and optional signing certificate SHA-256.
+- **Root & Non-Root Packaging**: Generate standalone signed APKs, individual Magisk/KernelSU/APatch modules, or multi-app category bundle zips.
 - **Embedded WebUI**: KernelSU, APatch, and Magisk modules include an interactive, responsive Material 3 Expressive WebUI for inspecting and toggling mounted apps.
 - **Testing & Health Diagnostics**: Built-in environment diagnostic suite (`doctor`), static DEX and AndroidManifest validation, and automated smoke testing (`test`) with failure threshold policies.
-- **Dynamic Configuration & CI/CD**: Decoupled YAML definitions (`apps.yaml`, `sources.yaml`, `modules.yaml`, `build.yaml`), structured build reporting (`BUILD_REPORT.json`), automated GitHub Actions pipelines, and an interactive GitHub Pages catalogue.
+- **Dynamic Configuration & Reporting**: Decoupled YAML definitions (`apps.yaml`, `sources.yaml`, `modules.yaml`, `build.yaml`, `module.yaml`), structured build reporting (`BUILD_REPORT.json` schema v2.1.0 + `BUILD_REPORT.md`), compact per-app log files (`build/logs/`), automated GitHub Actions pipelines, and an interactive GitHub Pages catalogue.
 
 ---
 
@@ -141,7 +142,7 @@ Verify that your system has all required and recommended tools installed:
 
 *(On Windows: `.\revancex.exe doctor`)*
 
-This verifies Java JDK 17+, Android SDK tools (`keytool`, `zipalign`, `adb`), `apkeep`, python runtime, bypass services, and configuration integrity.
+This verifies Java (JDK 17+ per `config/build.yaml`; default `21` if omitted), Android tools (`adb`, `keytool`, `zipalign`), optional helpers (`aria2c`, `apkeep`, `python`), bypass services (`FlareSolverr`, `Trawl`), `GITHUB_TOKEN`, `Cargo.lock` presence, keystore resolution, and configuration summary.
 
 #### Step 1: Download Required Tools & Patches
 
@@ -175,15 +176,20 @@ Build your selected applications using the `build` subcommand:
   ./revancex build --apps all --arch arm64-v8a --keep-going --report ./output/BUILD_REPORT.json
   ```
 
+  *(By default, `build` always writes `<output>/BUILD_REPORT.json` and a companion `<output>/BUILD_REPORT.md` summary.)*
+
 - **Supported architectures (`--arch`)**:
   - `arm64-v8a` (Recommended for modern 64-bit Android devices)
   - `armeabi-v7a` (32-bit legacy devices)
   - `x86_64` (Emulators and Chromebooks)
   - `all` (Universal builds)
 
-- **Optimization modes (`--mode`)**:
-  - `--mode full`: Keeps all resources and languages (default).
-  - `--mode lite`: Strips foreign architectures and unused language assets for minimal APK size.
+- **Build / optimization modes (`--mode`)**:
+  - `--mode full` (or `patch` in config): Keeps all resources and builds standard patched APK (default).
+  - `--mode lite`: Strips foreign architectures and unused resources for minimal APK size.
+  - `--mode both`: Builds both non-root APK and root module payload.
+  - `--mode root` / `--mode module`: Builds root module payload only.
+  - `--mode install`: Downloads/re-signs stock APK without patching (e.g. `microg`).
 
 - **Specify custom output folder**:
 
@@ -200,12 +206,12 @@ Validate built APKs before release or installation:
 ./revancex test --apps all --fail-threshold 10 --continue
 ```
 
-- When devices are connected via ADB, it tests APK installation, launch, and checks logcat for crash loops or fatal exceptions.
-- In offline or CI environments without physical devices, it performs deep static inspection (valid ZIP structure, valid `classes.dex`, readable `AndroidManifest.xml`).
+- When devices are connected via ADB (or with `--require-device`), it tests APK installation, launch, and checks logcat for crash loops or fatal exceptions.
+- Without connected devices (or with `REVANCEX_STATIC_TEST=1`), it performs deep static inspection (valid ZIP structure, valid `classes.dex`, readable `AndroidManifest.xml`).
 
 #### Step 5: Create Magisk & KernelSU Modules (Root)
 
-Package patched APKs into flashable root modules:
+Package patched APKs into flashable root modules (`--include-webui` defaults to `true`, and `config/modules.yaml` is synced automatically from `config/apps.yaml`):
 
 - **Single Root Module (one zip per app)**:
 
@@ -222,7 +228,7 @@ Package patched APKs into flashable root modules:
   ./revancex module --bundle --apps productivity --output ./modules  # Productivity Bundle
   ./revancex module --bundle --apps tools --output ./modules         # Tools & Utilities Bundle
   ./revancex module --bundle --apps core --output ./modules          # Core Essentials Bundle
-  ./revancex module --bundle --apps all --include-webui --output ./modules  # All Category Bundles
+  ./revancex module --bundle --apps all --output ./modules           # All Category Bundles
   ```
 
 - **Verify Root Module Integrity**:
@@ -233,13 +239,13 @@ Package patched APKs into flashable root modules:
 
 #### Step 6: Validate Configuration & Setup
 
-Verify configuration syntax, app schemas, and patch integrity:
+Verify YAML duplicate keys, `modules.yaml` sync/package collisions, app schemas, and patch compatibility:
 
 ```bash
 ./revancex validate --strict
 ```
 
-Or perform live reachability checks on upstream sources:
+Or perform live reachability checks on `uptodown_url` / `apkmirror_url`:
 
 ```bash
 ./revancex validate --online
@@ -292,25 +298,27 @@ revancex-bundle-<category>.zip
 <details>
 <summary><b><i class="fa-solid fa-terminal"></i> CLI Subcommand Reference</b></summary>
 
+Global flags: `-v, --verbose` (detailed console logs), `-c, --config-dir <dir>` (alias `--config`, default `./config`).
+
 | Command | Description | Example |
 | --- | --- | --- |
-| `doctor` | Inspect local environment, required JDK 17+, Android SDK tools, and network services | `revancex doctor` |
+| `doctor` | Inspect local environment, Java, Android tools, bypass services, `Cargo.lock`, keystore, and config summary | `revancex doctor` |
 | `apps` | List all configured apps, status, and package IDs | `revancex apps [--json]` |
-| `download-tools` | Download patcher JARs, integrations, and tools | `revancex download-tools [--apps youtube]` |
+| `download-tools` | Download patcher JARs and patch bundles | `revancex download-tools [--apps youtube]` |
 | `check-updates` | Poll upstream sources for app and patch updates | `revancex check-updates [--json]` |
-| `build` | Patch, optimize, sign APKs, and generate build reports | `revancex build --apps youtube --arch arm64-v8a [--keep-going] [--report <path>]` |
-| `module` | Package APKs into single or bundle Magisk/KernelSU modules | `revancex module --bundle --apps core [--include-webui]` |
-| `test` | Smoke test APKs (static DEX/manifest or ADB device) with failure tolerance | `revancex test --apps all [--fail-threshold 20] [--continue]` |
-| `validate` | Check schema, app definitions, and patch compatibility | `revancex validate [--strict] [--online] [--apps youtube]` |
-| `clean` | Clean build outputs, caches, or stale tool downloads | `revancex clean [--all] [--stale-tools]` |
-| `fetch-apk` | Download stock APK using the configured multi-source chain | `revancex fetch-apk youtube --arch arm64-v8a` |
+| `build` | Fetch, verify, patch, sign APKs, and emit `BUILD_REPORT.json` + `BUILD_REPORT.md` | `revancex build --apps youtube --arch arm64-v8a [--mode full\|lite\|both\|root\|install] [--force] [--keep-going] [--report <path>]` |
+| `module` | Sync `modules.yaml` and package APKs into single or bundle Magisk/KernelSU/APatch modules | `revancex module --bundle --apps core [--include-webui=true\|false] [--output ./modules]` |
+| `test` | Smoke test APKs (static DEX/manifest or ADB device) with failure threshold policies | `revancex test --apps all [--require-device] [--fail-threshold 20] [--continue] [--json]` |
+| `validate` | Check YAML duplicate keys, `modules.yaml` sync/collisions, app definitions, and patch compatibility | `revancex validate [--strict] [--online] [--apps youtube]` |
+| `clean` | Clean build temp cache (`--all` also clears `tools/`) or prune stale tool files | `revancex clean [--all] [--stale-tools]` |
+| `fetch-apk` | Download stock APK using the configured multi-source chain | `revancex fetch-apk youtube [--arch arm64-v8a] [--dry-run] [--force]` |
 | `verify-module` | Verify structure and integrity of a root module zip | `revancex verify-module ./modules/revancex-bundle-core.zip` |
-| `patches` | List available patches and version compatibilities for an app | `revancex patches youtube [--mode root\|nonroot] [--json]` |
-| `keystore` | Inspect or initialize signing keystore | `revancex keystore --info` |
-| `report` | Inspect build report and enforce failure threshold policies in CI | `revancex report check ./output/BUILD_REPORT.json [--fail-threshold 15]` |
-| `sources` | Probe and test APK sources for reachability and version resolution | `revancex sources probe youtube` |
-| `gen-apps-json` | Generate web catalogue dataset `docs/apps.json` from release registry | `revancex gen-apps-json` |
-| `generate-matrix` | Generate CI build matrix JSON for GitHub Actions | `revancex generate-matrix --apps all` |
+| `patches` | List patch plan (included, excluded, auto-disabled) for an app | `revancex patches youtube [--mode root\|nonroot] [--json]` |
+| `keystore` | Inspect resolved signing keystore details | `revancex keystore --info` |
+| `report` | Inspect `BUILD_REPORT.json` and enforce failure threshold policies in CI | `revancex report check ./output/BUILD_REPORT.json [--fail-threshold 15] [--continue]` |
+| `sources` | Probe and benchmark configured APK sources for reachability and version resolution | `revancex sources probe youtube [--arch arm64-v8a] [--version <ver>]` |
+| `gen-apps-json` | Generate web catalogue dataset `docs/apps.json` from release registry | `revancex gen-apps-json [--registry config/releases_registry.json]` |
+| `generate-matrix` | Generate CI build matrix JSON for GitHub Actions | `revancex generate-matrix [--apps all] [--arch all] [--mode auto]` |
 
 </details>
 
@@ -335,12 +343,14 @@ cargo build --release
 <details>
 <summary><b><i class="fa-brands fa-github"></i> GitHub Actions (Automated Cloud Builds)</b></summary>
 
-1. Fork or push to this repository.
-2. The GitHub Actions workflows run automatically:
-   - **Auto Build**: Triggered on schedule or via `workflow_dispatch`.
-   - **Custom Build**: Triggered via the GitHub Pages interface or `workflow_dispatch`.
-   - **CI Validation & Tests**: Runs automated Rust tests and script verifications on every push.
-3. Download the generated APKs and Magisk modules directly from the **Releases** tab.
+1. Fork or push to this repository (default CI branch: `extended`).
+2. Automated GitHub Actions workflows handle validation, builds, and releases:
+   - **Check Patch Updates** (`check-updates.yml`): Runs every 23 hours or manually to poll upstream patch releases and trigger builds when changes are detected.
+   - **Auto Build** (`auto-build.yml`) / **Build and Release** (`build-and-release.yml`): Runs FlareSolverr + Trawl services, builds APKs and single/bundle modules, runs `report check` & static smoke tests, uploads `build-logs-*` and `build-report-*` artifacts, and publishes GitHub Releases.
+   - **Custom Bundle Build** (`custom-build.yml`): Triggered via `repository_dispatch` from the GitHub Pages catalogue or `workflow_dispatch`.
+   - **Update GitHub Pages** (`update-pages.yml`): Syncs `config/releases_registry.json`, `README.md`, and `docs/apps.json`.
+   - **CI Validation** (`ci.yml`) & **Release CLI Binaries** (`release-cli.yml`): Runs `cargo fmt`, `cargo clippy`, Rust/script tests, and builds precompiled Linux/Windows CLI binaries.
+3. Download the generated APKs and Magisk/KernelSU modules directly from the **Releases** tab.
 
 </details>
 
@@ -356,16 +366,22 @@ Copy `.env.example` to `.env` and configure credentials. Never commit `.env`.
 | `KEYSTORE_PASSWORD` | Keystore password for signing generated APKs | `revanced` / `666` |
 | `KEYSTORE_FILE` | (Optional) Custom keystore path override | `keys/custom.jks` |
 | `KEYSTORE_B64` | (Optional) Base64-encoded keystore for CI pipelines | `<base64>` |
-| `TG_TOKEN` | (Optional) Telegram bot token for build notifications | `123456:ABC...` |
-| `TG_CHAT` | (Optional) Telegram chat ID or channel username | `-1001234567890` |
-| `TG_TOPIC` | (Optional) Telegram forum topic / thread ID for supergroups | `42` |
+| `TG_TOKEN` | (Optional) Telegram bot token (`TELEGRAM_BOT_TOKEN` alias) | `123456:ABC...` |
+| `TG_CHAT` | (Optional) Telegram chat ID or channel username (`TELEGRAM_CHAT_ID` alias) | `-1001234567890` |
+| `TG_TOPIC` | (Optional) Telegram forum topic / thread ID (`TG_THREAD_ID`, `TELEGRAM_TOPIC_ID`, `TELEGRAM_THREAD_ID` aliases) | `42` |
 | `FLARESOLVERR_URL` | (Optional) FlareSolverr endpoint URL | `http://localhost:8191/v1` |
+| `FLARESOLVERR_ENABLED` | (Optional) Override FlareSolverr mode (`auto`, `true`, `false`) | `auto` |
 | `TRAWL_URL` | (Optional) Trawl headless browser render service endpoint URL | `http://localhost:8000` |
 | `REVANCEX_STATIC_TEST` | (Optional) Force static manifest/DEX testing without ADB device | `1` |
-| `REVANCEX_CB_THRESHOLD` | (Optional) Circuit breaker error threshold before tripping | `3` |
+| `REVANCEX_CB_THRESHOLD` | (Optional) Circuit breaker consecutive failure threshold (`REVANCEX_UTD_CB_THRESHOLD` fallback) | `3` |
 | `REVANCEX_CB_COOLDOWN_SECS` | (Optional) Circuit breaker cooldown period in seconds | `60` |
+| `REVANCEX_APP_TIMEOUT_SECS` | (Optional) Default per-app build timeout budget in seconds | `120` |
+| `REVANCEX_APKEEP_ACKNOWLEDGE_DANGERS` | (Optional) Acknowledge `apkeep` danger prompt (`true`/`1`) | `false` |
 | `REVANCEX_CONFIG_DIR` | (Optional) Override path to config directory | `./config` |
 | `REVANCEX_TEMP_DIR` | (Optional) Override path to temporary directory | `./tmp` |
+| `REVANCEX_LOG_DIR` | (Optional) Override path to log output directory | `build/logs` |
+| `VERBOSE` / `RUST_LOG` | (Optional) Increase console log detail (`VERBOSE=1`, `RUST_LOG=debug`, or `RUNNER_DEBUG=1`) | `0` |
+| `NO_COLOR` / `REVANCEX_ASCII` | (Optional) Disable ANSI colors / force ASCII `[OK]`/`[FAIL]`/`[WARN]` markers | unset |
 
 </details>
 

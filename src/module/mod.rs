@@ -122,3 +122,103 @@ pub const UTILS_SH: &[u8] = include_bytes!("../../templates/utils.sh");
 pub const SERVICE_SH: &[u8] = include_bytes!("../../templates/service.sh.tpl");
 pub const ACTION_SH: &[u8] = include_bytes!("../../templates/action.sh");
 pub const UNINSTALL_SH: &[u8] = include_bytes!("../../templates/uninstall.sh");
+pub const MODULE_PROP_TPL: &str = include_str!("../../templates/module.prop.tpl");
+
+pub const OTA_BASE_URL: &str = "https://thunderkex.github.io/revancex/update";
+
+#[derive(Debug, Clone)]
+pub struct ModuleBuildOptions {
+    pub version_code: Option<i32>,
+    pub release_tag: Option<String>,
+    pub include_webui: bool,
+}
+
+impl Default for ModuleBuildOptions {
+    fn default() -> Self {
+        Self {
+            version_code: None,
+            release_tag: None,
+            include_webui: true,
+        }
+    }
+}
+
+pub fn ota_update_json_url(module_id: &str) -> String {
+    format!("{OTA_BASE_URL}/{module_id}.json")
+}
+
+pub fn ota_changelog_url(module_id: &str) -> String {
+    format!("{OTA_BASE_URL}/{module_id}-changelog.md")
+}
+
+pub fn compute_version_code(date: chrono::NaiveDate, same_day_counter: u8) -> Result<i32> {
+    use chrono::Datelike;
+    anyhow::ensure!(
+        same_day_counter <= 99,
+        "same_day_counter must be in 0..=99, got {same_day_counter}"
+    );
+    let code: i64 = (date.year() as i64) * 1_000_000
+        + (date.month() as i64) * 10_000
+        + (date.day() as i64) * 100
+        + (same_day_counter as i64);
+    i32::try_from(code).context("versionCode YYYYMMDDbb overflows int32")
+}
+
+pub fn resolve_module_version_code(explicit: Option<i32>, registry_path: Option<&str>) -> i32 {
+    if let Some(vc) = explicit.filter(|&v| v > 0) {
+        return vc;
+    }
+    if let Ok(env_vc) = std::env::var("REVANCEX_VERSION_CODE") {
+        if let Ok(parsed) = env_vc.trim().parse::<i32>() {
+            if parsed > 0 {
+                return parsed;
+            }
+        }
+    }
+    let today = chrono::Utc::now().date_naive();
+    let day_base = compute_version_code(today, 0).unwrap_or(2026010100);
+    let day_max = day_base + 99;
+    let mut max_bb = 0i32;
+
+    if let Some(path) = registry_path {
+        let reg = crate::pages::load_registry(path);
+        for item in reg
+            .single_modules
+            .values()
+            .chain(reg.bundles.values())
+            .chain(reg.custom_bundles.values())
+        {
+            if let Some(vc) = item.version_code {
+                if vc >= day_base && vc <= day_max {
+                    max_bb = max_bb.max(vc - day_base);
+                }
+            }
+        }
+    }
+    let next_bb = (max_bb + 1).clamp(1, 99) as u8;
+    compute_version_code(today, next_bb).unwrap_or(day_base + 1)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn render_module_prop(
+    id: &str,
+    name: &str,
+    version: &str,
+    version_code: i32,
+    author: &str,
+    description: &str,
+    min_magisk: u32,
+    min_kernelsu: u32,
+    update_json: &str,
+) -> String {
+    MODULE_PROP_TPL
+        .replace("{{ID}}", id)
+        .replace("{{NAME}}", name)
+        .replace("{{VERSION}}", version)
+        .replace("{{VERSION_CODE}}", &version_code.to_string())
+        .replace("{{AUTHOR}}", author)
+        .replace("{{DESCRIPTION}}", description)
+        .replace("{{MIN_MAGISK}}", &min_magisk.to_string())
+        .replace("{{MIN_KERNELSU}}", &min_kernelsu.to_string())
+        .replace("{{UPDATE_JSON}}", update_json)
+}

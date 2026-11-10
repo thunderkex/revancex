@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   build:
+    name: Auto Build
     uses: ./.github/workflows/build-and-release.yml
     with:
       apps: ${{ inputs.apps || 'all' }}
@@ -36,6 +37,7 @@ jobs:
     secrets: inherit
 
   pages:
+    name: Update Catalogue
     needs: build
     if: success()
     uses: ./.github/workflows/update-pages.yml

@@ -4,6 +4,26 @@ use std::io::Read;
 use std::path::Path;
 use tracing::warn;
 
+pub fn compute_file_sha256<P: AsRef<Path>>(path: P) -> Result<String> {
+    use ring::digest::{Context, SHA256};
+    let mut file = File::open(path)?;
+    let mut context = Context::new(&SHA256);
+    let mut buffer = [0u8; 65536];
+    loop {
+        let count = file.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        context.update(&buffer[..count]);
+    }
+    let digest = context.finish();
+    Ok(digest
+        .as_ref()
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect())
+}
+
 pub fn get_apk_version_name<P: AsRef<Path>>(apk_path: P) -> Result<String> {
     let data = read_manifest(apk_path)?;
     find_manifest_attr(&data, "versionName")

@@ -36,21 +36,30 @@ runs:
         CLI_URL="https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/revancex-linux-x86_64.tar.gz"
 
         export CARGO_TERM_COLOR=always CARGO_TERM_PROGRESS_WHEN=never
-        mkdir -p build/logs
-        LOG=build/logs/download-cli.log
-        START=$(date +%s)
+        mkdir -p build/logs bin
+
+        if [ -f scripts/ci-log.sh ]; then
+          source scripts/ci-log.sh
+        fi
 
         DOWNLOADED=false
         if [ "${{ inputs.force_build }}" = "true" ]; then
-          echo "● CLI ${TARGET_TAG}: force_build=true, building from source"
-        else
-          echo "● CLI ${TARGET_TAG}: downloading pre-built binary (url in $LOG)"
-          echo "GET ${CLI_URL}" >> "$LOG"
-          if curl -sSLf "$CLI_URL" 2>>"$LOG" | tar -xz -C bin/ 2>>"$LOG"; then
-            DOWNLOADED=true
-            echo "✔ CLI ${TARGET_TAG}: pre-built binary ($(( $(date +%s) - START ))s)"
+          if type step_skip >/dev/null 2>&1; then
+            step_skip "Download pre-built CLI (${TARGET_TAG})" "force_build=true"
           else
-            echo "↷ CLI ${TARGET_TAG}: no pre-built binary found"
+            echo "↷ CLI ${TARGET_TAG}: force_build=true"
+          fi
+        else
+          if type step_run >/dev/null 2>&1; then
+            if step_run "Download pre-built CLI (${TARGET_TAG})" bash -c "curl -sSLf \"$CLI_URL\" | tar -xz -C bin/"; then
+              DOWNLOADED=true
+            else
+              step_skip "Download pre-built CLI (${TARGET_TAG})" "not found in release assets"
+            fi
+          else
+            if curl -sSLf "$CLI_URL" | tar -xz -C bin/; then
+              DOWNLOADED=true
+            fi
           fi
         fi
 
@@ -59,17 +68,15 @@ runs:
           echo "cli_source=built from source" >> $GITHUB_OUTPUT
           echo "CLI_SOURCE=built from source" >> $GITHUB_ENV
           if ! command -v cargo >/dev/null 2>&1; then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal >>"$LOG" 2>&1
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
             source "$HOME/.cargo/env"
           fi
-          # cargo --quiet hides per-crate "Compiling" lines; full output is kept in the log
-          if ! cargo build --release --quiet >>"$LOG" 2>&1; then
-            echo "::error title=CLI build failed::cargo build failed, last lines below (full log: $LOG)"
-            tail -n 30 "$LOG"
-            exit 1
+          if type step_run >/dev/null 2>&1; then
+            step_run "Build CLI from source (${TARGET_TAG})" cargo build --release --quiet
+          else
+            cargo build --release --quiet
           fi
           cp target/release/revancex bin/revancex
-          echo "✔ CLI ${TARGET_TAG}: built from source ($(( $(date +%s) - START ))s)"
         else
           echo "cli_source=pre-built binary" >> $GITHUB_OUTPUT
           echo "CLI_SOURCE=pre-built binary" >> $GITHUB_ENV

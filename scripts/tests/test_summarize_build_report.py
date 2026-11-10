@@ -53,15 +53,10 @@ def test_summarize_report():
         with open(summary_file, "r", encoding="utf-8") as f:
             content = f.read()
 
-        assert "### APK Source Acquisition Summary" in content
-        assert "| youtube | success | apkmirror | 21.13.164 |" in content
-        assert "| facebook | failed | none | 400.0.0.0 |" in content
-        assert "### Build Summary" in content
-        assert "- Total: 2" in content
-        assert "#### Open Circuit Breakers" in content
-        assert "- `uptodown`" in content
-        assert "#### Failures by Category" in content
-        assert "- all_candidate_sources_open_breakers: 1" in content
+        assert "**Failures:** `all_candidate_sources_open_breakers` (1)" in content
+        assert "**Open circuit breakers:** `uptodown`" in content
+        assert "APK Source Acquisition Summary" not in content
+        assert "### Build Summary" not in content
         print("test_summarize_report: PASS")
     finally:
         import shutil

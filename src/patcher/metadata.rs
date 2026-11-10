@@ -174,13 +174,12 @@ impl CompatibleVersions {
     }
 }
 
-pub fn resolve_compatible_versions(
-    patches: &[PatchMeta],
-    package: &str,
+fn select_active_patches<'a>(
+    patches: &'a [PatchMeta],
     enabled_patches: &[String],
     excluded_patches: &[String],
-) -> CompatibleVersions {
-    let active_patches: Vec<&PatchMeta> = patches
+) -> Vec<&'a PatchMeta> {
+    patches
         .iter()
         .filter(|patch| {
             if excluded_patches.iter().any(|e| {
@@ -200,20 +199,82 @@ pub fn resolve_compatible_versions(
                 })
             }
         })
-        .collect();
+        .collect()
+}
 
-    let mut constraining: Vec<(String, Vec<String>)> = Vec::new();
+/// Counts patches in `patches` that apply to `package`, honoring `enabled_patches`
+/// (or all non-excluded patches when empty) and `excluded_patches`.
+pub fn count_applicable_patches(
+    patches: &[PatchMeta],
+    package: &str,
+    enabled_patches: &[String],
+    excluded_patches: &[String],
+) -> usize {
+    select_active_patches(patches, enabled_patches, excluded_patches)
+        .into_iter()
+        .filter(|patch| {
+            patch.compatible_packages.is_empty()
+                || patch.compatible_packages.iter().any(|c| c.name == package)
+        })
+        .count()
+}
 
-    for patch in active_patches {
-        if let Some(compat) = patch.compatible_packages.iter().find(|c| c.name == package) {
-            if !compat.versions.is_empty() {
-                constraining.push((patch.name.clone(), compat.versions.clone()));
-            }
+pub fn resolve_compatible_versions(
+    patches: &[PatchMeta],
+    package: &str,
+    enabled_patches: &[String],
+    excluded_patches: &[String],
+) -> CompatibleVersions {
+    let active_patches = select_active_patches(patches, enabled_patches, excluded_patches);
+
+    if active_patches.is_empty() {
+        if !enabled_patches.is_empty() {
+            return CompatibleVersions::Intersection(Vec::new());
+        } else {
+            return CompatibleVersions::Unconstrained;
         }
     }
 
+    let mut constraining: Vec<(String, Vec<String>)> = Vec::new();
+    let mut has_universal = false;
+    let mut has_incompatible_patch = false;
+
+    for patch in &active_patches {
+        if patch.compatible_packages.is_empty() {
+            has_universal = true;
+            tracing::info!(
+                "{package}: patch '{}' has no package/version constraints, treating as compatible with all versions",
+                patch.name
+            );
+        } else if let Some(compat) = patch.compatible_packages.iter().find(|c| c.name == package) {
+            if compat.versions.is_empty() {
+                has_universal = true;
+                tracing::info!(
+                    "{package}: patch '{}' has no version constraints, treating as compatible with all versions",
+                    patch.name
+                );
+            } else {
+                constraining.push((patch.name.clone(), compat.versions.clone()));
+            }
+        } else if !enabled_patches.is_empty() {
+            tracing::warn!(
+                "{package}: enabled patch '{}' does not list {package} in compatible packages",
+                patch.name
+            );
+            has_incompatible_patch = true;
+        }
+    }
+
+    if has_incompatible_patch {
+        return CompatibleVersions::Intersection(Vec::new());
+    }
+
     if constraining.is_empty() {
-        return CompatibleVersions::Unconstrained;
+        if has_universal {
+            return CompatibleVersions::Unconstrained;
+        } else {
+            return CompatibleVersions::Intersection(Vec::new());
+        }
     }
 
     let first_versions = &constraining[0].1;

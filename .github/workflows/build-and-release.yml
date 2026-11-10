@@ -43,6 +43,21 @@ on:
         required: false
         default: false
         type: boolean
+      mode:
+        description: 'Optional optimization mode override (full|lite)'
+        required: false
+        default: ''
+        type: string
+      packaging:
+        description: 'Packaging mode (all|bundle|single_module|apk)'
+        required: false
+        default: 'all'
+        type: string
+      include_webui:
+        description: 'Include embedded Material WebUI in module zips'
+        required: false
+        default: true
+        type: boolean
     outputs:
       release_tag:
         description: 'Created release tag'
@@ -61,12 +76,21 @@ env:
 
 jobs:
   build:
+    name: Build & Release (${{ inputs.apps || 'all' }} · ${{ inputs.arch }})
     runs-on: ubuntu-24.04
     services:
       flaresolverr:
         image: ghcr.io/flaresolverr/flaresolverr:v3.3.21
         ports:
           - 8191:8191
+        options: --shm-size=1gb
+      trawl:
+        image: ghcr.io/germondai/trawl:latest
+        ports:
+          - 8000:8191
+        env:
+          SESSION_CACHE_DRIVER: memory
+          BROWSER_POOL_SIZE: 1
         options: --shm-size=1gb
     outputs:
       release_tag: ${{ steps.meta.outputs.tag }}
@@ -75,15 +99,37 @@ jobs:
 
       - name: Wait for FlareSolverr
         continue-on-error: true
+        shell: bash
         run: |
-          for i in $(seq 1 30); do
-            if curl -sS -f http://localhost:8191/ > /dev/null 2>&1; then
-              echo "✔ FlareSolverr ready (attempt $i/30)"
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "::warning title=FlareSolverr::wait timed out after 30 attempts; continuing without solver."
+          source scripts/ci-log.sh
+          step_run "Wait for FlareSolverr" bash -c '
+            for i in $(seq 1 30); do
+              if curl -sS -f http://localhost:8191/ > /dev/null 2>&1; then
+                echo "FlareSolverr is ready (attempt $i/30)"
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "FlareSolverr wait timed out after 30 attempts; continuing without solver"
+            exit 1
+          '
+
+      - name: Wait for Trawl
+        continue-on-error: true
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Wait for Trawl" bash -c '
+            for i in $(seq 1 30); do
+              if curl -sS -f http://localhost:8000/health > /dev/null 2>&1; then
+                echo "Trawl is ready (attempt $i/30)"
+                exit 0
+              fi
+              sleep 5
+            done
+            echo "Trawl wait timed out after 30 attempts; continuing without trawl"
+            exit 1
+          '
 
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -122,10 +168,14 @@ jobs:
           version: 1.0
 
       - name: Install apkeep APK downloader
+        shell: bash
         run: |
-          sudo curl -sSLf https://github.com/EFForg/apkeep/releases/download/1.1.0/apkeep-x86_64-unknown-linux-gnu -o /usr/local/bin/apkeep
-          sudo chmod +x /usr/local/bin/apkeep
-          echo "✔ apkeep $(apkeep --version | head -n1)"
+          source scripts/ci-log.sh
+          step_run "Install apkeep downloader" bash -c '
+            sudo curl -sSLf https://github.com/EFForg/apkeep/releases/download/1.1.0/apkeep-x86_64-unknown-linux-gnu -o /usr/local/bin/apkeep
+            sudo chmod +x /usr/local/bin/apkeep
+            apkeep --version
+          '
 
       - name: Restore patch tools cache
         uses: actions/cache/restore@v6
@@ -147,12 +197,18 @@ jobs:
 
       - name: Download tools
         id: tools
-        run: revancex download-tools --apps "${{ inputs.apps || 'all' }}"
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Download patch tools" revancex download-tools --apps "${{ inputs.apps || 'all' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clean stale tools
-        run: revancex clean --stale-tools
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Clean stale tools" revancex clean --stale-tools
 
       - name: Save patch tools cache
         if: always() && steps.tools.outputs.tools_changed == 'true'
@@ -163,21 +219,31 @@ jobs:
           key: tools-${{ runner.os }}-${{ github.run_id }}
 
       - name: Validate configuration
-        run: revancex validate --apps "${{ inputs.apps || 'all' }}"
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Validate configuration" revancex validate --apps "${{ inputs.apps || 'all' }}"
 
       - name: Build apps
+        shell: bash
         run: |
+          source scripts/ci-log.sh
           mkdir -p output build/logs
-          revancex build \
+          MODE_ARGS=()
+          if [ -n "${{ inputs.mode }}" ]; then
+            MODE_ARGS=(--mode "${{ inputs.mode }}")
+          fi
+          step_run "Build apps (${{ inputs.apps || 'all' }}-${{ inputs.arch }})" revancex build \
             --apps "${{ inputs.apps || 'all' }}" \
             --arch "${{ inputs.arch }}" \
+            "${MODE_ARGS[@]}" \
             --keep-going \
             --output output
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
           FLARESOLVERR_URL: http://localhost:8191/v1
-          TRAWL_URL: ${{ secrets.TRAWL_URL }}
+          TRAWL_URL: http://localhost:8000
 
       - name: Save signing keys cache
         if: always()
@@ -198,8 +264,10 @@ jobs:
 
       - name: Write attempted sources to GITHUB_STEP_SUMMARY
         if: always()
+        shell: bash
         run: |
-          python3 scripts/summarize_build_report.py
+          source scripts/ci-log.sh
+          step_run "Summarize attempted sources" python3 scripts/summarize_build_report.py
 
       - name: Upload Build Report
         if: always()
@@ -210,7 +278,10 @@ jobs:
           if-no-files-found: warn
 
       - name: Validate Build Report
-        run: revancex report check output/BUILD_REPORT.json --fail-threshold 40
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Validate build report" revancex report check output/BUILD_REPORT.json --fail-threshold 40
 
       - name: Verify build produced output
         run: |
@@ -221,63 +292,34 @@ jobs:
           fi
           echo "✔ build output: $count file(s)"
 
-      - name: Build bundle modules
-        run: |
-          if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
-            revancex module \
-              --bundle \
-              --apps "${{ inputs.apps }}" \
-              --include-webui \
-              --output output
-          else
-            revancex module \
-              --bundle \
-              --apps all \
-              --include-webui \
-              --output output
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build single modules for enabled apps
-        if: inputs.build_single_modules
-        run: |
-          FAILED_MODULES=""
-          for apk in output/*.apk; do
-            [ -f "$apk" ] || continue
-            fname=$(basename "$apk")
-            appid="${fname%.apk}"
-            appid="${appid%-patched}"
-            [ "$appid" = "microg" ] && continue
-            if revancex module --single --apps "$appid" --output output; then
-              echo "✔ module $appid"
-            else
-              echo "::error title=Module build failed::single module build failed for $appid"
-              FAILED_MODULES="$FAILED_MODULES $appid"
-            fi
-          done
-
-          if [ -n "$FAILED_MODULES" ]; then
-            echo "### ⚠️ Single Module Build Failures" >> $GITHUB_STEP_SUMMARY
-            echo "Failed apps:$FAILED_MODULES" >> $GITHUB_STEP_SUMMARY
-            echo "::warning title=Single modules::failed for:$FAILED_MODULES"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Smoke test built APKs
-        run: |
-          REVANCEX_STATIC_TEST=1 revancex test \
-            --output output \
-            --apps "${{ inputs.apps || 'all' }}" \
-            --continue
-
       - name: Resolve Release Metadata
         id: meta
         run: |
           CARGO_VER=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           DATE_STR=$(date -u +'%Y.%m.%d')
+          YMD=$(date -u +'%Y%m%d')
           TAG="${{ inputs.tag_prefix }}-v${CARGO_VER}-${DATE_STR}-b${{ github.run_number }}"
+
+          VERSION_CODE=$(python3 - <<PY
+          import json, os
+          ymd = "${YMD}"
+          base = int(ymd) * 100
+          max_bb = 0
+          reg_path = "config/releases_registry.json"
+          if os.path.exists(reg_path):
+              with open(reg_path, "r", encoding="utf-8") as f:
+                  reg = json.load(f)
+              for bucket in ("single_modules", "bundles", "custom_bundles"):
+                  for item in (reg.get(bucket) or {}).values():
+                      vc = item.get("version_code")
+                      if isinstance(vc, int) and base <= vc <= base + 99:
+                          max_bb = max(max_bb, vc - base)
+                      elif str(item.get("updated_at", "")).startswith(f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]}"):
+                          max_bb = max(max_bb, 1)
+          bb = min(max_bb + 1, 99)
+          print(base + bb)
+          PY
+          )
 
           TITLE="${{ inputs.release_title }}"
           if [ -z "$TITLE" ]; then
@@ -301,19 +343,89 @@ jobs:
           echo "title=$TITLE" >> $GITHUB_OUTPUT
           echo "version=$CARGO_VER" >> $GITHUB_OUTPUT
           echo "date=$DATE_STR" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
           {
             echo "body<<EOF"
             echo "$BODY"
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
+      - name: Build bundle modules
+        if: inputs.packaging == 'all' || inputs.packaging == 'bundle'
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          WEBUI_FLAG="--include-webui"
+          if [ "${{ inputs.include_webui }}" != "true" ]; then
+            WEBUI_FLAG="--no-webui"
+          fi
+          if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
+            step_run "Build bundle module (${{ inputs.apps }})" revancex module \
+              --bundle \
+              --apps "${{ inputs.apps }}" \
+              "$WEBUI_FLAG" \
+              --version-code "${{ steps.meta.outputs.version_code }}" \
+              --release-tag "${{ steps.meta.outputs.tag }}" \
+              --output output
+          else
+            step_run "Build bundle module (all)" revancex module \
+              --bundle \
+              --apps all \
+              "$WEBUI_FLAG" \
+              --version-code "${{ steps.meta.outputs.version_code }}" \
+              --release-tag "${{ steps.meta.outputs.tag }}" \
+              --output output
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build single modules for enabled apps
+        if: inputs.build_single_modules || inputs.packaging == 'single_module'
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          WEBUI_FLAG="--include-webui"
+          if [ "${{ inputs.include_webui }}" != "true" ]; then
+            WEBUI_FLAG="--no-webui"
+          fi
+          FAILED_MODULES=""
+          for apk in output/*.apk; do
+            [ -f "$apk" ] || continue
+            fname=$(basename "$apk")
+            appid="${fname%.apk}"
+            appid="${appid%-patched}"
+            if [ "$appid" = "microg" ]; then
+              step_skip "Build single module microg" "microg is standalone APK"
+              continue
+            fi
+            if ! step_run "Build single module $appid" revancex module --single --apps "$appid" "$WEBUI_FLAG" --version-code "${{ steps.meta.outputs.version_code }}" --release-tag "${{ steps.meta.outputs.tag }}" --output output; then
+              FAILED_MODULES="$FAILED_MODULES $appid"
+            fi
+          done
+
+          if [ -n "$FAILED_MODULES" ]; then
+            echo "**Single module failures:**$FAILED_MODULES" >> $GITHUB_STEP_SUMMARY
+            echo "::warning title=Single modules::failed for:$FAILED_MODULES"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Smoke test built APKs
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "Smoke test built APKs" env REVANCEX_STATIC_TEST=1 revancex test \
+            --output output \
+            --apps "${{ inputs.apps || 'all' }}" \
+            --continue
+
       - name: Verify and cap asset sizes for release upload
         run: |
           for f in output/*; do
             [ -f "$f" ] || continue
             fsize=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)
-            if [ "$fsize" -gt 2000000000 ]; then
-              echo "::warning title=Asset too large::$f exceeds 2GB ($fsize bytes); removed before release upload"
+            if [ "$fsize" -gt 2000000000 ] || [ "$fsize" -lt 1 ]; then
+              echo "::warning title=Asset invalid size::$f has invalid size ($fsize bytes); removed before release upload"
               rm -f "$f"
             fi
           done
@@ -361,25 +473,37 @@ jobs:
         run: pip install -q --disable-pip-version-check -r scripts/requirements.txt
 
       - name: Update README tables and send Telegram notification
+        shell: bash
         run: |
-          python3 scripts/update_readme_and_notify.py
+          source scripts/ci-log.sh
+          step_run "Update README and notify Telegram" python3 scripts/update_readme_and_notify.py
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          VERSION_CODE: ${{ steps.meta.outputs.version_code }}
           OUTPUT_DIR: output
           TG_CHAT: ${{ secrets.TG_CHAT || secrets.TELEGRAM_CHAT_ID }}
           TG_TOKEN: ${{ secrets.TG_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
           TG_TOPIC: ${{ secrets.TG_TOPIC || secrets.TG_THREAD_ID || secrets.TELEGRAM_TOPIC_ID }}
 
       - name: Regenerate docs/apps.json with release registry
+        shell: bash
         run: |
-          revancex gen-apps-json --registry config/releases_registry.json
+          source scripts/ci-log.sh
+          step_run "Regenerate docs/apps.json" revancex gen-apps-json \
+            --registry config/releases_registry.json \
+            --report output/BUILD_REPORT.json \
+            --test-report output/TEST_REPORT.json \
+            --output-dir output \
+            --release-tag "${{ steps.meta.outputs.tag }}"
 
       - name: Update version cache
+        shell: bash
         run: |
-          revancex check-updates --json
+          source scripts/ci-log.sh
+          step_run "Update version cache" revancex check-updates --json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -401,7 +525,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md config/releases_registry.json docs/apps.json config/version_cache.json config/modules.yaml
+          git add README.md config/releases_registry.json docs/apps.json docs/update config/version_cache.json config/modules.yaml
           # [skip ci] is mandatory in commit messages to prevent triggering release-cli.yml via config/** path filters
           if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
             COMMIT_MSG="docs: update custom bundle registry for ${{ steps.meta.outputs.tag }} [skip ci]"
@@ -433,30 +557,7 @@ jobs:
 
       - name: Generate Build Summary
         if: always()
+        shell: bash
         run: |
-          echo "## 🚀 ReVanceX Pipeline Execution Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Target Apps** | \`${{ inputs.apps || 'all' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Target Arch** | \`${{ inputs.arch }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **CLI Source** | \`${{ env.CLI_SOURCE || 'unknown' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Job Status** | \`${{ job.status }}\` |" >> $GITHUB_STEP_SUMMARY
-          TOOLS_HIT="${{ steps.cache_tools.outputs.cache-hit }}"
-          PIP_HIT="${{ steps.cache_pip.outputs.cache-hit }}"
-          echo "| **Tools Cache** | \`$([ "$TOOLS_HIT" = "true" ] && echo "✅ Hit" || echo "⚠️ Miss")\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Pip Cache** | \`$([ "$PIP_HIT" = "true" ] && echo "✅ Hit" || echo "⚠️ Miss")\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Output Artifacts" >> $GITHUB_STEP_SUMMARY
-          if [ -d output ] && [ "$(ls -A output 2>/dev/null)" ]; then
-            echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
-            echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-            for f in output/*; do
-              [ -f "$f" ] || continue
-              fname=$(basename "$f")
-              fsize=$(ls -lh "$f" | awk '{print $5}')
-              echo "| \`$fname\` | $fsize |" >> $GITHUB_STEP_SUMMARY
-            done
-          else
-            echo "No output artifacts produced." >> $GITHUB_STEP_SUMMARY
-          fi
+          source scripts/ci-log.sh
+          step_summary "build-logs-${{ inputs.tag_prefix }}-${{ inputs.arch }}"

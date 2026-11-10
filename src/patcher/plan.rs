@@ -66,6 +66,19 @@ pub enum DisableReason {
 pub struct DisabledPatch {
     pub name: String,
     pub reason: DisableReason,
+    #[serde(default)]
+    pub critical: bool,
+}
+
+pub fn is_critical_patch(name: &str) -> bool {
+    let lower = name.to_ascii_lowercase();
+    lower.contains("gmscore")
+        || lower.contains("microg")
+        || lower.contains("signature")
+        || lower.contains("spoof-signature")
+        || lower.contains("spoof signature")
+        || lower.contains("spoof app signature")
+        || lower.contains("firebase")
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -74,6 +87,8 @@ pub struct PatchPlan {
     pub excluded: Vec<String>,
     pub auto_disabled: Vec<DisabledPatch>,
     pub warnings: Vec<String>,
+    #[serde(default)]
+    pub critical_disabled: Vec<String>,
 }
 
 pub fn resolve(
@@ -113,9 +128,11 @@ pub fn resolve(
             }
         }
         if let Some(rule_desc) = matched_rule {
+            let is_crit = is_critical_patch(&canonical);
             plan.auto_disabled.push(DisabledPatch {
                 name: canonical,
                 reason: DisableReason::RuleExcluded { rule: rule_desc },
+                critical: is_crit,
             });
         } else {
             plan.included.push(canonical);
@@ -210,12 +227,22 @@ pub fn resolve(
                             v == apk_ver || crate::utils::version::versions_match(v, apk_ver)
                         })
                     {
+                        let is_crit = is_critical_patch(&patch.name);
+                        if is_crit
+                            && !plan
+                                .critical_disabled
+                                .iter()
+                                .any(|c| c.eq_ignore_ascii_case(&patch.name))
+                        {
+                            plan.critical_disabled.push(patch.name.clone());
+                        }
                         plan.auto_disabled.push(DisabledPatch {
                             name: patch.name.clone(),
                             reason: DisableReason::Incompatible {
                                 supported: compat.versions.clone(),
                                 actual: apk_ver.to_string(),
                             },
+                            critical: is_crit,
                         });
                         if !plan
                             .excluded

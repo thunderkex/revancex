@@ -3,55 +3,300 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ReVanceX — Custom Bundle Builder</title>
+  <meta name="description" content="ReVanceX catalogue of patched Android APKs, Magisk/KernelSU root modules, and multi-app bundles.">
+  <title>Revancex — Apps &amp; Root Modules Catalogue</title>
+  <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>ReVanceX</h1>
-    <p>Select apps, pick your architecture, trigger a custom build.</p>
+  <a class="skip-link" href="#catalog-main">Skip to catalogue</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand-row">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">RX</span>
+          <div>
+            <h1>Revancex Catalogue</h1>
+            <p class="subtitle">Patched APKs, single-app root modules, and curated Magisk/KernelSU bundles</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="open-composer-btn" class="btn btn-primary">
+            Custom Build
+          </button>
+          <button type="button" id="open-tracker-btn" class="btn btn-tonal">
+            Build Tracker
+          </button>
+          <button
+            type="button"
+            id="theme-toggle"
+            class="btn btn-tonal"
+            aria-label="Toggle color theme"
+            aria-pressed="false"
+          >
+            <span id="theme-icon" aria-hidden="true">◐</span>
+            <span id="theme-label">Theme</span>
+          </button>
+        </div>
+      </div>
+
+      <section class="health-bar" aria-label="Latest build health">
+        <div class="health-grid" id="health-grid">
+          <div class="health-pill">
+            <span class="health-label">Release Tag</span>
+            <span class="health-value mono" id="health-tag">Loading…</span>
+          </div>
+          <div class="health-pill">
+            <span class="health-label">CLI Version</span>
+            <span class="health-value mono" id="health-cli">—</span>
+          </div>
+          <div class="health-pill">
+            <span class="health-label">Built At</span>
+            <span class="health-value" id="health-built">—</span>
+          </div>
+          <div class="health-pill">
+            <span class="health-label">Pass Rate</span>
+            <span class="health-value" id="health-pass">—</span>
+          </div>
+          <div class="health-pill">
+            <span class="health-label">Active Sources</span>
+            <span class="health-value" id="health-sources-count">—</span>
+          </div>
+        </div>
+        <details class="sources-drawer" id="sources-drawer">
+          <summary>View active upstream patch sources</summary>
+          <ul class="sources-list" id="health-sources-list"></ul>
+        </details>
+      </section>
+    </div>
   </header>
 
-  <main>
-    <section class="controls">
-      <label>
-        Architecture
-        <select id="arch-select">
-          <option value="arm64-v8a" selected>arm64-v8a (most phones)</option>
-          <option value="x86_64">x86_64 (emulators)</option>
-          <option value="armeabi-v7a">armeabi-v7a (32-bit)</option>
-        </select>
-      </label>
+  <main id="catalog-main" class="container main-content">
+    <section class="toolbar" aria-label="Search, filter, and sort artifacts">
+      <div class="search-sort-row">
+        <div class="search-wrap">
+          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+          <input
+            type="search"
+            id="search-input"
+            class="search-input"
+            placeholder="Search app, package ID, or upstream source…"
+            aria-label="Search apps, package IDs, or upstream sources"
+            autocomplete="off"
+          >
+        </div>
 
-      <div class="select-actions">
-        <button id="select-all" class="btn-secondary">Select All</button>
-        <button id="deselect-all" class="btn-secondary">Deselect All</button>
+        <label class="sort-control">
+          <span class="sort-label">Sort</span>
+          <select id="sort-select" class="sort-select" aria-label="Sort artifacts">
+            <option value="updated">Last Updated</option>
+            <option value="name">Name (A–Z)</option>
+            <option value="size">File Size</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="filter-groups">
+        <div class="filter-group" role="group" aria-label="Filter by format">
+          <span class="filter-title">Format</span>
+          <div class="chip-row" id="format-chips">
+            <button type="button" class="chip" data-filter="format" data-value="all" aria-pressed="true">All</button>
+            <button type="button" class="chip" data-filter="format" data-value="apk" aria-pressed="false">Standalone APK</button>
+            <button type="button" class="chip" data-filter="format" data-value="single_module" aria-pressed="false">Single Root Module</button>
+            <button type="button" class="chip" data-filter="format" data-value="bundle" aria-pressed="false">Multi-App Bundle</button>
+          </div>
+        </div>
+
+        <div class="filter-group" role="group" aria-label="Filter by category">
+          <span class="filter-title">Category</span>
+          <div class="chip-row" id="category-chips">
+            <button type="button" class="chip" data-filter="category" data-value="all" aria-pressed="true">All</button>
+            <button type="button" class="chip" data-filter="category" data-value="core" aria-pressed="false">Core</button>
+            <button type="button" class="chip" data-filter="category" data-value="multimedia" aria-pressed="false">Multimedia</button>
+            <button type="button" class="chip" data-filter="category" data-value="social" aria-pressed="false">Social</button>
+            <button type="button" class="chip" data-filter="category" data-value="productivity" aria-pressed="false">Productivity</button>
+            <button type="button" class="chip" data-filter="category" data-value="tools" aria-pressed="false">Tools</button>
+          </div>
+        </div>
+
+        <div class="filter-group" role="group" aria-label="Filter by architecture">
+          <span class="filter-title">Arch</span>
+          <div class="chip-row" id="arch-chips">
+            <button type="button" class="chip" data-filter="arch" data-value="all_filter" aria-pressed="true">All</button>
+            <button type="button" class="chip" data-filter="arch" data-value="arm64-v8a" aria-pressed="false">arm64-v8a</button>
+            <button type="button" class="chip" data-filter="arch" data-value="armeabi-v7a" aria-pressed="false">armeabi-v7a</button>
+            <button type="button" class="chip" data-filter="arch" data-value="x86_64" aria-pressed="false">x86_64</button>
+            <button type="button" class="chip" data-filter="arch" data-value="all" aria-pressed="false">Universal</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-bar">
+        <p id="results-count" class="results-count">Loading catalogue…</p>
+        <button type="button" id="reset-filters-btn" class="btn-link" hidden>Reset filters</button>
       </div>
     </section>
 
-    <div id="token-section" class="token-section">
-      <label>
-        GitHub Token <span class="hint">(repo + workflow scopes — never stored)</span>
-        <input type="password" id="gh-token" placeholder="ghp_..." autocomplete="off">
-      </label>
-    </div>
+    <section id="catalog-status" class="state-card" hidden aria-live="polite"></section>
 
-    <div id="app-grid" class="app-grid">
-      <div class="loading">Loading apps…</div>
-    </div>
-
-    <div class="build-bar">
-      <span id="selected-count">0 apps selected</span>
-      <button id="build-btn" class="btn-primary" disabled>Build Custom Bundle</button>
-    </div>
-
-    <div id="status" class="status hidden"></div>
+    <section id="catalog-grid" class="catalog-grid" aria-label="Downloadable artifacts">
+      <div class="state-card">Loading static catalogue…</div>
+    </section>
   </main>
 
-  <footer>
-    <a href="https://github.com/thunderkex/revancex" target="_blank">ReVanceX</a>
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span>ReVanceX Catalogue</span>
+      <div class="footer-links">
+        <a href="apps.json">apps.json</a>
+        <a href="apps.schema.json">Schema</a>
+        <a href="https://github.com/thunderkex/revancex" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
   </footer>
 
-  <script src="script.js"></script>
+  <!-- QR Code Modal -->
+  <div id="qr-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title" hidden>
+    <div class="modal-panel" tabindex="-1">
+      <div class="modal-header">
+        <h2 id="qr-modal-title">Download QR Code</h2>
+        <button type="button" id="qr-close-btn" class="icon-close" aria-label="Close QR modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="qr-modal-subtitle" class="modal-sub"></p>
+        <div id="qr-svg-wrap" class="qr-box" aria-label="QR code image"></div>
+        <p id="qr-url-preview" class="qr-url mono"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="qr-copy-url-btn" class="btn btn-tonal">Copy URL</button>
+        <button type="button" id="qr-done-btn" class="btn btn-primary">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="live-toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Custom Build Composer Drawer -->
+  <div id="composer-modal" class="modal-backdrop drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="composer-title" hidden>
+    <div class="modal-panel drawer-panel" tabindex="-1">
+      <div class="modal-header">
+        <div>
+          <h2 id="composer-title">Custom Build Composer</h2>
+          <p class="hint-text" id="composer-selected-summary">0 apps selected</p>
+        </div>
+        <button type="button" id="composer-close-btn" class="icon-close" aria-label="Close composer">&times;</button>
+      </div>
+
+      <div class="composer-options">
+        <label class="option-field">
+          <span>Architecture</span>
+          <select id="composer-arch" class="sort-select">
+            <option value="arm64-v8a" selected>arm64-v8a (64-bit ARM)</option>
+            <option value="armeabi-v7a">armeabi-v7a (32-bit ARM)</option>
+            <option value="x86_64">x86_64 (Emulator)</option>
+            <option value="all">all (Universal)</option>
+          </select>
+        </label>
+
+        <label class="option-field">
+          <span>Optimization Mode</span>
+          <select id="composer-mode" class="sort-select">
+            <option value="full" selected>full (Standard patched)</option>
+            <option value="lite">lite (Strip metadata &amp; stale sigs)</option>
+          </select>
+        </label>
+
+        <label class="option-field">
+          <span>Output Packaging</span>
+          <select id="composer-packaging" class="sort-select">
+            <option value="bundle" selected>Custom Multi-App Bundle (.zip)</option>
+            <option value="single_module">Single Root Module (.zip)</option>
+            <option value="apk">Standalone APK (.apk)</option>
+          </select>
+        </label>
+
+        <label class="checkbox-field">
+          <input type="checkbox" id="composer-webui" checked>
+          <span>Include Embedded WebUI (<code class="mono">--include-webui</code>)</span>
+        </label>
+      </div>
+
+      <p id="composer-constraint-note" class="hint-text constraint-note" hidden></p>
+
+      <div class="composer-select-bar">
+        <span class="filter-title">Select Apps</span>
+        <div class="chip-row">
+          <button type="button" id="composer-select-all" class="btn">Select All</button>
+          <button type="button" id="composer-deselect-all" class="btn">Deselect All</button>
+        </div>
+      </div>
+
+      <div id="composer-app-groups" class="composer-groups"></div>
+
+      <div class="composer-tabs" role="group" aria-label="Execution mode">
+        <button type="button" class="chip" data-composer-tab="local" aria-pressed="true">Local CLI</button>
+        <button type="button" class="chip" data-composer-tab="cloud" aria-pressed="false">Cloud GitHub Actions</button>
+      </div>
+
+      <div id="composer-panel-local" class="composer-subpanel">
+        <pre id="composer-local-cmd" class="cmd-block mono"></pre>
+        <div class="modal-footer">
+          <button type="button" id="composer-copy-cmd" class="btn btn-primary">Copy Command</button>
+        </div>
+      </div>
+
+      <div id="composer-panel-cloud" class="composer-subpanel" hidden>
+        <label class="option-field">
+          <span>GitHub Fine-Grained PAT (<code class="mono">Actions: write</code> scoped to this repo)</span>
+          <div class="token-row">
+            <input type="password" id="composer-token" class="search-input token-input" placeholder="github_pat_... (or classic repo + workflow)" autocomplete="off">
+            <button type="button" id="composer-clear-token" class="btn">Clear token</button>
+          </div>
+          <span class="hint-text">Stored in <code class="mono">sessionStorage</code> only — never in URLs, logs, or <code class="mono">localStorage</code>, and never leaves the browser except to <code class="mono">api.github.com</code>.</span>
+        </label>
+        <div id="composer-cloud-status" class="cloud-status" hidden></div>
+        <div class="modal-footer cloud-actions">
+          <a id="composer-fallback-link" class="btn btn-tonal" href="https://github.com/thunderkex/revancex/actions/workflows/custom-build.yml" target="_blank" rel="noopener">Run workflow on GitHub (no token)</a>
+          <button type="button" id="composer-dispatch-btn" class="btn btn-primary">Dispatch Custom Build</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Build Tracker Modal -->
+  <div id="tracker-modal" class="modal-backdrop drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="tracker-title" hidden>
+    <div class="modal-panel drawer-panel" tabindex="-1">
+      <div class="modal-header">
+        <div>
+          <h2 id="tracker-title">Custom Build Tracker</h2>
+          <p id="tracker-poll-meta" class="hint-text">Opens on demand — zero API calls while closed.</p>
+        </div>
+        <div class="header-actions">
+          <button type="button" id="tracker-refresh-btn" class="btn btn-tonal">Refresh</button>
+          <button type="button" id="tracker-close-btn" class="icon-close" aria-label="Close tracker">&times;</button>
+        </div>
+      </div>
+
+      <section class="tracker-section">
+        <h3>Recent Custom Workflow Runs</h3>
+        <div id="tracker-runs-list" class="tracker-list">
+          <p class="hint-text">Loading runs…</p>
+        </div>
+      </section>
+
+      <section class="tracker-section">
+        <h3>Custom Bundle Modules</h3>
+        <div id="tracker-custom-bundles" class="tracker-list">
+          <p class="hint-text">Loading custom bundle releases…</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

@@ -1,926 +1,2159 @@
-[
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/AdGuard-4.14.68.apk",
-    "enabled": true,
-    "id": "adguard",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "AdGuard",
-    "package": "com.adguard.android",
-    "patch_source": "rushiranpise",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "AdGuard-4.14.68.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/AdGuard-4.14.68.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
+{
+  "schema_version": "2.0.0",
+  "build_health": {
+    "release_tag": "auto-v1.1.0-2026.11.10-b158",
+    "cli_version": "1.1.0",
+    "built_at": "2026-11-10T02:00:07Z",
+    "pass_rate": null,
+    "active_sources": [
+      "BholeyKaBhakt/android-patches-xtra",
+      "BlazeFTL/FTL-Patches",
+      "Fripe070/PixivPatches",
+      "RookieEnough/De-Vanced",
+      "SysAdminDoc/HushFeed",
+      "SysAdminDoc/HushThreads",
+      "SysAdminDoc/Hushfacebook",
+      "anddea/revanced-patches",
+      "bearinmindcat/morphe-patches",
+      "browzomje/browzomje-patches",
+      "byehi98/okish-morphe-patches",
+      "crimera/piko-ig-lite",
+      "crimera/piko-newx",
+      "hoo-dles/morphe-patches",
+      "hxreborn/morphe-patches",
+      "jasonwu1994/Gboard-patches",
+      "jkennethcarino/adobo",
+      "kveld9/kveld-extra-morphe-patches",
+      "legendsciber/morphe-patches",
+      "rushiranpise/morphe-patches"
+    ]
   },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/CamScanner-7.24.5.2608200000.apk",
-    "enabled": true,
-    "id": "camscanner",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "CamScanner",
-    "package": "com.intsig.camscanner",
-    "patch_source": "rushiranpise",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "CamScanner-7.24.5.2608200000.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/CamScanner-7.24.5.2608200000.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk",
-    "enabled": true,
-    "id": "capcut",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "CapCut",
-    "package": "com.lemon.lvoverseas",
-    "patch_source": "kveld9",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "CapCut-19.9.0.apk",
-        "tag": "auto-v1.0.5-2026.10.27-b143",
-        "updated_at": "2026-10-27 02:05:34 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.27-b143",
-    "updated_at": "2026-10-27 02:05:34 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Cloudflare-WARP-6.38.9.apk",
-    "enabled": true,
-    "id": "cloudflare_warp",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Cloudflare WARP",
-    "package": "com.cloudflare.onedotonedotonedotone",
-    "patch_source": "rushiranpise",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Cloudflare-WARP-6.38.9.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Cloudflare-WARP-6.38.9.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk",
-    "enabled": true,
-    "id": "drama_box",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "DramaBox",
-    "package": "com.storymatrix.drama",
-    "patch_source": "rushiranpise",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "drama_box-patched.apk",
-        "tag": "auto-v1.0.5-2026.09.28-b84",
-        "updated_at": "2026-09-28 08:40:43 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.09.28-b84",
-    "updated_at": "2026-09-28 08:40:43 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk",
-    "enabled": true,
-    "id": "duolingo",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Duolingo",
-    "package": "com.duolingo",
-    "patch_source": "hoodles",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "duolingo-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.19-b130",
-        "updated_at": "2026-10-19 09:51:05 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.19-b130",
-    "updated_at": "2026-10-19 09:51:05 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Facebook-585.0.0.47.54.apk",
-    "enabled": true,
-    "id": "facebook",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Facebook",
-    "package": "com.facebook.katana",
-    "patch_source": "hushfacebook",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Facebook-585.0.0.47.54.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Facebook-585.0.0.47.54.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Flightradar24-11.12.0.apk",
-    "enabled": true,
-    "id": "flightradar24",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Flightradar24",
-    "package": "com.flightradar24free",
-    "patch_source": "rushiranpise",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Flightradar24-11.12.0.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Flightradar24-11.12.0.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk",
-    "enabled": true,
-    "id": "gboard",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Gboard",
-    "package": "com.google.android.inputmethod.latin",
-    "patch_source": "jasonwu",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Gboard-18.5.4.993608717-release-arm64-v8a.apk",
-        "tag": "auto-v1.0.5-2026.10.27-b143",
-        "updated_at": "2026-10-27 02:05:34 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.27-b143",
-    "updated_at": "2026-10-27 02:05:34 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk",
-    "enabled": true,
-    "id": "google_maps",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Google Maps",
-    "package": "com.google.android.apps.maps",
-    "patch_source": "bearinmindcat",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "google_maps-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.12-b117",
-        "updated_at": "2026-10-12 02:29:17 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.12-b117",
-    "updated_at": "2026-10-12 02:29:17 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk",
-    "enabled": true,
-    "id": "hungry_shark_world",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Hungry Shark World",
-    "package": "com.ubisoft.hungrysharkworld",
-    "patch_source": "legendsciber",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "hungry_shark_world-patched.apk",
-        "tag": "auto-v1.0.5-2026.10.19-b130",
-        "updated_at": "2026-10-19 09:51:05 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.19-b130",
-    "updated_at": "2026-10-19 09:51:05 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk",
-    "enabled": true,
-    "id": "instagram",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Instagram",
-    "package": "com.instagram.android",
-    "patch_source": "piko_ig_lite",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Instagram-452.1.0.53.64.apk",
-        "tag": "auto-v1.0.5-2026.10.27-b143",
-        "updated_at": "2026-10-27 02:05:34 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.27-b143",
-    "updated_at": "2026-10-27 02:05:34 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Lightroom-11.5.31.apk",
-    "enabled": true,
-    "id": "lightroom",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Lightroom",
-    "package": "com.adobe.lrmobile",
-    "patch_source": "hoodles",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Lightroom-11.5.31.apk",
-        "tag": "auto-v1.0.5-2026.10.23-b139",
-        "updated_at": "2026-10-23 02:26:08 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Lightroom-11.5.31.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.23-b139",
-    "updated_at": "2026-10-23 02:26:08 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a",
-      "armeabi-v7a",
-      "x86",
-      "x86_64"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/microg.apk",
-    "enabled": true,
-    "id": "microg",
-    "mode": "install",
-    "module": {
-      "bundle": false,
-      "single": false
-    },
-    "name": "MicroG",
-    "package": "app.revanced.android.gms",
-    "patch_source": "none",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "microg.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/microg.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Moviebox-4.0.03.1020.03.apk",
-    "enabled": true,
-    "id": "moviebox",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Moviebox",
-    "package": "com.community.oneroom",
-    "patch_source": "hxreborn",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Moviebox-4.0.03.1020.03.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Moviebox-4.0.03.1020.03.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/MX-Player-3.4.1.apk",
-    "enabled": true,
-    "id": "mx_player",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "MX Player",
-    "package": "com.mxtech.videoplayer.ad",
-    "patch_source": "blazeftl",
-    "patches": [
-      "Spoof App Signature"
-    ],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "MX-Player-3.4.1.apk",
-        "tag": "auto-v1.0.5-2026.10.26-b142",
-        "updated_at": "2026-10-26 01:12:11 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/MX-Player-3.4.1.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.26-b142",
-    "updated_at": "2026-10-26 01:12:11 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Pinterest-14.23.0.apk",
-    "enabled": true,
-    "id": "pinterest",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Pinterest",
-    "package": "com.pinterest",
-    "patch_source": "browzomje",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Pinterest-14.23.0.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Pinterest-14.23.0.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Pixiv-6.196.0.apk",
-    "enabled": true,
-    "id": "pixiv",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Pixiv",
-    "package": "jp.pxv.android",
-    "patch_source": "frip",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Pixiv-6.196.0.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Pixiv-6.196.0.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Proton-VPN-5.21.9.0.apk",
-    "enabled": true,
-    "id": "proton_vpn",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Proton VPN",
-    "package": "ch.protonvpn.android",
-    "patch_source": "hxreborn",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Proton-VPN-5.21.9.0.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Proton-VPN-5.21.9.0.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Plants-vs-Zombies-3.18.0.apk",
-    "enabled": true,
-    "id": "pvz_free",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Plants vs Zombies",
-    "package": "com.ea.game.pvzfree_row",
-    "patch_source": "byehi98",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Plants-vs-Zombies-3.18.0.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Plants-vs-Zombies-3.18.0.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/Reddit-2026.42.0.apk",
-    "enabled": true,
-    "id": "reddit",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Reddit",
-    "package": "com.reddit.frontpage",
-    "patch_source": "jkennethcarino",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Reddit-2026.42.0.apk",
-        "tag": "auto-v1.0.5-2026.10.26-b142",
-        "updated_at": "2026-10-26 01:12:11 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/Reddit-2026.42.0.apk"
-      }
-    },
-    "tag": "auto-v1.0.5-2026.10.26-b142",
-    "updated_at": "2026-10-26 01:12:11 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Termius-7.11.2.apk",
-    "enabled": true,
-    "id": "serverauditor",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Termius",
-    "package": "com.server.auditor.ssh.client",
-    "patch_source": "rushiranpise",
-    "patches": [
-      "Server Auditor Premium"
-    ],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Termius-7.11.2.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Termius-7.11.2.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Stellarium-1.16.3.apk",
-    "enabled": true,
-    "id": "stellarium",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Stellarium",
-    "package": "com.noctuasoftware.stellarium_free",
-    "patch_source": "bholey",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Stellarium-1.16.3.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Stellarium-1.16.3.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Sticker-Maker-1.0.12-7.apk",
-    "enabled": true,
-    "id": "sticker_maker",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Sticker Maker",
-    "package": "com.marsvard.stickermakerforwhatsapp",
-    "patch_source": "rushiranpise",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Sticker-Maker-1.0.12-7.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Sticker-Maker-1.0.12-7.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "#strava-patched.apk",
-    "enabled": true,
-    "id": "strava",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Strava",
-    "package": "com.strava",
-    "patch_source": "de_revanced",
-    "patches": [
-      "Unlock Premium"
-    ],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "strava-patched.apk",
-        "tag": "auto-0",
-        "updated_at": "2026-10-22 02:06:32 UTC",
-        "url": "#strava-patched.apk"
-      }
-    },
-    "tag": "auto-0",
-    "updated_at": "2026-10-22 02:06:32 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Threads-454.0.0.54.79.apk",
-    "enabled": true,
-    "id": "threads",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "Threads",
-    "package": "com.instagram.barcelona",
-    "patch_source": "hushthreads",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "Threads-454.0.0.54.79.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/Threads-454.0.0.54.79.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/TikTok-47.7.2.apk",
-    "enabled": true,
-    "id": "tiktok",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "TikTok",
-    "package": "com.zhiliaoapp.musically",
-    "patch_source": "hushfeed",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "TikTok-47.7.2.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/TikTok-47.7.2.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/WPS-Office-18.24.apk",
-    "enabled": true,
-    "id": "wps_office",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "WPS Office",
-    "package": "cn.wps.moffice_eng",
-    "patch_source": "hoodles",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "WPS-Office-18.24.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/WPS-Office-18.24.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a"
-    ],
-    "dependencies": [],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/X-Piko-12.41.0-prod.01.apk",
-    "enabled": true,
-    "id": "x_piko",
-    "mode": "patch",
-    "module": {
-      "bundle": true,
-      "single": false
-    },
-    "name": "X Piko",
-    "package": "com.twitter.android",
-    "patch_source": "piko_newx",
-    "patches": [],
-    "releases": {
-      "module": null,
-      "stock": {
-        "filename": "X-Piko-12.41.0-prod.01.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/X-Piko-12.41.0-prod.01.apk"
-      }
-    },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a",
-      "x86_64"
-    ],
-    "dependencies": [
-      "microg"
-    ],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/YouTube-20.05.46.apk",
-    "enabled": true,
-    "id": "youtube",
-    "mode": "both",
-    "module": {
-      "bundle": true,
-      "single": true
-    },
-    "name": "YouTube",
-    "package": "com.google.android.youtube",
-    "patch_source": "anddea",
-    "patches": [],
-    "releases": {
+  "apps": [
+    {
+      "id": "adguard",
+      "name": "AdGuard",
+      "enabled": true,
+      "package": "com.adguard.android",
+      "patch_source": "rushiranpise",
+      "source_repo": "rushiranpise/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "tools"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
       "module": {
-        "filename": "YouTube-20.05.46-module.zip",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/YouTube-20.05.46-module.zip"
+        "single": false,
+        "bundle": true
       },
-      "stock": {
-        "filename": "YouTube-20.05.46.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/YouTube-20.05.46.apk"
+      "version": "4.14.68",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/AdGuard-4.14.68.apk",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "release_tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29T02:23:27Z",
+      "releases": {
+        "stock": {
+          "filename": "AdGuard-4.14.68.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/AdGuard-4.14.68.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/AdGuard-4.14.68.apk",
+          "tag": "auto-v1.0.5-2026.10.29-b145",
+          "release_tag": "auto-v1.0.5-2026.10.29-b145",
+          "updated_at": "2026-10-29T02:23:27Z",
+          "source_repo": "rushiranpise/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "4.14.68",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
       }
     },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  },
-  {
-    "architectures": [
-      "arm64-v8a",
-      "x86_64"
-    ],
-    "dependencies": [
-      "microg"
-    ],
-    "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/YouTube-Music-9.15.51.apk",
-    "enabled": true,
-    "id": "youtube_music",
-    "mode": "both",
-    "module": {
-      "bundle": true,
-      "single": true
-    },
-    "name": "YouTube Music",
-    "package": "com.google.android.apps.youtube.music",
-    "patch_source": "anddea",
-    "patches": [],
-    "releases": {
+    {
+      "id": "camscanner",
+      "name": "CamScanner",
+      "enabled": true,
+      "package": "com.intsig.camscanner",
+      "patch_source": "rushiranpise",
+      "source_repo": "rushiranpise/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "productivity"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
       "module": {
-        "filename": "YouTube-Music-9.15.51-module.zip",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/YouTube-Music-9.15.51-module.zip"
+        "single": false,
+        "bundle": true
       },
-      "stock": {
-        "filename": "YouTube-Music-9.15.51.apk",
-        "tag": "auto-v1.1.0-2026.11.10-b160",
-        "updated_at": "2026-11-10 03:00:59 UTC",
-        "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b160/YouTube-Music-9.15.51.apk"
+      "version": "7.24.5.2608200000",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/CamScanner-7.24.5.2608200000.apk",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "release_tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29T02:23:27Z",
+      "releases": {
+        "stock": {
+          "filename": "CamScanner-7.24.5.2608200000.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/CamScanner-7.24.5.2608200000.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/CamScanner-7.24.5.2608200000.apk",
+          "tag": "auto-v1.0.5-2026.10.29-b145",
+          "release_tag": "auto-v1.0.5-2026.10.29-b145",
+          "updated_at": "2026-10-29T02:23:27Z",
+          "source_repo": "rushiranpise/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "7.24.5.2608200000",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
       }
     },
-    "tag": "auto-v1.1.0-2026.11.10-b160",
-    "updated_at": "2026-11-10 03:00:59 UTC"
-  }
-]
+    {
+      "id": "capcut",
+      "name": "CapCut",
+      "enabled": true,
+      "package": "com.lemon.lvoverseas",
+      "patch_source": "kveld9",
+      "source_repo": "kveld9/kveld-extra-morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "19.9.0",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk",
+      "tag": "auto-v1.0.5-2026.10.27-b143",
+      "release_tag": "auto-v1.0.5-2026.10.27-b143",
+      "updated_at": "2026-10-27T02:05:34Z",
+      "releases": {
+        "stock": {
+          "filename": "CapCut-19.9.0.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk",
+          "tag": "auto-v1.0.5-2026.10.27-b143",
+          "release_tag": "auto-v1.0.5-2026.10.27-b143",
+          "updated_at": "2026-10-27T02:05:34Z",
+          "source_repo": "kveld9/kveld-extra-morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "19.9.0",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "cloudflare_warp",
+      "name": "Cloudflare WARP",
+      "enabled": true,
+      "package": "com.cloudflare.onedotonedotonedotone",
+      "patch_source": "rushiranpise",
+      "source_repo": "rushiranpise/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "6.38.9",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Cloudflare-WARP-6.38.9.apk",
+      "tag": "auto-v1.0.5-2026.10.23-b139",
+      "release_tag": "auto-v1.0.5-2026.10.23-b139",
+      "updated_at": "2026-10-23T02:26:08Z",
+      "releases": {
+        "stock": {
+          "filename": "Cloudflare-WARP-6.38.9.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Cloudflare-WARP-6.38.9.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Cloudflare-WARP-6.38.9.apk",
+          "tag": "auto-v1.0.5-2026.10.23-b139",
+          "release_tag": "auto-v1.0.5-2026.10.23-b139",
+          "updated_at": "2026-10-23T02:26:08Z",
+          "source_repo": "rushiranpise/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "6.38.9",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "drama_box",
+      "name": "DramaBox",
+      "enabled": true,
+      "package": "com.storymatrix.drama",
+      "patch_source": "rushiranpise",
+      "source_repo": "rushiranpise/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk",
+      "tag": "auto-v1.0.5-2026.09.28-b84",
+      "release_tag": "auto-v1.0.5-2026.09.28-b84",
+      "updated_at": "2026-09-28T08:40:43Z",
+      "releases": {
+        "stock": {
+          "filename": "drama_box-patched.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk",
+          "tag": "auto-v1.0.5-2026.09.28-b84",
+          "release_tag": "auto-v1.0.5-2026.09.28-b84",
+          "updated_at": "2026-09-28T08:40:43Z",
+          "source_repo": "rushiranpise/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "duolingo",
+      "name": "Duolingo",
+      "enabled": true,
+      "package": "com.duolingo",
+      "patch_source": "hoodles",
+      "source_repo": "hoo-dles/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "release_tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19T09:51:05Z",
+      "releases": {
+        "stock": {
+          "filename": "duolingo-patched.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk",
+          "tag": "auto-v1.0.5-2026.10.19-b130",
+          "release_tag": "auto-v1.0.5-2026.10.19-b130",
+          "updated_at": "2026-10-19T09:51:05Z",
+          "source_repo": "hoo-dles/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "facebook",
+      "name": "Facebook",
+      "enabled": true,
+      "package": "com.facebook.katana",
+      "patch_source": "hushfacebook",
+      "source_repo": "SysAdminDoc/Hushfacebook",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "social"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "585.0.0.47.54",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Facebook-585.0.0.47.54.apk",
+      "tag": "auto-v1.0.5-2026.11.06-b153",
+      "release_tag": "auto-v1.0.5-2026.11.06-b153",
+      "updated_at": "2026-11-06T03:29:53Z",
+      "releases": {
+        "stock": {
+          "filename": "Facebook-585.0.0.47.54.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Facebook-585.0.0.47.54.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Facebook-585.0.0.47.54.apk",
+          "tag": "auto-v1.0.5-2026.11.06-b153",
+          "release_tag": "auto-v1.0.5-2026.11.06-b153",
+          "updated_at": "2026-11-06T03:29:53Z",
+          "source_repo": "SysAdminDoc/Hushfacebook",
+          "asset_pattern": "*.mpp",
+          "version": "585.0.0.47.54",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "flightradar24",
+      "name": "Flightradar24",
+      "enabled": true,
+      "package": "com.flightradar24free",
+      "patch_source": "rushiranpise",
+      "source_repo": "rushiranpise/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "11.12.0",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Flightradar24-11.12.0.apk",
+      "tag": "auto-v1.0.5-2026.10.23-b139",
+      "release_tag": "auto-v1.0.5-2026.10.23-b139",
+      "updated_at": "2026-10-23T02:26:08Z",
+      "releases": {
+        "stock": {
+          "filename": "Flightradar24-11.12.0.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Flightradar24-11.12.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Flightradar24-11.12.0.apk",
+          "tag": "auto-v1.0.5-2026.10.23-b139",
+          "release_tag": "auto-v1.0.5-2026.10.23-b139",
+          "updated_at": "2026-10-23T02:26:08Z",
+          "source_repo": "rushiranpise/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "11.12.0",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "gboard",
+      "name": "Gboard",
+      "enabled": true,
+      "package": "com.google.android.inputmethod.latin",
+      "patch_source": "jasonwu",
+      "source_repo": "jasonwu1994/Gboard-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "18.5.4.993608717",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk",
+      "tag": "auto-v1.0.5-2026.10.27-b143",
+      "release_tag": "auto-v1.0.5-2026.10.27-b143",
+      "updated_at": "2026-10-27T02:05:34Z",
+      "releases": {
+        "stock": {
+          "filename": "Gboard-18.5.4.993608717-release-arm64-v8a.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk",
+          "tag": "auto-v1.0.5-2026.10.27-b143",
+          "release_tag": "auto-v1.0.5-2026.10.27-b143",
+          "updated_at": "2026-10-27T02:05:34Z",
+          "source_repo": "jasonwu1994/Gboard-patches",
+          "asset_pattern": "*.mpp",
+          "version": "18.5.4.993608717",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "google_maps",
+      "name": "Google Maps",
+      "enabled": true,
+      "package": "com.google.android.apps.maps",
+      "patch_source": "bearinmindcat",
+      "source_repo": "bearinmindcat/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.12-b117",
+      "release_tag": "auto-v1.0.5-2026.10.12-b117",
+      "updated_at": "2026-10-12T02:29:17Z",
+      "releases": {
+        "stock": {
+          "filename": "google_maps-patched.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk",
+          "tag": "auto-v1.0.5-2026.10.12-b117",
+          "release_tag": "auto-v1.0.5-2026.10.12-b117",
+          "updated_at": "2026-10-12T02:29:17Z",
+          "source_repo": "bearinmindcat/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "hungry_shark_world",
+      "name": "Hungry Shark World",
+      "enabled": true,
+      "package": "com.ubisoft.hungrysharkworld",
+      "patch_source": "legendsciber",
+      "source_repo": "legendsciber/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "release_tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19T09:51:05Z",
+      "releases": {
+        "stock": {
+          "filename": "hungry_shark_world-patched.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk",
+          "tag": "auto-v1.0.5-2026.10.19-b130",
+          "release_tag": "auto-v1.0.5-2026.10.19-b130",
+          "updated_at": "2026-10-19T09:51:05Z",
+          "source_repo": "legendsciber/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "instagram",
+      "name": "Instagram",
+      "enabled": true,
+      "package": "com.instagram.android",
+      "patch_source": "piko_ig_lite",
+      "source_repo": "crimera/piko-ig-lite",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "social"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "452.1.0.53.64",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk",
+      "tag": "auto-v1.0.5-2026.10.27-b143",
+      "release_tag": "auto-v1.0.5-2026.10.27-b143",
+      "updated_at": "2026-10-27T02:05:34Z",
+      "releases": {
+        "stock": {
+          "filename": "Instagram-452.1.0.53.64.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk",
+          "tag": "auto-v1.0.5-2026.10.27-b143",
+          "release_tag": "auto-v1.0.5-2026.10.27-b143",
+          "updated_at": "2026-10-27T02:05:34Z",
+          "source_repo": "crimera/piko-ig-lite",
+          "asset_pattern": "*.mpp",
+          "version": "452.1.0.53.64",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "lightroom",
+      "name": "Lightroom",
+      "enabled": true,
+      "package": "com.adobe.lrmobile",
+      "patch_source": "hoodles",
+      "source_repo": "hoo-dles/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "productivity"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "11.5.31",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Lightroom-11.5.31.apk",
+      "tag": "auto-v1.0.5-2026.10.23-b139",
+      "release_tag": "auto-v1.0.5-2026.10.23-b139",
+      "updated_at": "2026-10-23T02:26:08Z",
+      "releases": {
+        "stock": {
+          "filename": "Lightroom-11.5.31.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Lightroom-11.5.31.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Lightroom-11.5.31.apk",
+          "tag": "auto-v1.0.5-2026.10.23-b139",
+          "release_tag": "auto-v1.0.5-2026.10.23-b139",
+          "updated_at": "2026-10-23T02:26:08Z",
+          "source_repo": "hoo-dles/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "11.5.31",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "microg",
+      "name": "MicroG",
+      "enabled": true,
+      "package": "app.revanced.android.gms",
+      "patch_source": "none",
+      "source_repo": "MorpheApp/MicroG-RE",
+      "asset_pattern": "*.apk",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86",
+        "x86_64"
+      ],
+      "supported_archs": [
+        "arm64-v8a",
+        "armeabi-v7a",
+        "x86_64"
+      ],
+      "mode": "install",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": false
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/microg.apk",
+      "tag": "auto-v1.0.5-2026.11.07-b154",
+      "release_tag": "auto-v1.0.5-2026.11.07-b154",
+      "updated_at": "2026-11-07T02:46:02Z",
+      "releases": {
+        "stock": {
+          "filename": "microg.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/microg.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/microg.apk",
+          "tag": "auto-v1.0.5-2026.11.07-b154",
+          "release_tag": "auto-v1.0.5-2026.11.07-b154",
+          "updated_at": "2026-11-07T02:46:02Z",
+          "source_repo": "MorpheApp/MicroG-RE",
+          "asset_pattern": "*.apk",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a",
+            "armeabi-v7a",
+            "x86_64"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "moviebox",
+      "name": "Moviebox",
+      "enabled": true,
+      "package": "com.community.oneroom",
+      "patch_source": "hxreborn",
+      "source_repo": "hxreborn/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": null,
+      "tag": null,
+      "release_tag": null,
+      "updated_at": null,
+      "releases": {
+        "stock": null,
+        "module": null
+      }
+    },
+    {
+      "id": "mx_player",
+      "name": "MX Player",
+      "enabled": true,
+      "package": "com.mxtech.videoplayer.ad",
+      "patch_source": "blazeftl",
+      "source_repo": "BlazeFTL/FTL-Patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [
+        "Spoof App Signature"
+      ],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "3.4.1",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/MX-Player-3.4.1.apk",
+      "tag": "auto-v1.0.5-2026.10.26-b142",
+      "release_tag": "auto-v1.0.5-2026.10.26-b142",
+      "updated_at": "2026-10-26T01:12:11Z",
+      "releases": {
+        "stock": {
+          "filename": "MX-Player-3.4.1.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/MX-Player-3.4.1.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/MX-Player-3.4.1.apk",
+          "tag": "auto-v1.0.5-2026.10.26-b142",
+          "release_tag": "auto-v1.0.5-2026.10.26-b142",
+          "updated_at": "2026-10-26T01:12:11Z",
+          "source_repo": "BlazeFTL/FTL-Patches",
+          "asset_pattern": "*.mpp",
+          "version": "3.4.1",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "pinterest",
+      "name": "Pinterest",
+      "enabled": true,
+      "package": "com.pinterest",
+      "patch_source": "browzomje",
+      "source_repo": "browzomje/browzomje-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "14.23.0",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Pinterest-14.23.0.apk",
+      "tag": "auto-v1.0.5-2026.11.06-b153",
+      "release_tag": "auto-v1.0.5-2026.11.06-b153",
+      "updated_at": "2026-11-06T03:29:53Z",
+      "releases": {
+        "stock": {
+          "filename": "Pinterest-14.23.0.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Pinterest-14.23.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Pinterest-14.23.0.apk",
+          "tag": "auto-v1.0.5-2026.11.06-b153",
+          "release_tag": "auto-v1.0.5-2026.11.06-b153",
+          "updated_at": "2026-11-06T03:29:53Z",
+          "source_repo": "browzomje/browzomje-patches",
+          "asset_pattern": "*.mpp",
+          "version": "14.23.0",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "pixiv",
+      "name": "Pixiv",
+      "enabled": true,
+      "package": "jp.pxv.android",
+      "patch_source": "frip",
+      "source_repo": "Fripe070/PixivPatches",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "social"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/pixiv-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "release_tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19T09:51:05Z",
+      "releases": {
+        "stock": {
+          "filename": "pixiv-patched.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/pixiv-patched.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/pixiv-patched.apk",
+          "tag": "auto-v1.0.5-2026.10.19-b130",
+          "release_tag": "auto-v1.0.5-2026.10.19-b130",
+          "updated_at": "2026-10-19T09:51:05Z",
+          "source_repo": "Fripe070/PixivPatches",
+          "asset_pattern": "*.mpp",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "proton_vpn",
+      "name": "Proton VPN",
+      "enabled": true,
+      "package": "ch.protonvpn.android",
+      "patch_source": "hxreborn",
+      "source_repo": "hxreborn/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "tools"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "5.21.9.0",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Proton-VPN-5.21.9.0.apk",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "release_tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10T02:00:07Z",
+      "releases": {
+        "stock": {
+          "filename": "Proton-VPN-5.21.9.0.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Proton-VPN-5.21.9.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Proton-VPN-5.21.9.0.apk",
+          "tag": "auto-v1.1.0-2026.11.10-b158",
+          "release_tag": "auto-v1.1.0-2026.11.10-b158",
+          "updated_at": "2026-11-10T02:00:07Z",
+          "source_repo": "hxreborn/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "5.21.9.0",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "pvz_free",
+      "name": "Plants vs Zombies",
+      "enabled": true,
+      "package": "com.ea.game.pvzfree_row",
+      "patch_source": "byehi98",
+      "source_repo": "byehi98/okish-morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "3.18.0",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Plants-vs-Zombies-3.18.0.apk",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "release_tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10T02:00:07Z",
+      "releases": {
+        "stock": {
+          "filename": "Plants-vs-Zombies-3.18.0.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Plants-vs-Zombies-3.18.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Plants-vs-Zombies-3.18.0.apk",
+          "tag": "auto-v1.1.0-2026.11.10-b158",
+          "release_tag": "auto-v1.1.0-2026.11.10-b158",
+          "updated_at": "2026-11-10T02:00:07Z",
+          "source_repo": "byehi98/okish-morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "3.18.0",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "reddit",
+      "name": "Reddit",
+      "enabled": true,
+      "package": "com.reddit.frontpage",
+      "patch_source": "jkennethcarino",
+      "source_repo": "jkennethcarino/adobo",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "core",
+        "social"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "2026.42.0",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/Reddit-2026.42.0.apk",
+      "tag": "auto-v1.0.5-2026.10.26-b142",
+      "release_tag": "auto-v1.0.5-2026.10.26-b142",
+      "updated_at": "2026-10-26T01:12:11Z",
+      "releases": {
+        "stock": {
+          "filename": "Reddit-2026.42.0.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/Reddit-2026.42.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/Reddit-2026.42.0.apk",
+          "tag": "auto-v1.0.5-2026.10.26-b142",
+          "release_tag": "auto-v1.0.5-2026.10.26-b142",
+          "updated_at": "2026-10-26T01:12:11Z",
+          "source_repo": "jkennethcarino/adobo",
+          "asset_pattern": "*.mpp",
+          "version": "2026.42.0",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "serverauditor",
+      "name": "Termius",
+      "enabled": true,
+      "package": "com.server.auditor.ssh.client",
+      "patch_source": "rushiranpise",
+      "source_repo": "rushiranpise/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [
+        "Server Auditor Premium"
+      ],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "7.11.2",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Termius-7.11.2.apk",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "release_tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29T02:23:27Z",
+      "releases": {
+        "stock": {
+          "filename": "Termius-7.11.2.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Termius-7.11.2.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Termius-7.11.2.apk",
+          "tag": "auto-v1.0.5-2026.10.29-b145",
+          "release_tag": "auto-v1.0.5-2026.10.29-b145",
+          "updated_at": "2026-10-29T02:23:27Z",
+          "source_repo": "rushiranpise/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "7.11.2",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "stellarium",
+      "name": "Stellarium",
+      "enabled": true,
+      "package": "com.noctuasoftware.stellarium_free",
+      "patch_source": "bholey",
+      "source_repo": "BholeyKaBhakt/android-patches-xtra",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "1.16.3",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Stellarium-1.16.3.apk",
+      "tag": "auto-v1.0.5-2026.10.23-b139",
+      "release_tag": "auto-v1.0.5-2026.10.23-b139",
+      "updated_at": "2026-10-23T02:26:08Z",
+      "releases": {
+        "stock": {
+          "filename": "Stellarium-1.16.3.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Stellarium-1.16.3.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Stellarium-1.16.3.apk",
+          "tag": "auto-v1.0.5-2026.10.23-b139",
+          "release_tag": "auto-v1.0.5-2026.10.23-b139",
+          "updated_at": "2026-10-23T02:26:08Z",
+          "source_repo": "BholeyKaBhakt/android-patches-xtra",
+          "asset_pattern": "*.mpp",
+          "version": "1.16.3",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "sticker_maker",
+      "name": "Sticker Maker",
+      "enabled": true,
+      "package": "com.marsvard.stickermakerforwhatsapp",
+      "patch_source": "rushiranpise",
+      "source_repo": "rushiranpise/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "1.0.12",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Sticker-Maker-1.0.12-7.apk",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "release_tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29T02:23:27Z",
+      "releases": {
+        "stock": {
+          "filename": "Sticker-Maker-1.0.12-7.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Sticker-Maker-1.0.12-7.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Sticker-Maker-1.0.12-7.apk",
+          "tag": "auto-v1.0.5-2026.10.29-b145",
+          "release_tag": "auto-v1.0.5-2026.10.29-b145",
+          "updated_at": "2026-10-29T02:23:27Z",
+          "source_repo": "rushiranpise/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": "1.0.12",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "strava",
+      "name": "Strava",
+      "enabled": true,
+      "package": "com.strava",
+      "patch_source": "de_revanced",
+      "source_repo": "RookieEnough/De-Vanced",
+      "asset_pattern": "*.mpp",
+      "categories": [],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [
+        "Unlock Premium"
+      ],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "#strava-patched.apk",
+      "tag": "auto-0",
+      "release_tag": "auto-0",
+      "updated_at": "2026-10-22T02:06:32Z",
+      "releases": {
+        "stock": {
+          "filename": "strava-patched.apk",
+          "url": "#strava-patched.apk",
+          "download_url": "#strava-patched.apk",
+          "tag": "auto-0",
+          "release_tag": "auto-0",
+          "updated_at": "2026-10-22T02:06:32Z",
+          "source_repo": "RookieEnough/De-Vanced",
+          "asset_pattern": "*.mpp",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "threads",
+      "name": "Threads",
+      "enabled": true,
+      "package": "com.instagram.barcelona",
+      "patch_source": "hushthreads",
+      "source_repo": "SysAdminDoc/HushThreads",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "social"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "454.0.0.54.79",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Threads-454.0.0.54.79.apk",
+      "tag": "auto-v1.0.5-2026.11.06-b153",
+      "release_tag": "auto-v1.0.5-2026.11.06-b153",
+      "updated_at": "2026-11-06T03:29:53Z",
+      "releases": {
+        "stock": {
+          "filename": "Threads-454.0.0.54.79.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Threads-454.0.0.54.79.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Threads-454.0.0.54.79.apk",
+          "tag": "auto-v1.0.5-2026.11.06-b153",
+          "release_tag": "auto-v1.0.5-2026.11.06-b153",
+          "updated_at": "2026-11-06T03:29:53Z",
+          "source_repo": "SysAdminDoc/HushThreads",
+          "asset_pattern": "*.mpp",
+          "version": "454.0.0.54.79",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "tiktok",
+      "name": "TikTok",
+      "enabled": true,
+      "package": "com.zhiliaoapp.musically",
+      "patch_source": "hushfeed",
+      "source_repo": "SysAdminDoc/HushFeed",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "social"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "47.7.2",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/TikTok-47.7.2.apk",
+      "tag": "auto-v1.0.5-2026.11.06-b153",
+      "release_tag": "auto-v1.0.5-2026.11.06-b153",
+      "updated_at": "2026-11-06T03:29:53Z",
+      "releases": {
+        "stock": {
+          "filename": "TikTok-47.7.2.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/TikTok-47.7.2.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/TikTok-47.7.2.apk",
+          "tag": "auto-v1.0.5-2026.11.06-b153",
+          "release_tag": "auto-v1.0.5-2026.11.06-b153",
+          "updated_at": "2026-11-06T03:29:53Z",
+          "source_repo": "SysAdminDoc/HushFeed",
+          "asset_pattern": "*.mpp",
+          "version": "47.7.2",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "wps_office",
+      "name": "WPS Office",
+      "enabled": true,
+      "package": "cn.wps.moffice_eng",
+      "patch_source": "hoodles",
+      "source_repo": "hoo-dles/morphe-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "productivity"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": null,
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/wps_office-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "release_tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19T09:51:05Z",
+      "releases": {
+        "stock": {
+          "filename": "wps_office-patched.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/wps_office-patched.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/wps_office-patched.apk",
+          "tag": "auto-v1.0.5-2026.10.19-b130",
+          "release_tag": "auto-v1.0.5-2026.10.19-b130",
+          "updated_at": "2026-10-19T09:51:05Z",
+          "source_repo": "hoo-dles/morphe-patches",
+          "asset_pattern": "*.mpp",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "x_piko",
+      "name": "X Piko",
+      "enabled": true,
+      "package": "com.twitter.android",
+      "patch_source": "piko_newx",
+      "source_repo": "crimera/piko-newx",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "core",
+        "social"
+      ],
+      "architectures": [
+        "arm64-v8a"
+      ],
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "mode": "patch",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [],
+      "module": {
+        "single": false,
+        "bundle": true
+      },
+      "version": "12.41.0-prod.01",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/X-Piko-12.41.0-prod.01.apk",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "release_tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10T02:00:07Z",
+      "releases": {
+        "stock": {
+          "filename": "X-Piko-12.41.0-prod.01.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/X-Piko-12.41.0-prod.01.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/X-Piko-12.41.0-prod.01.apk",
+          "tag": "auto-v1.1.0-2026.11.10-b158",
+          "release_tag": "auto-v1.1.0-2026.11.10-b158",
+          "updated_at": "2026-11-10T02:00:07Z",
+          "source_repo": "crimera/piko-newx",
+          "asset_pattern": "*.mpp",
+          "version": "12.41.0-prod.01",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": null
+      }
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube",
+      "enabled": true,
+      "package": "com.google.android.youtube",
+      "patch_source": "anddea",
+      "source_repo": "anddea/revanced-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "core",
+        "multimedia"
+      ],
+      "architectures": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "supported_archs": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "mode": "both",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [
+        "microg"
+      ],
+      "module": {
+        "single": true,
+        "bundle": true
+      },
+      "version": "20.05.46",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46.apk",
+      "tag": "auto-v1.0.5-2026.11.07-b154",
+      "release_tag": "auto-v1.0.5-2026.11.07-b154",
+      "updated_at": "2026-11-07T02:46:02Z",
+      "releases": {
+        "stock": {
+          "filename": "YouTube-20.05.46.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46.apk",
+          "tag": "auto-v1.0.5-2026.11.07-b154",
+          "release_tag": "auto-v1.0.5-2026.11.07-b154",
+          "updated_at": "2026-11-07T02:46:02Z",
+          "source_repo": "anddea/revanced-patches",
+          "asset_pattern": "*.mpp",
+          "version": "20.05.46",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a",
+            "x86_64"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": {
+          "filename": "YouTube-20.05.46-module.zip",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46-module.zip",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46-module.zip",
+          "tag": "auto-v1.0.5-2026.11.07-b154",
+          "release_tag": "auto-v1.0.5-2026.11.07-b154",
+          "updated_at": "2026-11-07T02:46:02Z",
+          "source_repo": "anddea/revanced-patches",
+          "asset_pattern": "*.mpp",
+          "version": "20.05.46",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a",
+            "x86_64"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown",
+          "module_id": "revancex-youtube"
+        }
+      }
+    },
+    {
+      "id": "youtube_music",
+      "name": "YouTube Music",
+      "enabled": true,
+      "package": "com.google.android.apps.youtube.music",
+      "patch_source": "anddea",
+      "source_repo": "anddea/revanced-patches",
+      "asset_pattern": "*.mpp",
+      "categories": [
+        "core",
+        "multimedia"
+      ],
+      "architectures": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "supported_archs": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "mode": "both",
+      "optimization_mode": "full",
+      "patches": [],
+      "dependencies": [
+        "microg"
+      ],
+      "module": {
+        "single": true,
+        "bundle": true
+      },
+      "version": "9.15.51",
+      "sha256": null,
+      "size_bytes": null,
+      "validation_status": "unknown",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-Music-9.15.51.apk",
+      "tag": "auto-v1.0.5-2026.11.07-b154",
+      "release_tag": "auto-v1.0.5-2026.11.07-b154",
+      "updated_at": "2026-11-07T02:46:02Z",
+      "releases": {
+        "stock": {
+          "filename": "YouTube-Music-9.15.51.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-Music-9.15.51.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-Music-9.15.51.apk",
+          "tag": "auto-v1.0.5-2026.11.07-b154",
+          "release_tag": "auto-v1.0.5-2026.11.07-b154",
+          "updated_at": "2026-11-07T02:46:02Z",
+          "source_repo": "anddea/revanced-patches",
+          "asset_pattern": "*.mpp",
+          "version": "9.15.51",
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a",
+            "x86_64"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown"
+        },
+        "module": {
+          "filename": "revancex-module-youtube_music.zip",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-module-youtube_music.zip",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-module-youtube_music.zip",
+          "tag": "auto-v1.0.5-2026.10.19-b130",
+          "release_tag": "auto-v1.0.5-2026.10.19-b130",
+          "updated_at": "2026-10-19T09:51:05Z",
+          "source_repo": "anddea/revanced-patches",
+          "asset_pattern": "*.mpp",
+          "version": null,
+          "sha256": null,
+          "size_bytes": null,
+          "supported_archs": [
+            "arm64-v8a",
+            "x86_64"
+          ],
+          "optimization_mode": "full",
+          "validation_status": "unknown",
+          "module_id": "revancex-youtube_music"
+        }
+      }
+    }
+  ],
+  "bundles": [
+    {
+      "id": "all",
+      "module_id": "revancex-all",
+      "name": "ReVanceX All Bundle",
+      "category": "all",
+      "filename": "revancex-bundle-all.zip",
+      "source_repo": null,
+      "asset_pattern": null,
+      "sources": [
+        "Fripe070/PixivPatches",
+        "RookieEnough/De-Vanced",
+        "SysAdminDoc/HushFeed",
+        "SysAdminDoc/HushThreads",
+        "SysAdminDoc/Hushfacebook",
+        "anddea/revanced-patches",
+        "crimera/piko-ig-lite",
+        "crimera/piko-newx",
+        "hoo-dles/morphe-patches",
+        "hxreborn/morphe-patches",
+        "jasonwu1994/Gboard-patches",
+        "jkennethcarino/adobo",
+        "legendsciber/morphe-patches",
+        "rushiranpise/morphe-patches"
+      ],
+      "sha256": null,
+      "size_bytes": null,
+      "release_tag": "auto-v1.1.0-2026.11.10-b158",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10T02:00:07Z",
+      "supported_archs": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "optimization_mode": "full",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-all.zip",
+      "validation_status": "unknown",
+      "payload": [
+        {
+          "app": "adguard",
+          "package": "com.adguard.android",
+          "version": "4.14.68",
+          "path": "apks/adguard.apk"
+        },
+        {
+          "app": "camscanner",
+          "package": "com.intsig.camscanner",
+          "version": "7.24.5.2608200000",
+          "path": "apks/camscanner.apk"
+        },
+        {
+          "app": "duolingo",
+          "package": "com.duolingo",
+          "version": null,
+          "path": "apks/duolingo.apk"
+        },
+        {
+          "app": "facebook",
+          "package": "com.facebook.katana",
+          "version": "585.0.0.47.54",
+          "path": "apks/facebook.apk"
+        },
+        {
+          "app": "flightradar24",
+          "package": "com.flightradar24free",
+          "version": "11.12.0",
+          "path": "apks/flightradar24.apk"
+        },
+        {
+          "app": "gboard",
+          "package": "com.google.android.inputmethod.latin",
+          "version": "18.5.4.993608717",
+          "path": "apks/gboard.apk"
+        },
+        {
+          "app": "hungry_shark_world",
+          "package": "com.ubisoft.hungrysharkworld",
+          "version": null,
+          "path": "apks/hungry_shark_world.apk"
+        },
+        {
+          "app": "instagram",
+          "package": "com.instagram.android",
+          "version": "452.1.0.53.64",
+          "path": "apks/instagram.apk"
+        },
+        {
+          "app": "lightroom",
+          "package": "com.adobe.lrmobile",
+          "version": "11.5.31",
+          "path": "apks/lightroom.apk"
+        },
+        {
+          "app": "moviebox",
+          "package": "com.community.oneroom",
+          "version": null,
+          "path": "apks/moviebox.apk"
+        },
+        {
+          "app": "pixiv",
+          "package": "jp.pxv.android",
+          "version": null,
+          "path": "apks/pixiv.apk"
+        },
+        {
+          "app": "proton_vpn",
+          "package": "ch.protonvpn.android",
+          "version": "5.21.9.0",
+          "path": "apks/proton_vpn.apk"
+        },
+        {
+          "app": "reddit",
+          "package": "com.reddit.frontpage",
+          "version": "2026.42.0",
+          "path": "apks/reddit.apk"
+        },
+        {
+          "app": "strava",
+          "package": "com.strava",
+          "version": null,
+          "path": "apks/strava.apk"
+        },
+        {
+          "app": "threads",
+          "package": "com.instagram.barcelona",
+          "version": "454.0.0.54.79",
+          "path": "apks/threads.apk"
+        },
+        {
+          "app": "tiktok",
+          "package": "com.zhiliaoapp.musically",
+          "version": "47.7.2",
+          "path": "apks/tiktok.apk"
+        },
+        {
+          "app": "wps_office",
+          "package": "cn.wps.moffice_eng",
+          "version": null,
+          "path": "apks/wps_office.apk"
+        },
+        {
+          "app": "x_piko",
+          "package": "com.twitter.android",
+          "version": "12.41.0-prod.01",
+          "path": "apks/x_piko.apk"
+        },
+        {
+          "app": "youtube",
+          "package": "com.google.android.youtube",
+          "version": "20.05.46",
+          "path": "apks/youtube.apk"
+        },
+        {
+          "app": "youtube_music",
+          "package": "com.google.android.apps.youtube.music",
+          "version": "9.15.51",
+          "path": "apks/youtube_music.apk"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "module_id": "revancex-core",
+      "name": "ReVanceX Core Bundle",
+      "category": "core",
+      "filename": "revancex-bundle-core.zip",
+      "source_repo": null,
+      "asset_pattern": null,
+      "sources": [
+        "anddea/revanced-patches",
+        "crimera/piko-newx",
+        "jkennethcarino/adobo"
+      ],
+      "sha256": null,
+      "size_bytes": null,
+      "release_tag": "auto-v1.1.0-2026.11.10-b158",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10T02:00:07Z",
+      "supported_archs": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "optimization_mode": "full",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-core.zip",
+      "validation_status": "unknown",
+      "payload": [
+        {
+          "app": "reddit",
+          "package": "com.reddit.frontpage",
+          "version": "2026.42.0",
+          "path": "apks/reddit.apk"
+        },
+        {
+          "app": "x_piko",
+          "package": "com.twitter.android",
+          "version": "12.41.0-prod.01",
+          "path": "apks/x_piko.apk"
+        },
+        {
+          "app": "youtube",
+          "package": "com.google.android.youtube",
+          "version": "20.05.46",
+          "path": "apks/youtube.apk"
+        },
+        {
+          "app": "youtube_music",
+          "package": "com.google.android.apps.youtube.music",
+          "version": "9.15.51",
+          "path": "apks/youtube_music.apk"
+        }
+      ]
+    },
+    {
+      "id": "multimedia",
+      "module_id": "revancex-multimedia",
+      "name": "ReVanceX Multimedia Bundle",
+      "category": "multimedia",
+      "filename": "revancex-bundle-multimedia.zip",
+      "source_repo": null,
+      "asset_pattern": null,
+      "sources": [
+        "anddea/revanced-patches"
+      ],
+      "sha256": null,
+      "size_bytes": null,
+      "release_tag": "auto-v1.0.5-2026.11.07-b154",
+      "tag": "auto-v1.0.5-2026.11.07-b154",
+      "updated_at": "2026-11-07T02:46:02Z",
+      "supported_archs": [
+        "arm64-v8a",
+        "x86_64"
+      ],
+      "optimization_mode": "full",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/revancex-bundle-multimedia.zip",
+      "validation_status": "unknown",
+      "payload": [
+        {
+          "app": "youtube",
+          "package": "com.google.android.youtube",
+          "version": "20.05.46",
+          "path": "apks/youtube.apk"
+        },
+        {
+          "app": "youtube_music",
+          "package": "com.google.android.apps.youtube.music",
+          "version": "9.15.51",
+          "path": "apks/youtube_music.apk"
+        }
+      ]
+    },
+    {
+      "id": "productivity",
+      "module_id": "revancex-productivity",
+      "name": "ReVanceX Productivity Bundle",
+      "category": "productivity",
+      "filename": "revancex-bundle-productivity.zip",
+      "source_repo": null,
+      "asset_pattern": null,
+      "sources": [
+        "hoo-dles/morphe-patches",
+        "rushiranpise/morphe-patches"
+      ],
+      "sha256": null,
+      "size_bytes": null,
+      "release_tag": "auto-v1.0.5-2026.10.29-b145",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29T02:23:27Z",
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "optimization_mode": "full",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/revancex-bundle-productivity.zip",
+      "validation_status": "unknown",
+      "payload": [
+        {
+          "app": "camscanner",
+          "package": "com.intsig.camscanner",
+          "version": "7.24.5.2608200000",
+          "path": "apks/camscanner.apk"
+        },
+        {
+          "app": "lightroom",
+          "package": "com.adobe.lrmobile",
+          "version": "11.5.31",
+          "path": "apks/lightroom.apk"
+        },
+        {
+          "app": "wps_office",
+          "package": "cn.wps.moffice_eng",
+          "version": null,
+          "path": "apks/wps_office.apk"
+        }
+      ]
+    },
+    {
+      "id": "social",
+      "module_id": "revancex-social",
+      "name": "ReVanceX Social Bundle",
+      "category": "social",
+      "filename": "revancex-bundle-social.zip",
+      "source_repo": null,
+      "asset_pattern": null,
+      "sources": [
+        "Fripe070/PixivPatches",
+        "SysAdminDoc/HushFeed",
+        "SysAdminDoc/HushThreads",
+        "SysAdminDoc/Hushfacebook",
+        "crimera/piko-ig-lite",
+        "crimera/piko-newx",
+        "jkennethcarino/adobo"
+      ],
+      "sha256": null,
+      "size_bytes": null,
+      "release_tag": "auto-v1.1.0-2026.11.10-b158",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10T02:00:07Z",
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "optimization_mode": "full",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-social.zip",
+      "validation_status": "unknown",
+      "payload": [
+        {
+          "app": "facebook",
+          "package": "com.facebook.katana",
+          "version": "585.0.0.47.54",
+          "path": "apks/facebook.apk"
+        },
+        {
+          "app": "instagram",
+          "package": "com.instagram.android",
+          "version": "452.1.0.53.64",
+          "path": "apks/instagram.apk"
+        },
+        {
+          "app": "pixiv",
+          "package": "jp.pxv.android",
+          "version": null,
+          "path": "apks/pixiv.apk"
+        },
+        {
+          "app": "reddit",
+          "package": "com.reddit.frontpage",
+          "version": "2026.42.0",
+          "path": "apks/reddit.apk"
+        },
+        {
+          "app": "threads",
+          "package": "com.instagram.barcelona",
+          "version": "454.0.0.54.79",
+          "path": "apks/threads.apk"
+        },
+        {
+          "app": "tiktok",
+          "package": "com.zhiliaoapp.musically",
+          "version": "47.7.2",
+          "path": "apks/tiktok.apk"
+        },
+        {
+          "app": "x_piko",
+          "package": "com.twitter.android",
+          "version": "12.41.0-prod.01",
+          "path": "apks/x_piko.apk"
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "module_id": "revancex-tools",
+      "name": "ReVanceX Tools Bundle",
+      "category": "tools",
+      "filename": "revancex-bundle-tools.zip",
+      "source_repo": null,
+      "asset_pattern": null,
+      "sources": [
+        "hxreborn/morphe-patches",
+        "rushiranpise/morphe-patches"
+      ],
+      "sha256": null,
+      "size_bytes": null,
+      "release_tag": "auto-v1.1.0-2026.11.10-b158",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10T02:00:07Z",
+      "supported_archs": [
+        "arm64-v8a"
+      ],
+      "optimization_mode": "full",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-tools.zip",
+      "validation_status": "unknown",
+      "payload": [
+        {
+          "app": "adguard",
+          "package": "com.adguard.android",
+          "version": "4.14.68",
+          "path": "apks/adguard.apk"
+        },
+        {
+          "app": "proton_vpn",
+          "package": "ch.protonvpn.android",
+          "version": "5.21.9.0",
+          "path": "apks/proton_vpn.apk"
+        }
+      ]
+    }
+  ],
+  "custom_bundles": []
+}

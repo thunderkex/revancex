@@ -8,6 +8,11 @@ on:
         required: false
         default: 'all'
         type: string
+      skip_fail_threshold:
+        description: 'Skip fail_threshold check on build report validation'
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       apps:
@@ -15,6 +20,11 @@ on:
         required: false
         default: 'all'
         type: string
+      skip_fail_threshold:
+        description: 'Skip fail_threshold check on build report validation'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -34,6 +44,7 @@ jobs:
       prerelease: false
       make_latest: true
       build_single_modules: true
+      skip_fail_threshold: ${{ inputs.skip_fail_threshold == true }}
     secrets: inherit
 
   pages:

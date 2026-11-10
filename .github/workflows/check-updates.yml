@@ -10,6 +10,11 @@ on:
         required: false
         default: false
         type: boolean
+      skip_fail_threshold:
+        description: 'Skip fail_threshold check on build report validation'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -98,4 +103,5 @@ jobs:
     uses: ./.github/workflows/auto-build.yml
     with:
       apps: ${{ needs.check.outputs.changed_apps }}
+      skip_fail_threshold: ${{ inputs.skip_fail_threshold == true }}
     secrets: inherit

@@ -58,6 +58,11 @@ on:
         required: false
         default: true
         type: boolean
+      skip_fail_threshold:
+        description: 'Skip fail_threshold check on build report validation'
+        required: false
+        default: false
+        type: boolean
     outputs:
       release_tag:
         description: 'Created release tag'
@@ -281,7 +286,11 @@ jobs:
         shell: bash
         run: |
           source scripts/ci-log.sh
-          step_run "Validate build report" revancex report check output/BUILD_REPORT.json --fail-threshold 40
+          if [ "${{ inputs.skip_fail_threshold }}" = "true" ]; then
+            step_run "Validate build report (fail_threshold skipped)" revancex report check output/BUILD_REPORT.json --continue
+          else
+            step_run "Validate build report" revancex report check output/BUILD_REPORT.json --fail-threshold 40
+          fi
 
       - name: Verify build produced output
         run: |

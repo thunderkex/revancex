@@ -42,6 +42,11 @@ on:
         required: false
         default: true
         type: boolean
+      skip_fail_threshold:
+        description: 'Skip fail_threshold check on build report validation'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -60,6 +65,7 @@ jobs:
       mode: ${{ steps.inputs.outputs.mode }}
       packaging: ${{ steps.inputs.outputs.packaging }}
       include_webui: ${{ steps.inputs.outputs.include_webui }}
+      skip_fail_threshold: ${{ steps.inputs.outputs.skip_fail_threshold }}
     steps:
       - name: Resolve and validate inputs (dispatch vs manual)
         id: inputs
@@ -70,18 +76,21 @@ jobs:
             MODE="${{ github.event.client_payload.mode }}"
             PACKAGING="${{ github.event.client_payload.packaging }}"
             WEBUI="${{ github.event.client_payload.include_webui }}"
+            SKIP_FAIL_THRESHOLD="${{ github.event.client_payload.skip_fail_threshold }}"
           else
             APPS="${{ inputs.apps }}"
             ARCH="${{ inputs.arch }}"
             MODE="${{ inputs.mode }}"
             PACKAGING="${{ inputs.packaging }}"
             WEBUI="${{ inputs.include_webui }}"
+            SKIP_FAIL_THRESHOLD="${{ inputs.skip_fail_threshold }}"
           fi
 
           ARCH="${ARCH:-arm64-v8a}"
           MODE="${MODE:-full}"
           PACKAGING="${PACKAGING:-bundle}"
           WEBUI="${WEBUI:-true}"
+          SKIP_FAIL_THRESHOLD="${SKIP_FAIL_THRESHOLD:-false}"
 
           if [ -z "$APPS" ] || ! echo "$APPS" | grep -Eq '^[a-zA-Z0-9_,.-]+$'; then
             echo "::error title=Invalid apps input::apps must be a non-empty comma-separated list of app IDs"
@@ -108,6 +117,11 @@ jobs:
             *) echo "::error title=Invalid include_webui::$WEBUI"; exit 1 ;;
           esac
 
+          case "$SKIP_FAIL_THRESHOLD" in
+            true|false) ;;
+            *) echo "::error title=Invalid skip_fail_threshold::$SKIP_FAIL_THRESHOLD"; exit 1 ;;
+          esac
+
           if [ "$PACKAGING" = "apk" ]; then
             WEBUI="false"
           fi
@@ -117,6 +131,7 @@ jobs:
           echo "mode=$MODE" >> $GITHUB_OUTPUT
           echo "packaging=$PACKAGING" >> $GITHUB_OUTPUT
           echo "include_webui=$WEBUI" >> $GITHUB_OUTPUT
+          echo "skip_fail_threshold=$SKIP_FAIL_THRESHOLD" >> $GITHUB_OUTPUT
 
   build:
     name: Custom Build
@@ -132,4 +147,5 @@ jobs:
       prerelease: true
       make_latest: false
       build_single_modules: ${{ needs.resolve.outputs.packaging == 'single_module' }}
+      skip_fail_threshold: ${{ needs.resolve.outputs.skip_fail_threshold == 'true' }}
     secrets: inherit

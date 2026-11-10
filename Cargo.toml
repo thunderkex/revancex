@@ -1,6 +1,6 @@
 [package]
 name = "revancex"
-version = "1.0.5"
+version = "1.1.0"
 edition = "2021"
 # MSRV is 1.85+ due to transitive dependencies (idna_adapter, clap_lex, rand_pcg)
 # requiring Cargo edition 2024 features supported in modern stable toolchains.

@@ -2607,3 +2607,35 @@ fn test_report_check_fail_threshold_and_continue_logic() {
     // 3. With fail_threshold = 10%: 25% > 10% -> fails
     assert!(check_should_fail(1, 4, false, Some(10)));
 }
+
+#[test]
+fn test_workflow_and_config_yaml_validity() {
+    fn check_dir(dir: &std::path::Path) {
+        if !dir.exists() {
+            return;
+        }
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let entry = entry.unwrap();
+            let p = entry.path();
+            if p.is_dir() {
+                check_dir(&p);
+            } else if p
+                .extension()
+                .is_some_and(|ext| ext == "yml" || ext == "yaml")
+            {
+                let content = std::fs::read_to_string(&p)
+                    .unwrap_or_else(|e| panic!("Could not read {}: {e}", p.display()));
+                let parsed: Result<serde_yaml::Value, _> = serde_yaml::from_str(&content);
+                assert!(
+                    parsed.is_ok(),
+                    "YAML syntax error in {}: {:?}",
+                    p.display(),
+                    parsed.err()
+                );
+            }
+        }
+    }
+
+    check_dir(std::path::Path::new(".github"));
+    check_dir(std::path::Path::new("config"));
+}

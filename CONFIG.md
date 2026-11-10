@@ -387,3 +387,15 @@ revancex report check ./output/BUILD_REPORT.json --fail-threshold 15
 # Warning mode: always exits 0 to allow releasing successful apps
 revancex report check ./output/BUILD_REPORT.json --continue
 ```
+
+## Build output & logs
+
+Console output is intentionally compact: phases, one line per app, warnings (deduplicated) and a final summary table.
+
+| Want | How |
+| --- | --- |
+| Detail on console (info/debug, tool output) | `revancex build --verbose` or `VERBOSE=1` / `RUST_LOG=debug` (on Actions: *Re-run with debug logging* → `RUNNER_DEBUG=1`) |
+| Full detail after the fact | `build/logs/revancex.log` (everything), `build/logs/<app>.log` (per app: morphe-cli stdout/stderr, hooks), `build/logs/downloads.log` (aria2c). Override with `REVANCEX_LOG_DIR`. On Actions they are uploaded as the `build-logs-*` artifact. |
+| ASCII markers (`[OK]/[FAIL]/[WARN]`), no colour | `NO_COLOR=1` or non-TTY output outside GitHub Actions (`REVANCEX_ASCII=1` forces ASCII) |
+
+Exit codes and fail-fast behaviour are unchanged. Secrets (keystore password, tokens) are masked in console and log files.

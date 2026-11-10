@@ -1,6 +1,7 @@
 use crate::builder;
 use crate::config::{AppConfig, Config};
 use crate::patcher;
+use crate::ui;
 use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
@@ -44,7 +45,7 @@ pub async fn run_pipeline(
                             "Patch bundle download failed for source '{}': {}",
                             app.patch_source, reason
                         );
-                        warn!("Skipping build for {id}: {err_msg}");
+                        ui::item_fail(id, &app.display_name(id), "", &err_msg, None);
                         failed.push((id.clone(), err_msg.clone()));
                         reports.insert(id.clone(), AppBuildReport::failed(err_msg));
                         continue;
@@ -63,8 +64,10 @@ pub async fn run_pipeline(
             let cb = uptodown_cb.clone();
             let breaker_reg = breaker_registry.clone();
 
+            ui::register_item(&id);
             let handle = tokio::spawn(async move {
                 let _permit = sem.acquire().await.unwrap();
+                let started = std::time::Instant::now();
                 let res = build_single(
                     &cfg,
                     &id,
@@ -78,6 +81,9 @@ pub async fn run_pipeline(
                 )
                 .await;
                 breaker_reg.record_app_completed();
+                let elapsed = started.elapsed();
+                ui::record_duration(&id, elapsed);
+                report_item(&id, &app, &res.0, &res.1, elapsed);
                 res
             });
             handles.push((id_key, handle));
@@ -94,7 +100,7 @@ pub async fn run_pipeline(
                     .error
                     .clone()
                     .unwrap_or_else(|| "build failed".to_string());
-                warn!("Build failed for {id}: {err_str}");
+                info!("Build failed for {id}: {err_str}");
                 failed.push((id.clone(), err_str));
                 if let Some(ref path) = report.output_path {
                     let _ = std::fs::remove_file(path);
@@ -106,8 +112,8 @@ pub async fn run_pipeline(
                 reports.insert(id.clone(), report);
             }
             Err(e) => {
-                warn!("Task panicked for {id}: {e}");
                 let err_str = format!("task panicked: {e}");
+                ui::item_fail(&id, &id, "", &err_str, None);
                 failed.push((id.clone(), err_str.clone()));
                 reports.insert(id.clone(), AppBuildReport::failed(err_str));
                 let _ = std::fs::remove_file(format!("{output_dir}/{id}.apk"));
@@ -124,6 +130,39 @@ pub async fn run_pipeline(
         reports,
         open_breakers,
     })
+}
+
+/// One result line per app, printed as soon as the app finishes.
+fn report_item(
+    id: &str,
+    app: &AppConfig,
+    path: &Option<String>,
+    report: &AppBuildReport,
+    elapsed: std::time::Duration,
+) {
+    let name = app.display_name(id);
+    let version = report
+        .resolved_version
+        .clone()
+        .or_else(|| report.fetched_version.clone())
+        .or_else(|| report.target_version.clone())
+        .unwrap_or_default();
+    if path.is_some() && report.status == "success" {
+        let detail = format!(
+            "patches: {} applied, {} skipped",
+            report.patches_included.len(),
+            report.patches_auto_disabled.len()
+        );
+        ui::item_ok(&name, &version, &detail, Some(elapsed));
+    } else {
+        let err = report.error.as_deref().unwrap_or("build failed");
+        ui::item_fail(id, &name, &version, err, Some(elapsed));
+        if app.allow_build_failure {
+            ui::warn_once(&format!(
+                "{id}: build failed but allow_build_failure is set"
+            ));
+        }
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -408,7 +447,7 @@ async fn build_single(
             (raw_apk, "universal".to_string())
         } else if let Err(e) = builder::arch::verify_arch_native_libs(&raw_apk, &work_apk, arch) {
             let err_msg = format!("{id}: arch verification failed: {e}");
-            tracing::error!("{err_msg}");
+            info!("{err_msg}");
             return (
                 None,
                 AppBuildReport {

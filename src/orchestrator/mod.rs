@@ -3,6 +3,7 @@ pub mod resolver;
 pub mod scheduler;
 
 use crate::config::Config;
+use crate::ui;
 use crate::utils;
 use anyhow::Result;
 use tracing::info;
@@ -49,12 +50,31 @@ pub async fn build_apps(
     std::fs::create_dir_all(&cfg.build.keys_dir)?;
 
     let targets = resolver::resolve_targets(cfg, apps_input)?;
+    ui::banner(&[
+        ("apps", format!("{} target(s)", targets.len())),
+        ("arch", arch.to_string()),
+        ("mode", mode.unwrap_or("per-app").to_string()),
+        (
+            "config",
+            format!(
+                "workers={} retries={} force={force}",
+                cfg.build.workers, cfg.build.download_retries
+            ),
+        ),
+        ("output", output_dir.to_string()),
+        (
+            "logs",
+            format!(
+                "{}{}",
+                ui::log_dir().display(),
+                if ui::is_verbose() { " (verbose)" } else { "" }
+            ),
+        ),
+    ]);
+    info!("targets: {:?}", targets);
+    ui::phase("Fetch");
     let tools_summary = utils::download_tools(cfg, Some(&targets)).await?;
-    info!(
-        "Starting build pipeline for {} targets: {:?}",
-        targets.len(),
-        targets
-    );
+    ui::phase("Build (resolve → patch → sign → package)");
 
     let summary = scheduler::run_pipeline(
         cfg,
@@ -66,12 +86,50 @@ pub async fn build_apps(
         Some(&tools_summary.patch_results),
     )
     .await?;
+    ui::end_phase();
     info!(
         "Build complete. {} built, {} failed.",
         summary.built.len(),
         summary.failed.len()
     );
     Ok(summary)
+}
+
+/// Print the final one-block summary for a finished build.
+pub fn print_summary(cfg: &Config, summary: &BuildSummary) {
+    let mut rows = Vec::new();
+    for (id, rep) in &summary.reports {
+        let ok = rep.status == "success";
+        let name = cfg
+            .apps
+            .get(id)
+            .map(|a| a.display_name(id))
+            .unwrap_or_else(|| id.clone());
+        let size = rep
+            .output_path
+            .as_deref()
+            .and_then(|p| std::fs::metadata(p).ok())
+            .map(|m| m.len());
+        rows.push(ui::Row {
+            app: name,
+            version: rep
+                .resolved_version
+                .clone()
+                .or_else(|| rep.fetched_version.clone())
+                .or_else(|| rep.target_version.clone())
+                .unwrap_or_default(),
+            ok: rep.patches_included.len(),
+            skip: rep.patches_auto_disabled.len(),
+            fail: if ok { Some(0) } else { None },
+            size,
+            dur: ui::duration_of(id),
+            status: if ok { ui::Status::Ok } else { ui::Status::Fail },
+        });
+    }
+    for id in &summary.open_breakers {
+        ui::warn_once(&format!("circuit breaker open for source '{id}'"));
+    }
+    ui::summary(&rows, &summary.built);
 }
 
 pub async fn check_updates(cfg: &Config, json: bool) -> Result<()> {

@@ -6,6 +6,8 @@ import urllib.request
 import urllib.parse
 from datetime import datetime, timezone
 
+import ulog
+
 try:
     import yaml
     _YAML_AVAILABLE = True
@@ -38,7 +40,7 @@ def build_patch_sources_table(sources_yaml_path):
         with open(sources_yaml_path, "r", encoding="utf-8") as f:
             y = yaml.safe_load(f)
     except Exception as e:
-        print(f"[sources.yaml] Failed to load: {e}")
+        ulog.warn(f"sources.yaml: Failed to load: {e}")
         return None
     patch_sources = (y or {}).get("patch_sources", {})
     if not patch_sources:
@@ -61,7 +63,7 @@ def build_bundle_breakdown_table(modules_yaml_path):
         with open(modules_yaml_path, "r", encoding="utf-8") as f:
             y = yaml.safe_load(f)
     except Exception as e:
-        print(f"[modules.yaml] Failed to load for breakdown: {e}")
+        ulog.warn(f"modules.yaml: Failed to load for breakdown: {e}")
         return None
     modules = (y or {}).get("modules", {})
     if not modules:
@@ -83,7 +85,7 @@ def build_bundle_breakdown_table(modules_yaml_path):
 
 def send_telegram_message(token, chat_id, message, topic_id=None):
     if not token or not chat_id:
-        print("[Telegram] Bot token or chat ID missing. Skipping notification.")
+        ulog.skip("Telegram: Bot token or chat ID missing. Skipping notification.")
         return
     
     if not topic_id:
@@ -105,9 +107,9 @@ def send_telegram_message(token, chat_id, message, topic_id=None):
     if topic_id:
         try:
             payload["message_thread_id"] = int(topic_id)
-            print(f"[Telegram] Sending message to topic/thread ID: {payload['message_thread_id']}")
+            ulog.debug(f"Telegram: Sending message to topic/thread ID: {payload['message_thread_id']}")
         except (ValueError, TypeError):
-            print(f"[Telegram] Warning: Invalid topic ID: {topic_id}")
+            ulog.warn(f"Telegram: Warning: Invalid topic ID: {topic_id}")
 
     req = urllib.request.Request(
         url,
@@ -117,11 +119,11 @@ def send_telegram_message(token, chat_id, message, topic_id=None):
     try:
         with urllib.request.urlopen(req, timeout=15) as res:
             if res.status == 200:
-                print("[Telegram] Notification sent successfully.")
+                ulog.ok("Telegram: Notification sent successfully.")
             else:
-                print(f"[Telegram] Failed with status {res.status}")
+                ulog.warn(f"Telegram: Failed with status {res.status}")
     except Exception as e:
-        print(f"[Telegram] Error sending message: {e}")
+        ulog.warn(f"Telegram: Error sending message: {e}")
 
 def main():
     repo_slug = os.environ.get("GITHUB_REPOSITORY", "")
@@ -164,7 +166,7 @@ def main():
                 if y and "apps" in y:
                     apps_cfg = y["apps"]
         except Exception as e:
-            print(f"[apps.yaml] Failed to load: {e}")
+            ulog.warn(f"apps.yaml: Failed to load: {e}")
     elif os.path.exists(apps_yaml_path):
         try:
             with open(apps_yaml_path, "r", encoding="utf-8") as f:
@@ -179,7 +181,7 @@ def main():
                         if m_name:
                             apps_cfg[current_app]["name"] = m_name.group(1).strip()
         except Exception as e:
-            print(f"[apps.yaml] Failed fallback parse: {e}")
+            ulog.warn(f"apps.yaml: Failed fallback parse: {e}")
 
     def _resolve_app_key(filename, is_module=False):
         stem = filename[:-4]
@@ -285,7 +287,7 @@ def main():
                     if "single_modules" in y and isinstance(y["single_modules"], list):
                         valid_single_modules = set(y["single_modules"])
         except Exception as e:
-            print(f"[modules.yaml] Failed to load, bundle table will use fallback: {e}")
+            ulog.warn(f"modules.yaml: Failed to load, bundle table will use fallback: {e}")
 
     if valid_single_modules is not None:
         registry["single_modules"] = {
@@ -382,7 +384,7 @@ def main():
 
     with open(README_PATH, "w", encoding="utf-8") as f:
         f.write(updated_readme)
-    print("[README] Updated successfully with persistent releases registry.")
+    ulog.ok("README: Updated successfully with persistent releases registry.")
 
     sources_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "sources.yaml")
     patch_sources_table = build_patch_sources_table(sources_yaml_path)
@@ -392,7 +394,7 @@ def main():
         updated = _replace_block(readme_content, PATCH_SOURCES_START, PATCH_SOURCES_END, patch_sources_table)
         with open(README_PATH, "w", encoding="utf-8") as f:
             f.write(updated)
-        print("[README] Patch sources block updated from sources.yaml.")
+        ulog.ok("README: Patch sources block updated from sources.yaml.")
 
     bundle_breakdown_table = build_bundle_breakdown_table(modules_yaml_path)
     if bundle_breakdown_table:
@@ -401,7 +403,7 @@ def main():
         updated = _replace_block(readme_content, BUNDLE_BREAKDOWN_START, BUNDLE_BREAKDOWN_END, bundle_breakdown_table)
         with open(README_PATH, "w", encoding="utf-8") as f:
             f.write(updated)
-        print("[README] Bundle breakdown block updated from modules.yaml.")
+        ulog.ok("README: Bundle breakdown block updated from modules.yaml.")
 
     if new_files:
         built_list_str = "\n".join([f"• <code>{f}</code>" for f in new_files if not f.endswith(".idsig")])

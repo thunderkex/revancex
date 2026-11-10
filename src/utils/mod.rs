@@ -10,6 +10,7 @@ pub mod zip;
 
 use crate::config::Config;
 use crate::orchestrator::BuildSummary;
+use crate::ui;
 use anyhow::{Context, Result};
 use reqwest::Client;
 use std::path::Path;
@@ -239,6 +240,20 @@ pub fn clean_stale_tools(cfg: &Config) -> Result<()> {
     Ok(())
 }
 
+/// Render one patch-bundle fetch result (`"patches: <repo>@<tag> <status>"`)
+/// as a single aligned item line.
+fn patch_line(msg: String) {
+    let body = msg.strip_prefix("patches: ").unwrap_or(&msg);
+    let (target, status) = body.rsplit_once(' ').unwrap_or((body, ""));
+    let (repo, tag) = target.split_once('@').unwrap_or((target, ""));
+    let st = match status {
+        "failed" => ui::Status::Fail,
+        s if s.starts_with("skipped") => ui::Status::Skip,
+        _ => ui::Status::Ok,
+    };
+    ui::item(st, repo, tag, status, None);
+}
+
 pub async fn download_tools(
     cfg: &Config,
     targets: Option<&[String]>,
@@ -266,7 +281,10 @@ pub async fn download_tools(
                 .as_ref()
                 .map(|s| s.tag.as_str())
                 .unwrap_or("unknown");
-            println!("patches: {}@{} skipped(interval)", cfg.cli_repo, tag);
+            patch_line(format!(
+                "patches: {}@{} skipped(interval)",
+                cfg.cli_repo, tag
+            ));
         } else {
             api_calls += 1;
             let if_none_match = sidecar.as_ref().and_then(|s| s.etag.as_deref());
@@ -279,7 +297,7 @@ pub async fn download_tools(
                         .as_ref()
                         .map(|s| s.tag.as_str())
                         .unwrap_or("unknown");
-                    println!("patches: {}@{} cached", cfg.cli_repo, tag);
+                    patch_line(format!("patches: {}@{} cached", cfg.cli_repo, tag));
                     if let Some(mut sc) = sidecar {
                         sc.fetched_at = chrono::Utc::now().to_rfc3339();
                         let _ = save_tool_sidecar(&cli_dest, &sc);
@@ -290,7 +308,10 @@ pub async fn download_tools(
                         let is_same_tag =
                             valid && sidecar.as_ref().map(|s| &s.tag) == Some(&release.tag_name);
                         if is_same_tag {
-                            println!("patches: {}@{} cached", cfg.cli_repo, release.tag_name);
+                            patch_line(format!(
+                                "patches: {}@{} cached",
+                                cfg.cli_repo, release.tag_name
+                            ));
                             if let Some(mut sc) = sidecar {
                                 sc.etag = etag;
                                 sc.fetched_at = chrono::Utc::now().to_rfc3339();
@@ -320,49 +341,52 @@ pub async fn download_tools(
                                         let _ = save_tool_sidecar(&cli_dest, &sc);
                                         total_downloaded += 1;
                                         tools_changed = true;
-                                        println!(
+                                        patch_line(format!(
                                             "patches: {}@{} downloaded",
                                             cfg.cli_repo, release.tag_name
-                                        );
+                                        ));
                                     } else {
-                                        println!(
+                                        patch_line(format!(
                                             "patches: {}@{} failed",
                                             cfg.cli_repo, release.tag_name
-                                        );
+                                        ));
                                     }
                                 }
                                 Ok(_) => {
                                     let _ = std::fs::remove_file(&cli_dest);
-                                    println!(
+                                    patch_line(format!(
                                         "patches: {}@{} failed",
                                         cfg.cli_repo, release.tag_name
-                                    );
+                                    ));
                                 }
                                 Err(_) => {
-                                    println!(
+                                    patch_line(format!(
                                         "patches: {}@{} failed",
                                         cfg.cli_repo, release.tag_name
-                                    );
+                                    ));
                                 }
                             }
                         }
                     } else {
-                        println!("patches: {}@{} failed", cfg.cli_repo, release.tag_name);
+                        patch_line(format!(
+                            "patches: {}@{} failed",
+                            cfg.cli_repo, release.tag_name
+                        ));
                     }
                 }
                 Err(github::FetchReleaseError::RateLimited) => {
-                    eprintln!(
+                    ui::warn_once(&format!(
                         "GitHub API rate limit exceeded for {}. Set GITHUB_TOKEN to increase the limit.",
                         cfg.cli_repo
-                    );
+                    ));
                     if valid {
                         let tag = sidecar
                             .as_ref()
                             .map(|s| s.tag.as_str())
                             .unwrap_or("unknown");
-                        println!("patches: {}@{} cached", cfg.cli_repo, tag);
+                        patch_line(format!("patches: {}@{} cached", cfg.cli_repo, tag));
                     } else {
-                        println!("patches: {}@unknown failed", cfg.cli_repo);
+                        patch_line(format!("patches: {}@unknown failed", cfg.cli_repo));
                     }
                 }
                 Err(_) => {
@@ -371,9 +395,9 @@ pub async fn download_tools(
                             .as_ref()
                             .map(|s| s.tag.as_str())
                             .unwrap_or("unknown");
-                        println!("patches: {}@{} cached", cfg.cli_repo, tag);
+                        patch_line(format!("patches: {}@{} cached", cfg.cli_repo, tag));
                     } else {
-                        println!("patches: {}@unknown failed", cfg.cli_repo);
+                        patch_line(format!("patches: {}@unknown failed", cfg.cli_repo));
                     }
                 }
             }
@@ -503,7 +527,7 @@ pub async fn download_tools(
                 .as_ref()
                 .map(|s| s.tag.as_str())
                 .unwrap_or("unknown");
-            println!("patches: {repo}@{tag} skipped(interval)");
+            patch_line(format!("patches: {repo}@{tag} skipped(interval)"));
             if let Some(ref vdest) = versioned_dest {
                 if !is_valid_jar_or_bundle(&dest) {
                     let _ = std::fs::copy(vdest, &dest);
@@ -529,7 +553,7 @@ pub async fn download_tools(
                     .as_ref()
                     .map(|s| s.tag.as_str())
                     .unwrap_or("unknown");
-                println!("patches: {repo}@{tag} cached");
+                patch_line(format!("patches: {repo}@{tag} cached"));
                 if let Some(mut sc) = sidecar {
                     sc.fetched_at = chrono::Utc::now().to_rfc3339();
                     let _ = save_tool_sidecar(primary_dest, &sc);
@@ -551,7 +575,7 @@ pub async fn download_tools(
                     let is_same_tag =
                         valid && sidecar.as_ref().map(|s| &s.tag) == Some(&release.tag_name);
                     if is_same_tag {
-                        println!("patches: {repo}@{} cached", release.tag_name);
+                        patch_line(format!("patches: {repo}@{} cached", release.tag_name));
                         if let Some(mut sc) = sidecar {
                             sc.etag = etag;
                             sc.fetched_at = chrono::Utc::now().to_rfc3339();
@@ -591,13 +615,19 @@ pub async fn download_tools(
                                         }
                                         total_downloaded += 1;
                                         tools_changed = true;
-                                        println!("patches: {repo}@{} downloaded", release.tag_name);
+                                        patch_line(format!(
+                                            "patches: {repo}@{} downloaded",
+                                            release.tag_name
+                                        ));
                                         patch_results
                                             .insert(source_alias, Ok(primary_dest.to_string()));
                                     }
                                     Err(e) => {
                                         let _ = std::fs::remove_file(primary_dest);
-                                        println!("patches: {repo}@{} failed", release.tag_name);
+                                        patch_line(format!(
+                                            "patches: {repo}@{} failed",
+                                            release.tag_name
+                                        ));
                                         patch_results.insert(
                                             source_alias,
                                             Err(format!("sha256 calculation failed: {e}")),
@@ -607,21 +637,21 @@ pub async fn download_tools(
                             }
                             Ok(_) => {
                                 let _ = std::fs::remove_file(primary_dest);
-                                println!("patches: {repo}@{} failed", release.tag_name);
+                                patch_line(format!("patches: {repo}@{} failed", release.tag_name));
                                 patch_results.insert(
                                     source_alias,
                                     Err("Downloaded file is not a valid JAR/bundle".to_string()),
                                 );
                             }
                             Err(e) => {
-                                println!("patches: {repo}@{} failed", release.tag_name);
+                                patch_line(format!("patches: {repo}@{} failed", release.tag_name));
                                 patch_results
                                     .insert(source_alias, Err(format!("Download failed: {e}")));
                             }
                         }
                     }
                 } else {
-                    println!("patches: {repo}@{} failed", release.tag_name);
+                    patch_line(format!("patches: {repo}@{} failed", release.tag_name));
                     patch_results.insert(
                         source_alias,
                         Err(format!(
@@ -631,15 +661,15 @@ pub async fn download_tools(
                 }
             }
             Err(github::FetchReleaseError::RateLimited) => {
-                eprintln!(
+                ui::warn_once(&format!(
                     "GitHub API rate limit exceeded for {repo}. Set GITHUB_TOKEN to increase the limit."
-                );
+                ));
                 if valid {
                     let tag = sidecar
                         .as_ref()
                         .map(|s| s.tag.as_str())
                         .unwrap_or("unknown");
-                    println!("patches: {repo}@{tag} cached");
+                    patch_line(format!("patches: {repo}@{tag} cached"));
                     if let Some(ref vdest) = versioned_dest {
                         if !is_valid_jar_or_bundle(&dest) {
                             let _ = std::fs::copy(vdest, &dest);
@@ -647,7 +677,7 @@ pub async fn download_tools(
                     }
                     patch_results.insert(source_alias, Ok(primary_dest.to_string()));
                 } else {
-                    println!("patches: {repo}@unknown failed");
+                    patch_line(format!("patches: {repo}@unknown failed"));
                     patch_results.insert(
                         source_alias,
                         Err("Rate limited and no valid cached bundle".to_string()),
@@ -660,7 +690,7 @@ pub async fn download_tools(
                         .as_ref()
                         .map(|s| s.tag.as_str())
                         .unwrap_or("unknown");
-                    println!("patches: {repo}@{tag} cached");
+                    patch_line(format!("patches: {repo}@{tag} cached"));
                     if let Some(ref vdest) = versioned_dest {
                         if !is_valid_jar_or_bundle(&dest) {
                             let _ = std::fs::copy(vdest, &dest);
@@ -668,16 +698,19 @@ pub async fn download_tools(
                     }
                     patch_results.insert(source_alias, Ok(primary_dest.to_string()));
                 } else {
-                    println!("patches: {repo}@unknown failed");
+                    patch_line(format!("patches: {repo}@unknown failed"));
                     patch_results.insert(source_alias, Err(format!("GitHub release error: {e}")));
                 }
             }
         }
     }
 
-    println!(
-        "tools: {} needed, {} downloaded, {} api calls",
-        total_needed, total_downloaded, api_calls
+    ui::item(
+        ui::Status::Info,
+        "tools",
+        "",
+        &format!("{total_needed} needed, {total_downloaded} downloaded, {api_calls} api calls"),
+        None,
     );
 
     Ok(DownloadToolsSummary {
@@ -793,10 +826,21 @@ async fn try_download(client: &Client, url: &str, dest: &str, referer: Option<&s
 
         let aria_res = tokio::process::Command::new("aria2c")
             .args(&args)
-            .status()
+            .output()
             .await;
 
-        if let Ok(status) = aria_res {
+        if let Ok(out) = aria_res {
+            // aria2c progress/summary output is captured, not printed.
+            ui::tool_log(
+                "downloads",
+                &format!("aria2c {url}"),
+                &format!(
+                    "{}{}",
+                    String::from_utf8_lossy(&out.stdout),
+                    String::from_utf8_lossy(&out.stderr)
+                ),
+            );
+            let status = out.status;
             if status.success() && Path::new(dest).exists() && std::fs::metadata(dest)?.len() > 0 {
                 verify_apk_integrity(dest)?;
                 info!("aria2 accelerated download complete: {dest}");

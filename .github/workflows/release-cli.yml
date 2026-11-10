@@ -54,7 +54,7 @@ jobs:
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
           if [ "${{ inputs.force_release }}" = "true" ]; then
-            echo "Force release requested."
+            echo "● force release requested"
             echo "should_release=true" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -78,10 +78,10 @@ jobs:
           HAS_ASSET=$(echo "$RELEASE_JSON" | jq -r '[.assets[]?.name == "revancex-linux-x86_64.tar.gz"] | any' 2>/dev/null || echo "false")
 
           if [ "$HTTP_STATUS" = "Not Found" ] || [ "$HAS_ASSET" != "true" ]; then
-            echo "Release ${TAG} does not exist or lacks revancex-linux-x86_64.tar.gz. Will build and release binaries."
+            echo "● ${TAG}: release or asset missing → will build binaries"
             echo "should_release=true" >> $GITHUB_OUTPUT
           else
-            echo "Release ${TAG} already exists with revancex-linux-x86_64.tar.gz. Skipping binary release."
+            echo "↷ ${TAG}: release with asset already exists, skipping"
             echo "should_release=false" >> $GITHUB_OUTPUT
           fi
 
@@ -132,9 +132,9 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.cross }}" = "true" ]; then
-            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target ${{ matrix.target }}
+            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --quiet --target ${{ matrix.target }}
           else
-            cargo build --release --target ${{ matrix.target }}
+            cargo build --release --quiet --target ${{ matrix.target }}
           fi
 
       - name: Package binary (Linux)
@@ -142,7 +142,7 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          tar -czvf ../../../${{ matrix.artifact_name }} ${{ matrix.bin_name }}
+          tar -czf ../../../${{ matrix.artifact_name }} ${{ matrix.bin_name }}
           cd ../../..
           sha256sum ${{ matrix.artifact_name }} > ${{ matrix.artifact_name }}.sha256
 

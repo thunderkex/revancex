@@ -8,4 +8,5 @@ pub mod patcher;
 pub mod report;
 pub mod sources;
 pub mod testing;
+pub mod ui;
 pub mod utils;

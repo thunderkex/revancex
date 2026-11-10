@@ -5,6 +5,7 @@ pub mod plan;
 
 use crate::config::apps::HookWhen;
 use crate::config::{AppConfig, Config};
+use crate::ui;
 use anyhow::{Context, Result};
 use std::path::Path;
 use tracing::info;
@@ -202,24 +203,48 @@ pub async fn patch(
 
     cmd.arg(&args.input_apk);
 
+    // Never let the signing password reach the console or any log file.
+    ui::mask(&ks.password);
+    if let Some((_, _, pass)) = &args.keystore {
+        ui::mask(pass);
+    }
+    ui::tool_log(
+        id,
+        "morphe-cli command",
+        &format!(
+            "java -jar {} patch --patches={} -o {} {} (+{} include, {} exclude; keystore options omitted)",
+            args.cli_jar,
+            args.patches_arg,
+            args.output_apk,
+            args.input_apk,
+            args.included.len(),
+            args.excluded.len()
+        ),
+    );
     info!("{id}: patching with morphe-cli...");
     let output = cmd
         .output()
         .await
         .context("java not found — install JDK 21+")?;
+
+    // Raw tool output goes to build/logs/<id>.log, not the console.
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    if !stdout.is_empty() {
+        ui::tool_log(id, "morphe-cli stdout", &stdout);
+    }
+    if !stderr.is_empty() {
+        ui::tool_log(id, "morphe-cli stderr", &stderr);
+    }
+    if ui::is_verbose() {
+        for line in stdout.lines().chain(stderr.lines()) {
+            ui::info(&format!("{id}: {line}"));
+        }
+    }
     if !output.status.success() {
         let _ = std::fs::remove_file(&staging_apk);
         let _ = std::fs::remove_file(&output_apk);
         anyhow::bail!("{id}: morphe-cli exited with {}", output.status);
-    }
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    if !stdout.is_empty() {
-        print!("{stdout}");
-    }
-    if !stderr.is_empty() {
-        eprint!("{stderr}");
     }
 
     let dex_changed = match (
@@ -286,8 +311,20 @@ pub async fn patch(
             .arg(&ks.file)
             .arg(&ks.alias)
             .arg(&ks.password)
-            .status()
+            .output()
             .await;
+        let status = status.map(|o| {
+            ui::tool_log(
+                id,
+                &format!("hook {}", hook.script),
+                &format!(
+                    "{}{}",
+                    String::from_utf8_lossy(&o.stdout),
+                    String::from_utf8_lossy(&o.stderr)
+                ),
+            );
+            o.status
+        });
         match status {
             Ok(st) if st.success() => {
                 info!("{id}: hook {} succeeded", hook.script);

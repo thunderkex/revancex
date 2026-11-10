@@ -51,6 +51,14 @@ on:
 permissions:
   contents: write
 
+# Quiet, uniform tool output. Raw tool output is captured under build/logs/
+# (uploaded as an artifact). Re-running with "Enable debug logging" sets
+# RUNNER_DEBUG=1, which revancex treats as --verbose.
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_TERM_PROGRESS_WHEN: never
+  REVANCEX_LOG_DIR: build/logs
+
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -69,14 +77,13 @@ jobs:
         continue-on-error: true
         run: |
           for i in $(seq 1 30); do
-            if curl -s -f http://localhost:8191/ > /dev/null; then
-              echo "FlareSolverr is ready!"
+            if curl -sS -f http://localhost:8191/ > /dev/null 2>&1; then
+              echo "✔ FlareSolverr ready (attempt $i/30)"
               exit 0
             fi
-            echo "Waiting for FlareSolverr ($i/30)..."
             sleep 5
           done
-          echo "::warning::FlareSolverr wait timed out; continuing without solver."
+          echo "::warning title=FlareSolverr::wait timed out after 30 attempts; continuing without solver."
 
       - name: Set up JDK 21
         uses: actions/setup-java@v6
@@ -118,7 +125,7 @@ jobs:
         run: |
           sudo curl -sSLf https://github.com/EFForg/apkeep/releases/download/1.1.0/apkeep-x86_64-unknown-linux-gnu -o /usr/local/bin/apkeep
           sudo chmod +x /usr/local/bin/apkeep
-          apkeep --version
+          echo "✔ apkeep $(apkeep --version | head -n1)"
 
       - name: Restore patch tools cache
         uses: actions/cache/restore@v6
@@ -160,7 +167,7 @@ jobs:
 
       - name: Build apps
         run: |
-          mkdir -p output
+          mkdir -p output build/logs
           revancex build \
             --apps "${{ inputs.apps || 'all' }}" \
             --arch "${{ inputs.arch }}" \
@@ -179,6 +186,15 @@ jobs:
           path: |
             keys/
           key: signing-keys-${{ runner.os }}-${{ github.run_id }}
+
+      - name: Upload detailed build logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: build-logs-${{ inputs.tag_prefix }}-${{ inputs.arch }}
+          path: build/logs/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Write attempted sources to GITHUB_STEP_SUMMARY
         if: always()
@@ -200,10 +216,10 @@ jobs:
         run: |
           count=$(find output -maxdepth 1 \( -name '*.apk' -o -name '*.zip' \) -type f 2>/dev/null | wc -l)
           if [ "$count" -eq 0 ]; then
-            echo "::error::Build produced zero APK/ZIP files in output/. Aborting release pipeline."
+            echo "::error title=No artifacts::Build produced zero APK/ZIP files in output/. Aborting release pipeline."
             exit 1
           fi
-          echo "Build OK: $count output file(s) found."
+          echo "✔ build output: $count file(s)"
 
       - name: Build bundle modules
         run: |
@@ -233,9 +249,10 @@ jobs:
             appid="${fname%.apk}"
             appid="${appid%-patched}"
             [ "$appid" = "microg" ] && continue
-            echo "Building single module for: $appid"
-            if ! revancex module --single --apps "$appid" --output output; then
-              echo "::error::Single module build failed for $appid"
+            if revancex module --single --apps "$appid" --output output; then
+              echo "✔ module $appid"
+            else
+              echo "::error title=Module build failed::single module build failed for $appid"
               FAILED_MODULES="$FAILED_MODULES $appid"
             fi
           done
@@ -243,7 +260,7 @@ jobs:
           if [ -n "$FAILED_MODULES" ]; then
             echo "### ⚠️ Single Module Build Failures" >> $GITHUB_STEP_SUMMARY
             echo "Failed apps:$FAILED_MODULES" >> $GITHUB_STEP_SUMMARY
-            echo "::warning::Failed single module builds for:$FAILED_MODULES"
+            echo "::warning title=Single modules::failed for:$FAILED_MODULES"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -296,7 +313,7 @@ jobs:
             [ -f "$f" ] || continue
             fsize=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null || echo 0)
             if [ "$fsize" -gt 2000000000 ]; then
-              echo "Warning: $f exceeds 2GB ($fsize bytes), removing before release upload to prevent failure"
+              echo "::warning title=Asset too large::$f exceeds 2GB ($fsize bytes); removed before release upload"
               rm -f "$f"
             fi
           done
@@ -320,11 +337,12 @@ jobs:
         if: inputs.tag_prefix == 'auto'
         continue-on-error: true
         run: |
-          echo "Pruning older automated releases (retaining latest 10)..."
+          # keep the latest 10 automated releases; one line per deleted release
           gh release list --limit 40 | grep '^auto-' | awk '{print $1}' | tail -n +11 | while read -r old_tag; do
-            echo "Deleting old release: $old_tag"
-            if ! gh release delete "$old_tag" --cleanup-tag -y; then
-              echo "Warning: could not delete release $old_tag, skipping..."
+            if gh release delete "$old_tag" --cleanup-tag -y >/dev/null 2>&1; then
+              echo "✔ pruned $old_tag"
+            else
+              echo "::warning title=Prune::could not delete release $old_tag; skipped"
             fi
           done
         env:
@@ -340,7 +358,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install Python script dependencies
-        run: pip install --quiet -r scripts/requirements.txt
+        run: pip install -q --disable-pip-version-check -r scripts/requirements.txt
 
       - name: Update README tables and send Telegram notification
         run: |
@@ -395,19 +413,19 @@ jobs:
           git checkout -- . 2>/dev/null || :
           PUSH_OK=false
           for i in 1 2 3 4 5; do
-            git fetch origin ${{ github.ref_name }}
-            if ! git rebase origin/${{ github.ref_name }}; then
+            git fetch -q origin ${{ github.ref_name }}
+            if ! git rebase -q origin/${{ github.ref_name }} >/dev/null 2>&1; then
               git rebase --abort 2>/dev/null || :
             fi
-            if git push origin HEAD:${{ github.ref }}; then
+            if git push -q origin HEAD:${{ github.ref }}; then
               PUSH_OK=true
+              echo "✔ pushed registry update (attempt $i/5)"
               break
             fi
-            echo "Push failed, retrying in 3s (attempt $i of 5)..."
-            sleep 3
+            [ "$i" -lt 5 ] && sleep 3
           done
           if [ "$PUSH_OK" != "true" ]; then
-            echo "::error::Failed to push updated README and releases registry after 5 attempts"
+            echo "::error title=Push failed::could not push README and releases registry after 5 attempts; re-run the job or push config/releases_registry.json manually"
             exit 1
           fi
         env:

@@ -35,29 +35,41 @@ runs:
 
         CLI_URL="https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/revancex-linux-x86_64.tar.gz"
 
+        export CARGO_TERM_COLOR=always CARGO_TERM_PROGRESS_WHEN=never
+        mkdir -p build/logs
+        LOG=build/logs/download-cli.log
+        START=$(date +%s)
+
         DOWNLOADED=false
         if [ "${{ inputs.force_build }}" = "true" ]; then
-          echo "force_build is true; skipping download and building CLI binary from source..."
+          echo "● CLI ${TARGET_TAG}: force_build=true, building from source"
         else
-          echo "Attempting to download pre-built CLI for ${TARGET_TAG} from ${CLI_URL}..."
-          if curl -sSLf "$CLI_URL" | tar -xz -C bin/; then
-            echo "Successfully downloaded pre-built CLI binary (${TARGET_TAG})."
+          echo "● CLI ${TARGET_TAG}: downloading pre-built binary (url in $LOG)"
+          echo "GET ${CLI_URL}" >> "$LOG"
+          if curl -sSLf "$CLI_URL" 2>>"$LOG" | tar -xz -C bin/ 2>>"$LOG"; then
             DOWNLOADED=true
+            echo "✔ CLI ${TARGET_TAG}: pre-built binary ($(( $(date +%s) - START ))s)"
           else
-            echo "Pre-built binary not found for ${TARGET_TAG}."
+            echo "↷ CLI ${TARGET_TAG}: no pre-built binary found"
           fi
         fi
 
         if [ "$DOWNLOADED" = "false" ]; then
-          echo "::warning::No pre-built CLI release found for ${TARGET_TAG}. Building from source..."
+          echo "::warning title=CLI built from source::No pre-built CLI release for ${TARGET_TAG}; building from source."
           echo "cli_source=built from source" >> $GITHUB_OUTPUT
           echo "CLI_SOURCE=built from source" >> $GITHUB_ENV
           if ! command -v cargo >/dev/null 2>&1; then
-            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal >>"$LOG" 2>&1
             source "$HOME/.cargo/env"
           fi
-          cargo build --release
+          # cargo --quiet hides per-crate "Compiling" lines; full output is kept in the log
+          if ! cargo build --release --quiet >>"$LOG" 2>&1; then
+            echo "::error title=CLI build failed::cargo build failed, last lines below (full log: $LOG)"
+            tail -n 30 "$LOG"
+            exit 1
+          fi
           cp target/release/revancex bin/revancex
+          echo "✔ CLI ${TARGET_TAG}: built from source ($(( $(date +%s) - START ))s)"
         else
           echo "cli_source=pre-built binary" >> $GITHUB_OUTPUT
           echo "CLI_SOURCE=pre-built binary" >> $GITHUB_ENV

@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
-use revancex::{builder, config, module, orchestrator, pages, patcher, report, testing, utils};
-use tracing_subscriber::EnvFilter;
+use revancex::{builder, config, module, orchestrator, pages, patcher, report, testing, ui, utils};
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 #[derive(Parser)]
 #[command(
@@ -212,18 +213,21 @@ enum SourcesSubcommand {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() {
     let cli = Cli::parse();
+    ui::init(cli.verbose);
+    tracing_subscriber::registry().with(ui::UiLayer).init();
 
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env().add_directive(if cli.verbose {
-            "debug".parse()?
-        } else {
-            "info".parse()?
-        }))
-        .with_writer(std::io::stderr)
-        .init();
+    match run(cli).await {
+        Ok(()) => ui::flush(),
+        Err(err) => {
+            ui::fatal(&err);
+            ui::exit(1);
+        }
+    }
+}
 
+async fn run(cli: Cli) -> Result<()> {
     let config = config::load_config(&cli.config_dir)?;
     std::env::set_var("REVANCEX_CONFIG_DIR", &cli.config_dir);
     std::env::set_var("REVANCEX_TEMP_DIR", &config.build.temp_dir);
@@ -276,21 +280,12 @@ async fn main() -> Result<()> {
                         .unwrap_or(false)
             });
 
-            if has_failures {
-                for (id, err) in &summary.failed {
-                    eprintln!("FAILED: {id}: {err}");
-                }
-                for (id, r) in &summary.reports {
-                    if r.status != "success" && !summary.failed.iter().any(|(fid, _)| fid == id) {
-                        eprintln!(
-                            "FAILED: {id}: {}",
-                            r.error.as_deref().unwrap_or("status is not success")
-                        );
-                    }
-                }
-                if !keep_going {
-                    std::process::exit(1);
-                }
+            // Per-item failures were already reported (✖ + cause + log tail) as each
+            // item finished; the summary below lists them once more in table form.
+            orchestrator::print_summary(&config, &summary);
+
+            if has_failures && !keep_going {
+                ui::exit(1);
             }
         }
 
@@ -334,7 +329,7 @@ async fn main() -> Result<()> {
                 patcher::metadata::validate_patch_compatibilities(&config, target_apps.as_deref())
                     .await;
             for w in &warnings {
-                eprintln!("Warning: {w}");
+                ui::warn_once(w);
             }
             if strict && !warnings.is_empty() {
                 anyhow::bail!("Strict validation failed: {} warning(s)", warnings.len());
@@ -352,7 +347,7 @@ async fn main() -> Result<()> {
                         }
                     }
                     if let Some(ref url) = app.uptodown_url {
-                        println!("Validating uptodown_url for {id}: {url}");
+                        ui::info(&format!("validating uptodown_url for {id}: {url}"));
                         match client.head(url).send().await {
                             Ok(resp) => {
                                 let st = resp.status();
@@ -372,7 +367,7 @@ async fn main() -> Result<()> {
                         }
                     }
                     if let Some(ref url) = app.apkmirror_url {
-                        println!("Validating apkmirror_url for {id}: {url}");
+                        ui::info(&format!("validating apkmirror_url for {id}: {url}"));
                         match client.head(url).send().await {
                             Ok(resp) => {
                                 let st = resp.status();
@@ -394,14 +389,14 @@ async fn main() -> Result<()> {
                 }
                 if !failures.is_empty() {
                     for f in &failures {
-                        eprintln!("Online validation error: {f}");
+                        ui::item(ui::Status::Fail, "validate", "", f, None);
                     }
                     anyhow::bail!(
                         "Online URL validation failed with {} error(s)",
                         failures.len()
                     );
                 }
-                println!("Online URL validation passed.");
+                ui::item_ok("validate", "", "online URL validation passed", None);
             }
         }
 
@@ -537,36 +532,59 @@ async fn main() -> Result<()> {
             if json {
                 println!("{}", serde_json::to_string_pretty(&report)?);
             } else {
-                println!(
-                    "Device Smoke Tests: {} passed, {} failed, {} skipped",
-                    report.passed, report.failed, report.skipped
-                );
+                ui::phase("Smoke test");
                 for item in &report.items {
-                    let reason = item
-                        .reason
-                        .as_deref()
-                        .map(|r| format!(" ({r})"))
-                        .unwrap_or_default();
+                    let reason = item.reason.as_deref().unwrap_or("");
                     let strat = item
                         .version_strategy
                         .as_deref()
                         .map(|s| format!(" [strategy: {s}]"))
                         .unwrap_or_default();
-                    println!("  [{}] {}{}{}", item.status, item.app, reason, strat);
+                    let status = match item.status.as_str() {
+                        "passed" => ui::Status::Ok,
+                        "failed" => ui::Status::Fail,
+                        _ => ui::Status::Skip,
+                    };
+                    ui::item(
+                        status,
+                        &item.app,
+                        "",
+                        &format!(
+                            "{}{}{}",
+                            item.status,
+                            strat,
+                            if reason.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" — {reason}")
+                            }
+                        ),
+                        None,
+                    );
                 }
-
-                if !filter_report.excluded_apps.is_empty() {
-                    println!("\nExcluded from release:");
-                    for excl in &filter_report.excluded_apps {
-                        println!("  - {}: {}", excl.app, excl.reason);
-                    }
+                for excl in &filter_report.excluded_apps {
+                    ui::warn_once(&format!(
+                        "excluded from release: {}: {}",
+                        excl.app, excl.reason
+                    ));
                 }
+                ui::item(
+                    ui::Status::Info,
+                    "smoke-test",
+                    "",
+                    &format!(
+                        "{} passed, {} failed, {} skipped",
+                        report.passed, report.failed, report.skipped
+                    ),
+                    None,
+                );
+                ui::end_phase();
             }
 
             let total = report.passed + report.failed + report.skipped;
             if testing::should_exit_failure(report.failed, total, continue_on_error, fail_threshold)
             {
-                std::process::exit(1);
+                ui::exit(1);
             }
         }
 
@@ -642,7 +660,7 @@ async fn main() -> Result<()> {
                 }
 
                 if !any_resolved {
-                    std::process::exit(1);
+                    ui::exit(1);
                 }
             }
         },
@@ -692,12 +710,12 @@ async fn main() -> Result<()> {
                 if !bad.is_empty() {
                     let total = apps.len().max(1);
                     let fail_pct = (bad.len() as f64 / total as f64) * 100.0;
-                    eprintln!(
-                        "::warning::Build report contains {} failed or unallowed app(s) ({:.1}% of total): {}",
+                    ui::warn_once(&format!(
+                        "Build report contains {} failed or unallowed app(s) ({:.1}% of total): {}",
                         bad.len(),
                         fail_pct,
                         bad.join(", ")
-                    );
+                    ));
 
                     let should_fail = if r#continue {
                         false
@@ -719,12 +737,22 @@ async fn main() -> Result<()> {
 
                 let ver_str = schema_version.as_deref().unwrap_or("legacy");
                 if let Some(s) = summary {
-                    println!(
-                        "Build report (schema v{ver_str}) validated: {} total, {} success, {} failed, {} skipped.",
-                        s.total, s.success, s.failed, s.skipped
+                    ui::item_ok(
+                        "report",
+                        "",
+                        &format!(
+                            "schema v{ver_str} valid: {} total, {} success, {} failed, {} skipped",
+                            s.total, s.success, s.failed, s.skipped
+                        ),
+                        None,
                     );
                 } else {
-                    println!("Build report (schema v{ver_str}) validated: all apps evaluated within threshold.");
+                    ui::item_ok(
+                        "report",
+                        "",
+                        &format!("schema v{ver_str} valid: all apps within threshold"),
+                        None,
+                    );
                 }
             }
         },

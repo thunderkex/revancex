@@ -73,6 +73,7 @@ def run():
 
         dest_script = os.path.join(scripts_dir, "update_readme_and_notify.py")
         shutil.copy(SCRIPT, dest_script)
+        shutil.copy(os.path.join(os.path.dirname(SCRIPT), "ulog.py"), os.path.join(scripts_dir, "ulog.py"))
 
         env = os.environ.copy()
         env.update({

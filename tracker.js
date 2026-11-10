@@ -3,6 +3,7 @@ import { getCached, setCached } from './cache.js';
 const MIN_POLL_INTERVAL_MS = 60 * 1000;
 const RELEASES_CACHE_KEY = 'revancex_live_custom_releases_v1';
 const RUNS_CACHE_KEY = 'revancex_live_dispatch_runs_v1';
+const SESSION_TOKEN_KEY = 'revancex_gh_pat';
 const FIFTEEN_MIN_MS = 15 * 60 * 1000;
 
 function detectRepoSlug() {
@@ -23,7 +24,7 @@ function escapeHtml(str) {
 }
 
 function formatBytes(bytes) {
-  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return '—';
+  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return 'Unknown size';
   const units = ['B', 'KB', 'MB', 'GB'];
   let idx = 0;
   let val = bytes;
@@ -32,6 +33,17 @@ function formatBytes(bytes) {
     idx += 1;
   }
   return `${val.toFixed(idx === 0 ? 0 : 1)} ${units[idx]}`;
+}
+
+function getSessionHeaders() {
+  const headers = { Accept: 'application/vnd.github+json' };
+  try {
+    const token = window.sessionStorage.getItem(SESSION_TOKEN_KEY)?.trim();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {
+    // Ignore sessionStorage restrictions
+  }
+  return headers;
 }
 
 export function initTracker({ getCatalog, formatRelativeTime }) {
@@ -104,7 +116,7 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
 
   function renderRuns(runs) {
     if (!runs || runs.length === 0) {
-      runsEl.innerHTML = '<p class="hint-text">No recent workflow_dispatch runs found.</p>';
+      runsEl.innerHTML = '<p class="hint-text">No recent custom cloud builds found.</p>';
       return;
     }
 
@@ -122,7 +134,7 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
         return `
           <div class="tracker-item">
             <div class="tracker-item-main">
-              <strong>#${escapeHtml(run.run_number || run.id)} — ${escapeHtml(run.name || 'Custom Bundle Build')}</strong>
+              <strong>#${escapeHtml(run.run_number || run.id)} · ${escapeHtml(run.name || 'Custom Bundle Build')}</strong>
               <span class="hint-text">${escapeHtml(formatRelativeTime(run.updated_at || run.created_at))}</span>
             </div>
             <div class="tracker-item-actions">
@@ -135,7 +147,16 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
       .join('');
   }
 
-  async function fetchLiveData(manual = false) {
+  async function fetchWithFallback(url) {
+    const headers = getSessionHeaders();
+    let res = await fetch(url, { headers });
+    if (res.status === 401 && headers.Authorization) {
+      res = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
+    }
+    return res;
+  }
+
+  async function fetchLiveData(manual = false, force = false) {
     if (!isOpen) return;
     const now = Date.now();
 
@@ -147,7 +168,7 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
       return;
     }
 
-    if (now - lastPollAt < MIN_POLL_INTERVAL_MS) {
+    if (!force && now - lastPollAt < MIN_POLL_INTERVAL_MS) {
       const waitSec = Math.ceil((MIN_POLL_INTERVAL_MS - (now - lastPollAt)) / 1000);
       if (manual) {
         metaEl.textContent = `Polling capped at once per 60s (available in ${waitSec}s).`;
@@ -161,9 +182,8 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
     metaEl.textContent = 'Polling GitHub Actions…';
 
     try {
-      const runsRes = await fetch(
-        `https://api.github.com/repos/${repoSlug}/actions/runs?event=workflow_dispatch&per_page=10`,
-        { headers: { Accept: 'application/vnd.github+json' } }
+      const runsRes = await fetchWithFallback(
+        `https://api.github.com/repos/${repoSlug}/actions/runs?event=workflow_dispatch&per_page=10`
       );
 
       if (runsRes.status === 403 || runsRes.status === 429) {
@@ -190,9 +210,8 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
         (r) => r.status === 'completed' && r.conclusion === 'success'
       );
       if (!releases || hasCompletedSuccess) {
-        const relRes = await fetch(
-          `https://api.github.com/repos/${repoSlug}/releases?per_page=20`,
-          { headers: { Accept: 'application/vnd.github+json' } }
+        const relRes = await fetchWithFallback(
+          `https://api.github.com/repos/${repoSlug}/releases?per_page=20`
         );
         if (relRes.status === 403 || relRes.status === 429) {
           const retryAfter = parseInt(relRes.headers.get('Retry-After') || '120', 10);
@@ -203,7 +222,8 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
         }
       }
       renderCustomBundles(releases);
-      metaEl.textContent = `Last checked ${new Date().toLocaleTimeString()} (auto-refresh every 60s while open)`;
+      const hasAuth = Boolean(getSessionHeaders().Authorization);
+      metaEl.textContent = `Last checked ${new Date().toLocaleTimeString()} · ${hasAuth ? 'Session PAT active' : 'Unauthenticated'} · Auto-refresh every 60s while open`;
     } catch (err) {
       metaEl.textContent = `Live check paused (${err.message}); showing cached/static data.`;
       renderRuns(getCached(RUNS_CACHE_KEY, FIFTEEN_MIN_MS));
@@ -211,15 +231,15 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
     }
   }
 
-  function openTracker() {
+  function openTracker(opts = {}) {
     lastFocused = document.activeElement;
     isOpen = true;
     modal.hidden = false;
     closeBtn.focus();
-    fetchLiveData(false);
+    fetchLiveData(false, Boolean(opts.force));
     if (timerId) clearInterval(timerId);
     timerId = setInterval(() => {
-      if (isOpen) fetchLiveData(false);
+      if (isOpen) fetchLiveData(false, false);
     }, MIN_POLL_INTERVAL_MS);
   }
 
@@ -236,9 +256,9 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
     }
   }
 
-  openBtn.addEventListener('click', openTracker);
+  openBtn.addEventListener('click', () => openTracker());
   closeBtn.addEventListener('click', closeTracker);
-  refreshBtn.addEventListener('click', () => fetchLiveData(true));
+  refreshBtn.addEventListener('click', () => fetchLiveData(true, false));
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeTracker();
   });
@@ -253,7 +273,7 @@ export function initTracker({ getCatalog, formatRelativeTime }) {
     if (e.key === 'Tab') {
       const focusable = Array.from(
         modal.querySelectorAll('button, [href], input, select, [tabindex]:not([tabindex="-1"])')
-      ).filter((el) => !el.disabled && !el.hidden);
+      ).filter((el) => !el.disabled && !el.hidden && el.offsetParent !== null);
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];

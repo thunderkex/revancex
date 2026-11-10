@@ -26,28 +26,46 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function groupAppsByCategory(apps) {
+function groupAppsByPrimaryCategory(apps) {
   const groups = new Map(CATEGORY_ORDER.map((c) => [c, []]));
+  const seen = new Set();
+
   for (const app of apps) {
-    if (!app.enabled) continue;
+    if (!app.enabled || seen.has(app.id)) continue;
+    seen.add(app.id);
     const cats = (app.categories || []).filter((c) => c !== 'all');
-    if (cats.length === 0) {
-      groups.get('other').push(app);
-    } else {
-      for (const c of cats) {
-        if (!groups.has(c)) groups.set(c, []);
-        groups.get(c).push(app);
-      }
-    }
+    const primary = cats[0] || 'other';
+    if (!groups.has(primary)) groups.set(primary, []);
+    groups.get(primary).push(app);
   }
   return groups;
+}
+
+function formatDispatchError(status, body, fallbackText) {
+  if (status === 401) {
+    return 'Token rejected (401 Unauthorized). Check that your PAT is valid and has not expired.';
+  }
+  if (status === 403) {
+    return 'Permission denied or rate-limited (403). Ensure your Fine-Grained PAT grants "Actions: Read and write" on this repository.';
+  }
+  if (status === 404) {
+    return 'Workflow not found (404). Verify that custom-build.yml exists on branch "extended" and your PAT can access this repo.';
+  }
+  if (status === 422) {
+    return `GitHub rejected the workflow inputs (422). ${body || 'Check selected app IDs and options.'}`;
+  }
+  return `GitHub API error (${status}): ${body || fallbackText || 'Unknown error'}`;
 }
 
 export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
   const openBtn = document.getElementById('open-composer-btn');
   const modal = document.getElementById('composer-modal');
   const closeBtn = document.getElementById('composer-close-btn');
+  const doneBtn = document.getElementById('composer-done-btn');
   const groupsEl = document.getElementById('composer-app-groups');
+  const appSearchInput = document.getElementById('composer-app-search');
+  const selectedChipsEl = document.getElementById('composer-selected-chips');
+  const presetYtBtn = document.getElementById('composer-preset-yt');
   const selectAllBtn = document.getElementById('composer-select-all');
   const deselectAllBtn = document.getElementById('composer-deselect-all');
   const archSelect = document.getElementById('composer-arch');
@@ -61,6 +79,10 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
   const tokenInput = document.getElementById('composer-token');
   const clearTokenBtn = document.getElementById('composer-clear-token');
   const dispatchBtn = document.getElementById('composer-dispatch-btn');
+  const confirmBox = document.getElementById('composer-confirm-box');
+  const confirmSummary = document.getElementById('composer-confirm-summary');
+  const confirmCancelBtn = document.getElementById('composer-confirm-cancel');
+  const confirmSubmitBtn = document.getElementById('composer-confirm-submit');
   const cloudStatus = document.getElementById('composer-cloud-status');
   const fallbackLink = document.getElementById('composer-fallback-link');
   const tabBtns = modal.querySelectorAll('[data-composer-tab]');
@@ -85,6 +107,11 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     return (getCatalog()?.apps || []).filter((a) => a.enabled);
   }
 
+  function syncDispatchButton() {
+    const hasToken = tokenInput.value.trim().length > 0;
+    dispatchBtn.disabled = selected.size === 0 || !hasToken;
+  }
+
   function enforceConstraints() {
     const apps = [...selected];
     const onlyMicrog = apps.length > 0 && apps.every((id) => id === 'microg');
@@ -97,13 +124,16 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
       if (packagingSelect.value !== 'apk') {
         packagingSelect.value = 'apk';
       }
-      constraintNote.textContent = 'MicroG is standalone APK only — module packaging disabled.';
+      constraintNote.textContent = 'MicroG is standalone APK only; module packaging is disabled.';
       constraintNote.hidden = false;
     } else {
       bundleOpt.disabled = false;
       singleOpt.disabled = false;
       if (packagingSelect.value === 'apk') {
-        constraintNote.textContent = 'Embedded WebUI applies only to Root Modules and Bundles.';
+        constraintNote.textContent = 'Embedded Root WebUI applies only to Root Modules and Bundles.';
+        constraintNote.hidden = false;
+      } else if (packagingSelect.value === 'single_module' && apps.filter((id) => id !== 'microg').length > 1) {
+        constraintNote.textContent = 'Single Root Module builds one separate module zip for each selected eligible app.';
         constraintNote.hidden = false;
       } else {
         constraintNote.hidden = true;
@@ -117,6 +147,27 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     }
   }
 
+  function renderSelectedChips() {
+    const appsById = new Map(getAppsList().map((a) => [a.id, a]));
+    const ids = [...selected].sort();
+    if (ids.length === 0) {
+      selectedChipsEl.innerHTML = '<span class="hint-text">No apps selected yet.</span>';
+      return;
+    }
+
+    selectedChipsEl.innerHTML = ids
+      .map((id) => {
+        const name = appsById.get(id)?.name || id;
+        return `
+          <button type="button" class="selected-pill" data-remove-app="${escapeHtml(id)}" aria-label="Remove ${escapeHtml(name)}">
+            <span>${escapeHtml(name)}</span>
+            <span aria-hidden="true">&times;</span>
+          </button>
+        `;
+      })
+      .join('');
+  }
+
   function buildLocalCommand() {
     enforceConstraints();
     const apps = [...selected].sort();
@@ -127,7 +178,8 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     const includeWebui = !webuiCheck.disabled && webuiCheck.checked;
 
     selectedSummary.textContent = `${apps.length} app${apps.length === 1 ? '' : 's'} selected`;
-    dispatchBtn.disabled = apps.length === 0;
+    renderSelectedChips();
+    syncDispatchButton();
 
     if (apps.length === 0) {
       localCmdEl.textContent = '# Select at least one app to generate CLI commands.';
@@ -147,15 +199,28 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     localCmdEl.textContent = `${buildLine}\n${modLine}`;
   }
 
+  function filterAppGroups() {
+    const q = (appSearchInput.value || '').trim().toLowerCase();
+    groupsEl.querySelectorAll('.composer-cat').forEach((fieldset) => {
+      let visibleCount = 0;
+      fieldset.querySelectorAll('label[data-app-pick]').forEach((lbl) => {
+        const hay = lbl.dataset.search || '';
+        const match = !q || hay.includes(q);
+        lbl.hidden = !match;
+        if (match) visibleCount += 1;
+      });
+      fieldset.hidden = visibleCount === 0;
+    });
+  }
+
   function renderAppGroups() {
     const apps = getAppsList();
     if (apps.length === 0) {
-      groupsEl.innerHTML = '<p class="hint-text">Catalogue apps not loaded yet.</p>';
+      groupsEl.innerHTML = '<p class="hint-text">Catalogue apps are still loading. Close and retry once loaded.</p>';
       return;
     }
 
-    const groups = groupAppsByCategory(apps);
-    const seenInCategory = new Set();
+    const groups = groupAppsByPrimaryCategory(apps);
     let html = '';
 
     for (const [cat, list] of groups.entries()) {
@@ -167,14 +232,13 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
             ${list
               .map((app) => {
                 const isSelected = selected.has(app.id);
-                const dupNote = seenInCategory.has(app.id);
-                seenInCategory.add(app.id);
                 const deps = (app.dependencies || []).length
                   ? ` (+${app.dependencies.join(', ')})`
                   : '';
+                const searchStr = `${app.name} ${app.id} ${app.package || ''}`.toLowerCase();
                 return `
-                  <label class="app-pick ${isSelected ? 'is-selected' : ''}" data-app-pick="${escapeHtml(app.id)}">
-                    <input type="checkbox" value="${escapeHtml(app.id)}" ${isSelected ? 'checked' : ''} ${dupNote ? 'data-dup="1"' : ''}>
+                  <label class="app-pick ${isSelected ? 'is-selected' : ''}" data-app-pick="${escapeHtml(app.id)}" data-search="${escapeHtml(searchStr)}">
+                    <input type="checkbox" value="${escapeHtml(app.id)}" ${isSelected ? 'checked' : ''}>
                     <span>
                       <strong>${escapeHtml(app.name)}</strong>
                       <small class="mono">${escapeHtml(app.id)}${escapeHtml(deps)}</small>
@@ -190,6 +254,7 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
 
     groupsEl.innerHTML = html;
     rendered = true;
+    filterAppGroups();
     buildLocalCommand();
   }
 
@@ -203,11 +268,24 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     });
   }
 
+  function activateTab(tabBtn) {
+    const target = tabBtn.dataset.composerTab;
+    tabBtns.forEach((b) => {
+      const active = b === tabBtn;
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+      b.tabIndex = active ? 0 : -1;
+    });
+    localPanel.hidden = target !== 'local';
+    cloudPanel.hidden = target !== 'cloud';
+    confirmBox.hidden = true;
+  }
+
   function openModal() {
     lastFocused = document.activeElement;
-    if (!rendered) renderAppGroups();
+    if (!rendered || getAppsList().length > 0) renderAppGroups();
     syncCheckboxes();
     buildLocalCommand();
+    confirmBox.hidden = true;
     modal.hidden = false;
     closeBtn.focus();
   }
@@ -215,6 +293,7 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
   function closeModal() {
     if (modal.hidden) return;
     modal.hidden = true;
+    confirmBox.hidden = true;
     if (lastFocused && typeof lastFocused.focus === 'function') {
       lastFocused.focus();
     }
@@ -222,6 +301,7 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
 
   openBtn.addEventListener('click', openModal);
   closeBtn.addEventListener('click', closeModal);
+  doneBtn.addEventListener('click', closeModal);
   modal.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
   });
@@ -235,7 +315,7 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     }
     if (e.key === 'Tab') {
       const focusable = Array.from(
-        modal.querySelectorAll('button, [href], input, select, [tabindex]:not([tabindex="-1"])')
+        modal.querySelectorAll('button, [href], input, select, summary, [tabindex]:not([tabindex="-1"])')
       ).filter((el) => !el.disabled && !el.hidden && el.offsetParent !== null);
       if (focusable.length === 0) return;
       const first = focusable[0];
@@ -250,6 +330,16 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     }
   });
 
+  appSearchInput.addEventListener('input', filterAppGroups);
+
+  selectedChipsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-remove-app]');
+    if (!btn) return;
+    selected.delete(btn.dataset.removeApp);
+    syncCheckboxes();
+    buildLocalCommand();
+  });
+
   groupsEl.addEventListener('change', (e) => {
     const cb = e.target;
     if (cb.type !== 'checkbox') return;
@@ -257,12 +347,30 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     if (cb.checked) {
       selected.add(id);
       const appObj = getAppsList().find((a) => a.id === id);
+      const addedDeps = [];
       for (const dep of appObj?.dependencies || []) {
+        if (!selected.has(dep)) addedDeps.push(dep);
         selected.add(dep);
+      }
+      if (addedDeps.length) {
+        showToast(`Added required dependency: ${addedDeps.join(', ')}`);
       }
     } else {
       selected.delete(id);
+      const dependents = getAppsList()
+        .filter((a) => selected.has(a.id) && (a.dependencies || []).includes(id))
+        .map((a) => a.name);
+      if (dependents.length) {
+        showToast(`Note: ${dependents.join(', ')} list ${id} as a dependency`);
+      }
     }
+    syncCheckboxes();
+    buildLocalCommand();
+  });
+
+  presetYtBtn.addEventListener('click', () => {
+    selected.clear();
+    ['youtube', 'youtube_music', 'microg'].forEach((id) => selected.add(id));
     syncCheckboxes();
     buildLocalCommand();
   });
@@ -280,19 +388,26 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
   });
 
   [archSelect, modeSelect, packagingSelect, webuiCheck].forEach((el) => {
-    el.addEventListener('change', buildLocalCommand);
+    el.addEventListener('change', () => {
+      confirmBox.hidden = true;
+      buildLocalCommand();
+    });
   });
 
   copyCmdBtn.addEventListener('click', () => {
     copyText(localCmdEl.textContent, 'CLI command');
   });
 
-  tabBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const target = btn.dataset.composerTab;
-      tabBtns.forEach((b) => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
-      localPanel.hidden = target !== 'local';
-      cloudPanel.hidden = target !== 'cloud';
+  tabBtns.forEach((btn, idx) => {
+    btn.addEventListener('click', () => activateTab(btn));
+    btn.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      e.preventDefault();
+      const next = e.key === 'ArrowRight'
+        ? tabBtns[(idx + 1) % tabBtns.length]
+        : tabBtns[(idx - 1 + tabBtns.length) % tabBtns.length];
+      activateTab(next);
+      next.focus();
     });
   });
 
@@ -307,24 +422,50 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     } catch {
       // Ignore
     }
+    syncDispatchButton();
   });
 
   clearTokenBtn.addEventListener('click', () => {
     tokenInput.value = '';
+    confirmBox.hidden = true;
     try {
       window.sessionStorage.removeItem(SESSION_TOKEN_KEY);
     } catch {
       // Ignore
     }
+    syncDispatchButton();
     showToast('Token cleared from sessionStorage');
   });
 
-  dispatchBtn.addEventListener('click', async () => {
+  dispatchBtn.addEventListener('click', () => {
     const token = tokenInput.value.trim();
     if (!token) {
       cloudStatus.hidden = false;
       cloudStatus.className = 'cloud-status is-error';
-      cloudStatus.textContent = 'Enter a GitHub fine-grained PAT (Actions: write) or use the no-token Run workflow link below.';
+      cloudStatus.textContent = 'Enter a GitHub Fine-Grained PAT (Actions: Read and write) or use "Run on GitHub (no token)".';
+      return;
+    }
+
+    const apps = [...selected].sort().join(', ');
+    const arch = archSelect.value;
+    const mode = modeSelect.value;
+    const packaging = packagingSelect.value;
+    const includeWebui = !webuiCheck.disabled && webuiCheck.checked;
+    confirmSummary.textContent = `Dispatch custom-build.yml on branch "extended" for ${selected.size} app(s) (${apps}) — ${arch}, ${mode}, ${packaging}${includeWebui ? ', with WebUI' : ''}?`;
+    confirmBox.hidden = false;
+    confirmSubmitBtn.focus();
+  });
+
+  confirmCancelBtn.addEventListener('click', () => {
+    confirmBox.hidden = true;
+    dispatchBtn.focus();
+  });
+
+  confirmSubmitBtn.addEventListener('click', async () => {
+    const token = tokenInput.value.trim();
+    if (!token || selected.size === 0) {
+      confirmBox.hidden = true;
+      syncDispatchButton();
       return;
     }
 
@@ -334,6 +475,7 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
     const packaging = packagingSelect.value;
     const includeWebui = !webuiCheck.disabled && webuiCheck.checked;
 
+    confirmBox.hidden = true;
     dispatchBtn.disabled = true;
     dispatchBtn.textContent = 'Dispatching…';
     cloudStatus.hidden = true;
@@ -371,21 +513,21 @@ export function initComposer({ getCatalog, copyText, showToast, openTracker }) {
         `;
         document.getElementById('composer-open-tracker-btn')?.addEventListener('click', () => {
           closeModal();
-          openTracker();
+          openTracker({ force: true });
         });
       } else {
         const body = await res.text();
         cloudStatus.hidden = false;
         cloudStatus.className = 'cloud-status is-error';
-        cloudStatus.textContent = `GitHub API ${res.status}: ${body || res.statusText}`;
+        cloudStatus.textContent = formatDispatchError(res.status, body, res.statusText);
       }
     } catch (err) {
       cloudStatus.hidden = false;
       cloudStatus.className = 'cloud-status is-error';
-      cloudStatus.textContent = `Network error: ${err.message}`;
+      cloudStatus.textContent = `Network error reaching GitHub API: ${err.message}. Check your connection and try again.`;
     } finally {
-      dispatchBtn.disabled = selected.size === 0;
       dispatchBtn.textContent = 'Dispatch Custom Build';
+      syncDispatchButton();
     }
   });
 }

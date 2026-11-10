@@ -24,15 +24,22 @@ const els = {
   healthTag: document.getElementById('health-tag'),
   healthCli: document.getElementById('health-cli'),
   healthBuilt: document.getElementById('health-built'),
+  healthPassLabel: document.getElementById('health-pass-label'),
   healthPass: document.getElementById('health-pass'),
   healthSourcesCount: document.getElementById('health-sources-count'),
   healthSourcesList: document.getElementById('health-sources-list'),
   searchInput: document.getElementById('search-input'),
+  categorySelect: document.getElementById('category-select'),
+  archSelect: document.getElementById('arch-select'),
   sortSelect: document.getElementById('sort-select'),
   resultsCount: document.getElementById('results-count'),
   resetBtn: document.getElementById('reset-filters-btn'),
   grid: document.getElementById('catalog-grid'),
   statusBox: document.getElementById('catalog-status'),
+  guideModal: document.getElementById('guide-modal'),
+  openGuideBtn: document.getElementById('open-guide-btn'),
+  guideCloseBtn: document.getElementById('guide-close-btn'),
+  guideDoneBtn: document.getElementById('guide-done-btn'),
   qrModal: document.getElementById('qr-modal'),
   qrSubtitle: document.getElementById('qr-modal-subtitle'),
   qrSvgWrap: document.getElementById('qr-svg-wrap'),
@@ -111,7 +118,7 @@ function initTheme() {
 }
 
 function formatBytes(bytes) {
-  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return '—';
+  if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes <= 0) return null;
   const units = ['B', 'KB', 'MB', 'GB'];
   let idx = 0;
   let val = bytes;
@@ -123,9 +130,9 @@ function formatBytes(bytes) {
 }
 
 export function formatRelativeTime(iso) {
-  if (!iso) return '—';
+  if (!iso) return 'Unknown';
   const ts = Date.parse(iso);
-  if (Number.isNaN(ts)) return '—';
+  if (Number.isNaN(ts)) return 'Unknown';
   const diffSec = Math.round((Date.now() - ts) / 1000);
   const abs = Math.abs(diffSec);
   if (abs < 60) return 'just now';
@@ -238,21 +245,25 @@ function buildItemsFromCatalog(data) {
   return items;
 }
 
-function renderHealth(health) {
+function renderHealth(data) {
+  const health = data?.build_health;
   if (!health) return;
-  els.healthTag.textContent = health.release_tag || 'No auto release yet';
-  els.healthCli.textContent = health.cli_version ? `v${health.cli_version}` : '—';
+  els.healthTag.textContent = health.release_tag || 'Pending';
+  els.healthCli.textContent = health.cli_version ? `v${health.cli_version}` : 'Pending';
 
   if (health.built_at) {
     els.healthBuilt.innerHTML = `<time datetime="${escapeHtml(health.built_at)}" title="${escapeHtml(health.built_at)}">${escapeHtml(formatRelativeTime(health.built_at))}</time>`;
   } else {
-    els.healthBuilt.textContent = '—';
+    els.healthBuilt.textContent = 'Pending';
   }
 
   if (typeof health.pass_rate === 'number') {
+    els.healthPassLabel.textContent = 'Pass Rate';
     els.healthPass.textContent = `${Math.round(health.pass_rate * 1000) / 10}%`;
   } else {
-    els.healthPass.textContent = 'N/A (static registry)';
+    const enabledCount = (data.apps || []).filter((a) => a.enabled).length;
+    els.healthPassLabel.textContent = 'Configured';
+    els.healthPass.textContent = `${enabledCount} apps`;
   }
 
   const sources = health.active_sources || [];
@@ -286,15 +297,15 @@ function loadStateFromHash() {
   state.sort = params.get('sort') || 'updated';
 
   els.searchInput.value = state.q;
+  els.categorySelect.value = state.category;
+  els.archSelect.value = state.arch;
   els.sortSelect.value = state.sort;
   syncChipButtons();
 }
 
 function syncChipButtons() {
-  document.querySelectorAll('.chip[data-filter]').forEach((btn) => {
-    const kind = btn.dataset.filter;
-    const val = btn.dataset.value;
-    const active = state[kind] === val;
+  document.querySelectorAll('.chip[data-filter="format"]').forEach((btn) => {
+    const active = state.format === btn.dataset.value;
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
 }
@@ -344,15 +355,23 @@ function sortItems(list) {
 }
 
 function validationBadgeHtml(status) {
-  const safe = ['passed', 'warning', 'failed', 'unknown'].includes(status) ? status : 'unknown';
-  const icons = { passed: '✓', warning: '!', failed: '✕', unknown: '?' };
-  return `<span class="badge badge-${safe}" title="Validation status: ${safe}">${icons[safe]} ${safe}</span>`;
+  if (!['passed', 'warning', 'failed'].includes(status)) return '';
+  const icons = { passed: '✓', warning: '!', failed: '✕' };
+  const labels = { passed: 'Verified', warning: 'Warning', failed: 'Failed' };
+  return `<span class="badge badge-${status}" title="Validation status: ${labels[status]}"><span aria-hidden="true">${icons[status]}</span> ${labels[status]}</span>`;
 }
 
 function formatBadgeClass(fmt) {
   if (fmt === 'apk') return 'badge-format-apk';
   if (fmt === 'single_module') return 'badge-format-module';
   return 'badge-format-bundle';
+}
+
+function summarizeArchs(archs) {
+  if (!archs || archs.length === 0) return '';
+  if (archs.includes('all')) return '<span class="badge mono">Universal</span>';
+  if (archs.length === 1) return `<span class="badge mono">${escapeHtml(archs[0])}</span>`;
+  return `<span class="badge mono" title="${escapeHtml(archs.join(', '))}">${archs.length} archs</span>`;
 }
 
 function renderCatalog() {
@@ -380,15 +399,25 @@ function renderCatalog() {
       const verBadge = item.version
         ? `<span class="badge mono">${escapeHtml(item.version.startsWith('v') || item.version.startsWith('auto-') ? item.version : `v${item.version}`)}</span>`
         : '';
-      const srcBadge = item.sourceRepo
-        ? `<span class="badge">${escapeHtml(item.sourceRepo)}</span>`
-        : '';
-      const archBadges = (item.supportedArchs || [])
-        .map((a) => `<span class="badge mono">${escapeHtml(a)}</span>`)
-        .join('');
+      const archBadge = summarizeArchs(item.supportedArchs);
+      const sizeStr = formatBytes(item.sizeBytes);
       const relTime = item.updatedAt
         ? `<time datetime="${escapeHtml(item.updatedAt)}" title="${escapeHtml(item.updatedAt)}">${escapeHtml(formatRelativeTime(item.updatedAt))}</time>`
-        : '—';
+        : null;
+
+      const metaParts = [];
+      if (item.sourceRepo) {
+        metaParts.push(`<span class="meta-item">Source: <strong class="mono">${escapeHtml(item.sourceRepo)}</strong></span>`);
+      }
+      if (sizeStr) {
+        metaParts.push(`<span class="meta-item">Size: <strong>${escapeHtml(sizeStr)}</strong></span>`);
+      }
+      if (relTime) {
+        metaParts.push(`<span class="meta-item">Updated: <strong>${relTime}</strong></span>`);
+      }
+      if (item.optimizationMode && item.optimizationMode !== 'full') {
+        metaParts.push(`<span class="meta-item">Mode: <strong>${escapeHtml(item.optimizationMode)}</strong></span>`);
+      }
 
       const payloadHtml = item.payload && item.payload.length
         ? `
@@ -415,19 +444,21 @@ function renderCatalog() {
         : `<button type="button" class="btn btn-primary" disabled title="No release asset published yet">Unavailable</button>`;
 
       const qrBtn = item.downloadUrl
-        ? `<button type="button" class="btn" data-action="qr" data-key="${escapeHtml(item.key)}">QR</button>`
+        ? `<button type="button" class="btn" data-action="qr" data-key="${escapeHtml(item.key)}" title="Show QR code for mobile download">QR</button>`
         : '';
 
       const shaBtn = item.sha256
         ? `<button type="button" class="btn" data-action="sha" data-key="${escapeHtml(item.key)}">Copy SHA-256</button>`
-        : `<button type="button" class="btn" disabled title="SHA-256 unavailable for legacy registry entry">SHA-256 —</button>`;
-
-      const updateJsonBtn = (item.format === 'single_module' || item.format === 'bundle') && item.moduleId
-        ? `<button type="button" class="btn btn-tonal" data-action="ota" data-key="${escapeHtml(item.key)}">Copy updateJson</button>`
         : '';
 
+      const updateJsonBtn = (item.format === 'single_module' || item.format === 'bundle') && item.moduleId
+        ? `<button type="button" class="btn btn-tonal" data-action="ota" data-key="${escapeHtml(item.key)}" title="Copy KernelSU / Magisk OTA update JSON URL">Copy OTA URL</button>`
+        : '';
+
+      const isRoot = item.format === 'single_module' || item.format === 'bundle';
+
       return `
-        <article class="card" data-key="${escapeHtml(item.key)}">
+        <article class="card ${isRoot ? 'card-root' : ''}" data-key="${escapeHtml(item.key)}">
           <div class="card-head">
             <div class="card-title-wrap">
               <h2 class="card-title">${escapeHtml(item.name)}</h2>
@@ -439,15 +470,10 @@ function renderCatalog() {
           <div class="badge-row">
             <span class="badge ${formatBadgeClass(item.format)}">${escapeHtml(item.formatLabel)}</span>
             ${verBadge}
-            ${srcBadge}
-            ${archBadges}
-            <span class="badge">${escapeHtml(item.optimizationMode)}</span>
+            ${archBadge}
           </div>
 
-          <div class="meta-row">
-            <span class="meta-item">Size: <strong>${escapeHtml(formatBytes(item.sizeBytes))}</strong></span>
-            <span class="meta-item">Updated: <strong>${relTime}</strong></span>
-          </div>
+          ${metaParts.length ? `<div class="meta-row">${metaParts.join('')}</div>` : ''}
 
           ${payloadHtml}
 
@@ -470,10 +496,29 @@ function resetFilters() {
   state.arch = 'all_filter';
   state.sort = 'updated';
   els.searchInput.value = '';
+  els.categorySelect.value = 'all';
+  els.archSelect.value = 'all_filter';
   els.sortSelect.value = 'updated';
   syncChipButtons();
   syncStateToHash();
   renderCatalog();
+}
+
+function trapFocus(modalEl, e) {
+  if (e.key !== 'Tab') return;
+  const focusable = Array.from(
+    modalEl.querySelectorAll('button, [href], input, select, summary, [tabindex]:not([tabindex="-1"])')
+  ).filter((el) => !el.disabled && !el.hidden && el.offsetParent !== null);
+  if (focusable.length === 0) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
 }
 
 function openQrModal(item) {
@@ -499,6 +544,20 @@ function closeQrModal() {
   }
 }
 
+function openGuideModal() {
+  state.lastFocused = document.activeElement;
+  els.guideModal.hidden = false;
+  els.guideCloseBtn.focus();
+}
+
+function closeGuideModal() {
+  if (els.guideModal.hidden) return;
+  els.guideModal.hidden = true;
+  if (state.lastFocused && typeof state.lastFocused.focus === 'function') {
+    state.lastFocused.focus();
+  }
+}
+
 function bindModalEvents() {
   els.qrCloseBtn.addEventListener('click', closeQrModal);
   els.qrDoneBtn.addEventListener('click', closeQrModal);
@@ -507,27 +566,30 @@ function bindModalEvents() {
     if (e.target === els.qrModal) closeQrModal();
   });
 
+  els.openGuideBtn.addEventListener('click', openGuideModal);
+  els.guideCloseBtn.addEventListener('click', closeGuideModal);
+  els.guideDoneBtn.addEventListener('click', closeGuideModal);
+  els.guideModal.addEventListener('click', (e) => {
+    if (e.target === els.guideModal) closeGuideModal();
+  });
+
   document.addEventListener('keydown', (e) => {
-    if (els.qrModal.hidden) return;
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      closeQrModal();
+    if (!els.qrModal.hidden) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeQrModal();
+        return;
+      }
+      trapFocus(els.qrModal, e);
       return;
     }
-    if (e.key === 'Tab') {
-      const focusable = Array.from(
-        els.qrModal.querySelectorAll('button, [href], input, select, [tabindex]:not([tabindex="-1"])')
-      ).filter((el) => !el.disabled && !el.hidden);
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
+    if (!els.guideModal.hidden) {
+      if (e.key === 'Escape') {
         e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
+        closeGuideModal();
+        return;
       }
+      trapFocus(els.guideModal, e);
     }
   });
 }
@@ -539,19 +601,42 @@ function bindEvents() {
     renderCatalog();
   });
 
+  els.categorySelect.addEventListener('change', (e) => {
+    state.category = e.target.value;
+    syncStateToHash();
+    renderCatalog();
+  });
+
+  els.archSelect.addEventListener('change', (e) => {
+    state.arch = e.target.value;
+    syncStateToHash();
+    renderCatalog();
+  });
+
   els.sortSelect.addEventListener('change', (e) => {
     state.sort = e.target.value;
     syncStateToHash();
     renderCatalog();
   });
 
-  document.querySelectorAll('.chip[data-filter]').forEach((btn) => {
+  document.querySelectorAll('.chip[data-filter="format"]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      state[btn.dataset.filter] = btn.dataset.value;
+      state.format = btn.dataset.value;
       syncChipButtons();
       syncStateToHash();
       renderCatalog();
     });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (!els.qrModal.hidden || !els.guideModal.hidden) return;
+    if (!document.getElementById('composer-modal').hidden) return;
+    if (!document.getElementById('tracker-modal').hidden) return;
+    e.preventDefault();
+    els.searchInput.focus();
   });
 
   els.resetBtn.addEventListener('click', resetFilters);
@@ -571,7 +656,7 @@ function bindEvents() {
     } else if (btn.dataset.action === 'sha') {
       copyText(item.sha256, 'SHA-256');
     } else if (btn.dataset.action === 'ota' && item.moduleId) {
-      copyText(`${OTA_BASE}/${item.moduleId}.json`, 'updateJson URL');
+      copyText(`${OTA_BASE}/${item.moduleId}.json`, 'OTA update URL');
     }
   });
 }
@@ -584,7 +669,7 @@ export async function loadCatalog() {
     const data = await res.json();
     state.catalog = data;
     state.items = buildItemsFromCatalog(data);
-    renderHealth(data.build_health);
+    renderHealth(data);
     renderCatalog();
   } catch (err) {
     els.resultsCount.textContent = 'Catalogue unavailable';

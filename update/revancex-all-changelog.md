@@ -19,14 +19,14 @@
 | Hungry Shark World | `com.ubisoft.hungrysharkworld` | latest | `apks/hungry_shark_world.apk` | legendsciber/morphe-patches |
 | Instagram | `com.instagram.android` | 452.1.0.53.64 | `apks/instagram.apk` | crimera/piko-ig-lite |
 | Lightroom | `com.adobe.lrmobile` | 11.5.31 | `apks/lightroom.apk` | hoo-dles/morphe-patches |
-| Moviebox | `com.community.oneroom` | latest | `apks/moviebox.apk` | hxreborn/morphe-patches |
-| Pixiv | `jp.pxv.android` | latest | `apks/pixiv.apk` | Fripe070/PixivPatches |
+| Moviebox | `com.community.oneroom` | 4.0.03.1020.03 | `apks/moviebox.apk` | hxreborn/morphe-patches |
+| Pixiv | `jp.pxv.android` | 6.196.0 | `apks/pixiv.apk` | Fripe070/PixivPatches |
 | Proton VPN | `ch.protonvpn.android` | 5.21.9.0 | `apks/proton_vpn.apk` | hxreborn/morphe-patches |
 | Reddit | `com.reddit.frontpage` | 2026.42.0 | `apks/reddit.apk` | jkennethcarino/adobo |
 | Strava | `com.strava` | latest | `apks/strava.apk` | RookieEnough/De-Vanced |
 | Threads | `com.instagram.barcelona` | 454.0.0.54.79 | `apks/threads.apk` | SysAdminDoc/HushThreads |
 | TikTok | `com.zhiliaoapp.musically` | 47.7.2 | `apks/tiktok.apk` | SysAdminDoc/HushFeed |
-| WPS Office | `cn.wps.moffice_eng` | latest | `apks/wps_office.apk` | hoo-dles/morphe-patches |
+| WPS Office | `cn.wps.moffice_eng` | 18.24 | `apks/wps_office.apk` | hoo-dles/morphe-patches |
 | X Piko | `com.twitter.android` | 12.41.0-prod.01 | `apks/x_piko.apk` | crimera/piko-newx |
 | YouTube | `com.google.android.youtube` | 20.05.46 | `apks/youtube.apk` | anddea/revanced-patches |
 | YouTube Music | `com.google.android.apps.youtube.music` | 9.15.51 | `apks/youtube_music.apk` | anddea/revanced-patches |

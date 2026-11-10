@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="ReVanceX catalogue of patched Android APKs, Magisk/KernelSU root modules, and multi-app bundles.">
-  <title>Revancex — Apps &amp; Root Modules Catalogue</title>
+  <title>ReVanceX Catalogue — Patched APKs &amp; Root Modules</title>
   <link rel="stylesheet" href="tokens.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -15,13 +15,23 @@
     <div class="container header-inner">
       <div class="brand-row">
         <div class="brand">
-          <span class="brand-mark" aria-hidden="true">RX</span>
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 19V5h6.5a4 4 0 0 1 0 8H5" />
+              <path d="M10.5 13 15 19" />
+              <path d="m14.5 5 5 14" />
+              <path d="m19.5 5-5 14" />
+            </svg>
+          </span>
           <div>
-            <h1>Revancex Catalogue</h1>
-            <p class="subtitle">Patched APKs, single-app root modules, and curated Magisk/KernelSU bundles</p>
+            <h1>ReVanceX Catalogue</h1>
+            <p class="subtitle">Patched Android APKs, single-app root modules, and curated Magisk/KernelSU bundles</p>
           </div>
         </div>
         <div class="header-actions">
+          <button type="button" id="open-guide-btn" class="btn">
+            Install Guide
+          </button>
           <button type="button" id="open-composer-btn" class="btn btn-primary">
             Custom Build
           </button>
@@ -31,7 +41,7 @@
           <button
             type="button"
             id="theme-toggle"
-            class="btn btn-tonal"
+            class="btn"
             aria-label="Toggle color theme"
             aria-pressed="false"
           >
@@ -49,19 +59,19 @@
           </div>
           <div class="health-pill">
             <span class="health-label">CLI Version</span>
-            <span class="health-value mono" id="health-cli">—</span>
+            <span class="health-value mono" id="health-cli">Loading…</span>
           </div>
           <div class="health-pill">
-            <span class="health-label">Built At</span>
-            <span class="health-value" id="health-built">—</span>
+            <span class="health-label">Last Built</span>
+            <span class="health-value" id="health-built">Loading…</span>
           </div>
           <div class="health-pill">
-            <span class="health-label">Pass Rate</span>
-            <span class="health-value" id="health-pass">—</span>
+            <span class="health-label" id="health-pass-label">Catalogue</span>
+            <span class="health-value" id="health-pass">Loading…</span>
           </div>
           <div class="health-pill">
-            <span class="health-label">Active Sources</span>
-            <span class="health-value" id="health-sources-count">—</span>
+            <span class="health-label">Patch Sources</span>
+            <span class="health-value" id="health-sources-count">Loading…</span>
           </div>
         </div>
         <details class="sources-drawer" id="sources-drawer">
@@ -84,13 +94,36 @@
             type="search"
             id="search-input"
             class="search-input"
-            placeholder="Search app, package ID, or upstream source…"
+            placeholder="Search app, package ID, or source (press /)"
             aria-label="Search apps, package IDs, or upstream sources"
             autocomplete="off"
           >
         </div>
 
-        <label class="sort-control">
+        <label class="select-control">
+          <span class="sort-label">Category</span>
+          <select id="category-select" class="sort-select" aria-label="Filter by category">
+            <option value="all">All Categories</option>
+            <option value="core">Core</option>
+            <option value="multimedia">Multimedia</option>
+            <option value="social">Social</option>
+            <option value="productivity">Productivity</option>
+            <option value="tools">Tools</option>
+          </select>
+        </label>
+
+        <label class="select-control">
+          <span class="sort-label">Arch</span>
+          <select id="arch-select" class="sort-select" aria-label="Filter by architecture">
+            <option value="all_filter">All Architectures</option>
+            <option value="arm64-v8a">arm64-v8a</option>
+            <option value="armeabi-v7a">armeabi-v7a</option>
+            <option value="x86_64">x86_64</option>
+            <option value="all">Universal</option>
+          </select>
+        </label>
+
+        <label class="select-control">
           <span class="sort-label">Sort</span>
           <select id="sort-select" class="sort-select" aria-label="Sort artifacts">
             <option value="updated">Last Updated</option>
@@ -100,44 +133,20 @@
         </label>
       </div>
 
-      <div class="filter-groups">
-        <div class="filter-group" role="group" aria-label="Filter by format">
-          <span class="filter-title">Format</span>
+      <div class="toolbar-bottom-row">
+        <div class="format-bar" role="group" aria-label="Filter by format">
           <div class="chip-row" id="format-chips">
-            <button type="button" class="chip" data-filter="format" data-value="all" aria-pressed="true">All</button>
+            <button type="button" class="chip" data-filter="format" data-value="all" aria-pressed="true">All Formats</button>
             <button type="button" class="chip" data-filter="format" data-value="apk" aria-pressed="false">Standalone APK</button>
             <button type="button" class="chip" data-filter="format" data-value="single_module" aria-pressed="false">Single Root Module</button>
             <button type="button" class="chip" data-filter="format" data-value="bundle" aria-pressed="false">Multi-App Bundle</button>
           </div>
         </div>
 
-        <div class="filter-group" role="group" aria-label="Filter by category">
-          <span class="filter-title">Category</span>
-          <div class="chip-row" id="category-chips">
-            <button type="button" class="chip" data-filter="category" data-value="all" aria-pressed="true">All</button>
-            <button type="button" class="chip" data-filter="category" data-value="core" aria-pressed="false">Core</button>
-            <button type="button" class="chip" data-filter="category" data-value="multimedia" aria-pressed="false">Multimedia</button>
-            <button type="button" class="chip" data-filter="category" data-value="social" aria-pressed="false">Social</button>
-            <button type="button" class="chip" data-filter="category" data-value="productivity" aria-pressed="false">Productivity</button>
-            <button type="button" class="chip" data-filter="category" data-value="tools" aria-pressed="false">Tools</button>
-          </div>
+        <div class="results-meta">
+          <p id="results-count" class="results-count">Loading catalogue…</p>
+          <button type="button" id="reset-filters-btn" class="btn-link" hidden>Reset filters</button>
         </div>
-
-        <div class="filter-group" role="group" aria-label="Filter by architecture">
-          <span class="filter-title">Arch</span>
-          <div class="chip-row" id="arch-chips">
-            <button type="button" class="chip" data-filter="arch" data-value="all_filter" aria-pressed="true">All</button>
-            <button type="button" class="chip" data-filter="arch" data-value="arm64-v8a" aria-pressed="false">arm64-v8a</button>
-            <button type="button" class="chip" data-filter="arch" data-value="armeabi-v7a" aria-pressed="false">armeabi-v7a</button>
-            <button type="button" class="chip" data-filter="arch" data-value="x86_64" aria-pressed="false">x86_64</button>
-            <button type="button" class="chip" data-filter="arch" data-value="all" aria-pressed="false">Universal</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="results-bar">
-        <p id="results-count" class="results-count">Loading catalogue…</p>
-        <button type="button" id="reset-filters-btn" class="btn-link" hidden>Reset filters</button>
       </div>
     </section>
 
@@ -150,14 +159,43 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <span>ReVanceX Catalogue</span>
+      <span>ReVanceX Catalogue · Unofficial community patch orchestrator (GPL-3.0)</span>
       <div class="footer-links">
         <a href="apps.json">apps.json</a>
         <a href="apps.schema.json">Schema</a>
+        <a href="https://github.com/thunderkex/revancex#readme" target="_blank" rel="noopener">Docs</a>
         <a href="https://github.com/thunderkex/revancex" target="_blank" rel="noopener">GitHub</a>
       </div>
     </div>
   </footer>
+
+  <!-- Install Guide Modal -->
+  <div id="guide-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="guide-modal-title" hidden>
+    <div class="modal-panel guide-panel" tabindex="-1">
+      <div class="modal-header">
+        <h2 id="guide-modal-title">Which Artifact Should I Install?</h2>
+        <button type="button" id="guide-close-btn" class="icon-close" aria-label="Close install guide">&times;</button>
+      </div>
+      <div class="guide-grid">
+        <div class="guide-block">
+          <h3>Non-Root (Standalone APK)</h3>
+          <p>Download any <strong>Standalone APK</strong> and install it directly on Android. Google apps (YouTube, YouTube Music, Google Photos) also require <strong>MicroG</strong> installed for account sign-in.</p>
+        </div>
+        <div class="guide-block">
+          <h3>Rooted (Magisk / KernelSU / APatch)</h3>
+          <p>Download a <strong>Single Root Module</strong> or <strong>Multi-App Bundle</strong> <code class="mono">.zip</code>, flash it in your root manager, and reboot. Use <strong>Copy OTA URL</strong> to paste the update feed URL into KernelSU/Magisk.</p>
+        </div>
+        <div class="guide-block">
+          <h3>Build Your Own Selection</h3>
+          <p>Open <strong>Custom Build</strong> to pick exact apps and architectures, copy a local <code class="mono">revancex</code> CLI command, or dispatch a custom GitHub Actions workflow.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-tonal" href="https://github.com/thunderkex/revancex#readme" target="_blank" rel="noopener">Read Full README</a>
+        <button type="button" id="guide-done-btn" class="btn btn-primary">Got it</button>
+      </div>
+    </div>
+  </div>
 
   <!-- QR Code Modal -->
   <div id="qr-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title" hidden>
@@ -206,7 +244,7 @@
           <span>Optimization Mode</span>
           <select id="composer-mode" class="sort-select">
             <option value="full" selected>full (Standard patched)</option>
-            <option value="lite">lite (Strip metadata &amp; stale sigs)</option>
+            <option value="lite">lite (Smaller APK, stripped extra metadata)</option>
           </select>
         </label>
 
@@ -214,54 +252,83 @@
           <span>Output Packaging</span>
           <select id="composer-packaging" class="sort-select">
             <option value="bundle" selected>Custom Multi-App Bundle (.zip)</option>
-            <option value="single_module">Single Root Module (.zip)</option>
+            <option value="single_module">Single Root Module (.zip per app)</option>
             <option value="apk">Standalone APK (.apk)</option>
           </select>
         </label>
 
         <label class="checkbox-field">
           <input type="checkbox" id="composer-webui" checked>
-          <span>Include Embedded WebUI (<code class="mono">--include-webui</code>)</span>
+          <span>Include Embedded Root WebUI (KernelSU / Magisk)</span>
         </label>
       </div>
 
-      <p id="composer-constraint-note" class="hint-text constraint-note" hidden></p>
+      <p id="composer-constraint-note" class="hint-text constraint-note" hidden aria-live="polite"></p>
 
       <div class="composer-select-bar">
-        <span class="filter-title">Select Apps</span>
+        <input
+          type="search"
+          id="composer-app-search"
+          class="sort-select composer-app-search"
+          placeholder="Filter apps in composer…"
+          aria-label="Filter apps in composer"
+          autocomplete="off"
+        >
         <div class="chip-row">
+          <button type="button" id="composer-preset-yt" class="btn">YouTube + Music + MicroG</button>
           <button type="button" id="composer-select-all" class="btn">Select All</button>
           <button type="button" id="composer-deselect-all" class="btn">Deselect All</button>
         </div>
       </div>
 
+      <div id="composer-selected-chips" class="selected-chips" aria-label="Selected apps"></div>
+
       <div id="composer-app-groups" class="composer-groups"></div>
 
-      <div class="composer-tabs" role="group" aria-label="Execution mode">
-        <button type="button" class="chip" data-composer-tab="local" aria-pressed="true">Local CLI</button>
-        <button type="button" class="chip" data-composer-tab="cloud" aria-pressed="false">Cloud GitHub Actions</button>
+      <div class="composer-tabs" role="tablist" aria-label="Execution mode">
+        <button type="button" id="tab-local" class="chip" role="tab" data-composer-tab="local" aria-selected="true" aria-controls="composer-panel-local">Local CLI</button>
+        <button type="button" id="tab-cloud" class="chip" role="tab" data-composer-tab="cloud" aria-selected="false" aria-controls="composer-panel-cloud" tabindex="-1">Cloud GitHub Actions</button>
       </div>
 
-      <div id="composer-panel-local" class="composer-subpanel">
+      <div id="composer-panel-local" class="composer-subpanel" role="tabpanel" aria-labelledby="tab-local">
         <pre id="composer-local-cmd" class="cmd-block mono"></pre>
         <div class="modal-footer">
+          <button type="button" id="composer-done-btn" class="btn">Close</button>
           <button type="button" id="composer-copy-cmd" class="btn btn-primary">Copy Command</button>
         </div>
       </div>
 
-      <div id="composer-panel-cloud" class="composer-subpanel" hidden>
+      <div id="composer-panel-cloud" class="composer-subpanel" role="tabpanel" aria-labelledby="tab-cloud" hidden>
         <label class="option-field">
-          <span>GitHub Fine-Grained PAT (<code class="mono">Actions: write</code> scoped to this repo)</span>
+          <span>GitHub Fine-Grained PAT (<code class="mono">Actions: Read and write</code> on this repo)</span>
           <div class="token-row">
             <input type="password" id="composer-token" class="search-input token-input" placeholder="github_pat_... (or classic repo + workflow)" autocomplete="off">
             <button type="button" id="composer-clear-token" class="btn">Clear token</button>
           </div>
-          <span class="hint-text">Stored in <code class="mono">sessionStorage</code> only — never in URLs, logs, or <code class="mono">localStorage</code>, and never leaves the browser except to <code class="mono">api.github.com</code>.</span>
+          <span class="hint-text">Stored only in browser <code class="mono">sessionStorage</code>, never in URLs or logs, and sent only to <code class="mono">api.github.com</code>.</span>
         </label>
-        <div id="composer-cloud-status" class="cloud-status" hidden></div>
+
+        <details class="pat-guide">
+          <summary>How to create a scoped GitHub token (3 steps)</summary>
+          <ol class="pat-steps">
+            <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub Fine-Grained Tokens</a>.</li>
+            <li>Under <strong>Repository access</strong>, select <em>Only select repositories</em> and choose this repository.</li>
+            <li>Under <strong>Repository permissions</strong>, set <strong>Actions</strong> to <em>Read and write</em>, generate, and paste above.</li>
+          </ol>
+        </details>
+
+        <div id="composer-confirm-box" class="cloud-confirm" hidden aria-live="polite">
+          <p id="composer-confirm-summary"></p>
+          <div class="modal-footer">
+            <button type="button" id="composer-confirm-cancel" class="btn">Cancel</button>
+            <button type="button" id="composer-confirm-submit" class="btn btn-primary">Confirm &amp; Dispatch</button>
+          </div>
+        </div>
+
+        <div id="composer-cloud-status" class="cloud-status" hidden aria-live="polite"></div>
         <div class="modal-footer cloud-actions">
-          <a id="composer-fallback-link" class="btn btn-tonal" href="https://github.com/thunderkex/revancex/actions/workflows/custom-build.yml" target="_blank" rel="noopener">Run workflow on GitHub (no token)</a>
-          <button type="button" id="composer-dispatch-btn" class="btn btn-primary">Dispatch Custom Build</button>
+          <a id="composer-fallback-link" class="btn btn-tonal" href="https://github.com/thunderkex/revancex/actions/workflows/custom-build.yml" target="_blank" rel="noopener">Run on GitHub (no token)</a>
+          <button type="button" id="composer-dispatch-btn" class="btn btn-primary" disabled>Dispatch Custom Build</button>
         </div>
       </div>
     </div>
@@ -273,7 +340,7 @@
       <div class="modal-header">
         <div>
           <h2 id="tracker-title">Custom Build Tracker</h2>
-          <p id="tracker-poll-meta" class="hint-text">Opens on demand — zero API calls while closed.</p>
+          <p id="tracker-poll-meta" class="hint-text">Opens on demand. Zero API calls while closed.</p>
         </div>
         <div class="header-actions">
           <button type="button" id="tracker-refresh-btn" class="btn btn-tonal">Refresh</button>
@@ -282,15 +349,15 @@
       </div>
 
       <section class="tracker-section">
-        <h3>Recent Custom Workflow Runs</h3>
-        <div id="tracker-runs-list" class="tracker-list">
+        <h3>Recent Custom Cloud Builds</h3>
+        <div id="tracker-runs-list" class="tracker-list" aria-live="polite">
           <p class="hint-text">Loading runs…</p>
         </div>
       </section>
 
       <section class="tracker-section">
-        <h3>Custom Bundle Modules</h3>
-        <div id="tracker-custom-bundles" class="tracker-list">
+        <h3>Custom Bundle Releases</h3>
+        <div id="tracker-custom-bundles" class="tracker-list" aria-live="polite">
           <p class="hint-text">Loading custom bundle releases…</p>
         </div>
       </section>

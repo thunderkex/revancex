@@ -168,7 +168,6 @@ jobs:
             --output output
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
           FLARESOLVERR_URL: http://localhost:8191/v1
           TRAWL_URL: ${{ secrets.TRAWL_URL }}

@@ -1,4 +1,4 @@
-keys/
+keys/*
 output/
 tools/
 tmp/
@@ -17,3 +17,4 @@ EXECUTION*
 logs*
 PHASE*
 BUILD_REPORT.json
+!keys/revanced.jks

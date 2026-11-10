@@ -1075,6 +1075,12 @@ pub(crate) async fn fetch_archive_org(
     target_version: Option<&str>,
     supported_versions: &[&str],
 ) -> Result<String> {
+    let url_lower = url.to_lowercase();
+    if url_lower.ends_with(".apk") || url_lower.ends_with(".apkm") || url_lower.ends_with(".xapk") {
+        info!("archive.org: direct file URL, downloading {url}");
+        download_and_extract_if_bundle(client, url, dest, None).await?;
+        return Ok(dest.to_string());
+    }
     let base = if url.ends_with('/') {
         url.to_string()
     } else {

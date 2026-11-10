@@ -1913,9 +1913,9 @@ checksum = "9ce898823d8cd0f028662d2f349694b1af0a5cc9be83f1d213a00d3147445e1e"
 
 [[package]]
 name = "ua_generator"
-version = "0.5.87"
+version = "0.5.88"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10f316ef2979a087fc1d2242cc8062f224b7575c896b113d5999e734bd6ca8c1"
+checksum = "ce2bf28107d476d1be62d33363b6f4c7daf99ff8a2f3a9e95bb831427c1b3459"
 dependencies = [
  "fastrand",
 ]
@@ -2337,14 +2337,15 @@ dependencies = [
 
 [[package]]
 name = "zip"
-version = "9.1.2"
+version = "9.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec2e3161de27091f18a831d9494e9c53378a34833af5c1dda35ad85849da18d6"
+checksum = "23f17fbc870bfac28c6228aed7d6e6df352e26bf7015c4313727e16a7a01ce5e"
 dependencies = [
  "crc32fast",
  "flate2",
  "getrandom 0.4.3",
  "indexmap",
+ "libc",
  "memchr",
  "nix",
  "typed-path",

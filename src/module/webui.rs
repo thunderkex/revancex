@@ -10,12 +10,14 @@ pub fn inject_webui<W: Write + std::io::Seek>(
     apps_json: Option<&str>,
 ) -> Result<()> {
     info!("Injecting WebUI into webroot/...");
-    let webui_tokens = Path::new("webui/tokens.css");
-    if webui_tokens.exists() {
-        let data = std::fs::read(webui_tokens)?;
-        zip.start_file("webroot/tokens.css", opts)?;
-        zip.write_all(&data)?;
-    }
+    let docs_tokens = Path::new("docs/tokens.css");
+    let tokens_data = if docs_tokens.exists() {
+        std::fs::read(docs_tokens)?
+    } else {
+        include_bytes!("../../docs/tokens.css").to_vec()
+    };
+    zip.start_file("webroot/tokens.css", opts)?;
+    zip.write_all(&tokens_data)?;
 
     let webui_html = Path::new("webui/index.html");
     if webui_html.exists() {

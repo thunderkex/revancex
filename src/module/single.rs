@@ -25,11 +25,9 @@ async fn build_single_app(
         info!("Skipping single module for {id}: app is disabled");
         return Ok(());
     }
-    if let Some(m) = &app_cfg.module {
-        if !m.single {
-            info!("Skipping single module for {id}: module.single is disabled");
-            return Ok(());
-        }
+    if !app_cfg.module.single {
+        info!("Skipping single module for {id}: module.single is disabled");
+        return Ok(());
     }
 
     let resolved_dir = if std::path::Path::new(output_dir).exists() {
@@ -121,6 +119,7 @@ async fn build_single_app(
     .await
 }
 
+#[cfg(test)]
 pub async fn build_single_module(cfg: &Config, apps_input: &str, output_dir: &str) -> Result<()> {
     build_single_module_with_options(
         cfg,
@@ -144,13 +143,8 @@ pub async fn build_single_module_with_options(
         app_ids.sort();
         for id in app_ids {
             if let Some(app) = cfg.apps.get(&id) {
-                if !app.enabled || id.eq_ignore_ascii_case("microg") {
+                if !app.enabled || id.eq_ignore_ascii_case("microg") || !app.module.single {
                     continue;
-                }
-                if let Some(m) = &app.module {
-                    if !m.single {
-                        continue;
-                    }
                 }
                 info!("Building single module for {id} in {output_dir}...");
                 if let Err(e) = build_single_app(cfg, &id, output_dir, build_opts).await {
@@ -173,11 +167,9 @@ pub async fn build_single_module_with_options(
                     info!("Skipping single module for {id}: app is disabled");
                     continue;
                 }
-                if let Some(m) = &app.module {
-                    if !m.single {
-                        info!("Skipping single module for {id}: module.single is disabled");
-                        continue;
-                    }
+                if !app.module.single {
+                    info!("Skipping single module for {id}: module.single is disabled");
+                    continue;
                 }
             }
             info!("Building single module for {id} in {output_dir}...");

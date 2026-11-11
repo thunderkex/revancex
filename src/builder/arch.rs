@@ -1,8 +1,11 @@
 use anyhow::Result;
+#[cfg(test)]
 use tracing::info;
 
+#[cfg(test)]
 use crate::utils::zip::{rewrite, EntryAction};
 
+#[cfg(test)]
 pub const ANDROID_ABIS: &[&str] = &[
     "arm64-v8a",
     "armeabi-v7a",
@@ -13,10 +16,12 @@ pub const ANDROID_ABIS: &[&str] = &[
     "mips64",
 ];
 
-pub fn strip_unsupported_archs(apk_path: &str, target_arch: &str) -> Result<u64> {
+#[cfg(test)]
+pub(crate) fn strip_unsupported_archs(apk_path: &str, target_arch: &str) -> Result<u64> {
     strip_unsupported_archs_to(apk_path, apk_path, target_arch)
 }
 
+#[cfg(test)]
 pub fn strip_unsupported_archs_to(src_apk: &str, dst_apk: &str, target_arch: &str) -> Result<u64> {
     let initial_size = std::fs::metadata(src_apk)?.len();
     let temp_out = if src_apk == dst_apk {
@@ -68,18 +73,7 @@ pub fn strip_unsupported_archs_to(src_apk: &str, dst_apk: &str, target_arch: &st
     Ok(saved)
 }
 
-pub fn apk_has_any_native_libs(apk: &str) -> Result<bool> {
-    let file = std::fs::File::open(apk)?;
-    let mut archive = zip::ZipArchive::new(file)?;
-    for i in 0..archive.len() {
-        let entry = archive.by_index(i)?;
-        let name = entry.name()?;
-        if name.starts_with("lib/") && name.ends_with(".so") {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
+pub use crate::utils::apk::{apk_has_any_native_libs, apk_has_arch};
 
 pub fn verify_arch_native_libs(
     original_apk: &str,
@@ -90,21 +84,7 @@ pub fn verify_arch_native_libs(
         return Ok(());
     }
 
-    let target_prefix = format!("lib/{target_arch}/");
-    let file = std::fs::File::open(stripped_apk)?;
-    let mut archive = zip::ZipArchive::new(file)?;
-    let mut has_target_lib = false;
-
-    for i in 0..archive.len() {
-        let entry = archive.by_index(i)?;
-        let name = entry.name()?;
-        if name.starts_with(&target_prefix) && name.ends_with(".so") {
-            has_target_lib = true;
-            break;
-        }
-    }
-
-    if !has_target_lib {
+    if !apk_has_arch(stripped_apk, target_arch)? {
         anyhow::bail!(
             "no native libs for {target_arch} after arch-stripping — check the input APK / cache"
         );
@@ -113,20 +93,7 @@ pub fn verify_arch_native_libs(
     Ok(())
 }
 
-pub fn apk_has_arch(apk: &str, target_arch: &str) -> Result<bool> {
-    let file = std::fs::File::open(apk)?;
-    let mut archive = zip::ZipArchive::new(file)?;
-    let target_prefix = format!("lib/{target_arch}/");
-    for i in 0..archive.len() {
-        let entry = archive.by_index(i)?;
-        let name = entry.name()?;
-        if name.starts_with(&target_prefix) && name.ends_with(".so") {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
+#[cfg(test)]
 fn should_strip(name: &str, target_arch: &str) -> bool {
     if name.starts_with("lib/") {
         let parts: Vec<&str> = name.split('/').collect();

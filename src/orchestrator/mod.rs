@@ -28,7 +28,10 @@ pub async fn list_apps(cfg: &Config, json: bool) -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&list)?);
     } else {
         for (id, app) in &cfg.apps {
-            println!("{:24} enabled={:5} pkg={}", id, app.enabled, app.package);
+            ui::line(&format!(
+                "{:24} enabled={:5} pkg={}",
+                id, app.enabled, app.package
+            ));
         }
     }
     Ok(())
@@ -72,8 +75,11 @@ pub async fn build_apps(
         ),
     ]);
     info!("targets: {:?}", targets);
+    let shared_net = std::sync::Arc::new(crate::net::SharedNet::new(cfg)?);
+    shared_net.fetcher.ensure_probed().await?;
     ui::phase("Fetch");
-    let tools_summary = utils::download_tools(cfg, Some(&targets)).await?;
+    let tools_summary =
+        utils::download_tools(cfg, Some(&targets), &shared_net.github_client).await?;
     ui::phase("Build (resolve → patch → sign → package)");
 
     let summary = scheduler::run_pipeline(
@@ -84,6 +90,7 @@ pub async fn build_apps(
         force,
         output_dir,
         Some(&tools_summary.patch_results),
+        shared_net,
     )
     .await?;
     ui::end_phase();
@@ -99,11 +106,13 @@ pub async fn build_apps(
 pub fn print_summary(cfg: &Config, summary: &BuildSummary) {
     let mut rows = Vec::new();
     for (id, rep) in &summary.reports {
-        let (status, fail) = match rep.status.as_str() {
-            "success" => (ui::Status::Ok, Some(0)),
-            "degraded" | "success_unpatched" => (ui::Status::Warn, Some(0)),
-            "skipped" => (ui::Status::Skip, None),
-            _ => (ui::Status::Fail, None),
+        let (status, fail) = match rep.status {
+            crate::report::BuildStatus::Success => (ui::Status::Ok, Some(0)),
+            crate::report::BuildStatus::Degraded | crate::report::BuildStatus::SuccessUnpatched => {
+                (ui::Status::Warn, Some(0))
+            }
+            crate::report::BuildStatus::Skipped => (ui::Status::Skip, None),
+            crate::report::BuildStatus::Failed => (ui::Status::Fail, None),
         };
         let name = cfg
             .apps

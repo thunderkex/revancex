@@ -257,37 +257,7 @@ pub fn infer_archs_from_filename(filename: &str) -> Option<Vec<String>> {
     None
 }
 
-pub fn extract_version_from_asset_filename(filename: &str) -> Option<String> {
-    let stem = filename
-        .strip_suffix(".apk")
-        .or_else(|| filename.strip_suffix(".zip"))
-        .unwrap_or(filename)
-        .strip_suffix("-module")
-        .unwrap_or(
-            filename
-                .strip_suffix(".apk")
-                .or_else(|| filename.strip_suffix(".zip"))
-                .unwrap_or(filename),
-        );
-    if stem.ends_with("-patched") || stem == "microg" {
-        return None;
-    }
-    let parts: Vec<&str> = stem.split('-').collect();
-    for (idx, part) in parts.iter().enumerate() {
-        let clean = part.strip_prefix('v').unwrap_or(part);
-        if clean.chars().next().is_some_and(|c| c.is_ascii_digit()) && clean.contains('.') {
-            let mut ver = clean.to_string();
-            if let Some(next) = parts.get(idx + 1) {
-                if next.starts_with("prod") || next.starts_with("beta") || next.starts_with("rc") {
-                    ver.push('-');
-                    ver.push_str(next);
-                }
-            }
-            return Some(ver);
-        }
-    }
-    None
-}
+pub use crate::utils::version::extract_version_from_asset_filename;
 
 /// Optimization mode semantics in revancex:
 /// - "full": standard patched/signed APK keeping all original resources and metadata.
@@ -630,11 +600,13 @@ fn compute_build_health(
     }
 }
 
-pub fn generate_apps_json(cfg: &Config) -> Result<String> {
+#[cfg(test)]
+pub(crate) fn generate_apps_json(cfg: &Config) -> Result<String> {
     generate_apps_json_with_registry(cfg, Some("config/releases_registry.json"))
 }
 
-pub fn generate_apps_json_with_registry(
+#[cfg(test)]
+pub(crate) fn generate_apps_json_with_registry(
     cfg: &Config,
     registry_path: Option<&str>,
 ) -> Result<String> {
@@ -862,6 +834,322 @@ pub fn generate_ota_endpoints_with_options(
     Ok(written)
 }
 
+struct AppIndexMaps {
+    versions: BTreeMap<String, Option<String>>,
+    validations: BTreeMap<String, String>,
+    sources: BTreeMap<String, Option<String>>,
+    archs: BTreeMap<String, Vec<String>>,
+}
+
+fn read_optional_json<T: serde::de::DeserializeOwned>(path: Option<&str>) -> Option<T> {
+    path.filter(|p| Path::new(p).exists())
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+}
+
+struct CatalogAppInputs<'a> {
+    registry: &'a ReleasesRegistry,
+    build_report: Option<&'a BuildReport>,
+    test_by_app: &'a BTreeMap<String, crate::testing::TestReportItem>,
+    output_dir: Option<&'a str>,
+}
+
+fn build_catalog_app_entry(
+    cfg: &Config,
+    id: &str,
+    app: &crate::config::AppConfig,
+    inputs: &CatalogAppInputs<'_>,
+    maps: &mut AppIndexMaps,
+) -> EnrichedAppEntry {
+    let stock_rel = inputs.registry.stock_apps.get(id);
+    let mod_rel = inputs.registry.single_modules.get(id);
+    let build_rep = inputs.build_report.and_then(|br| br.apps.get(id));
+    let test_item = inputs.test_by_app.get(id);
+
+    let (source_repo, asset_pattern) = resolve_provenance(cfg, app);
+    let categories = resolve_app_categories(cfg, id);
+    let default_opt = build_rep
+        .and_then(|r| r.optimization_mode.as_deref())
+        .map(normalize_optimization_mode)
+        .unwrap_or_else(|| normalize_optimization_mode(&app.mode));
+
+    let mut default_archs = match build_rep {
+        Some(rep) if !rep.supported_archs.is_empty() => {
+            normalize_supported_archs(&rep.supported_archs)
+        }
+        Some(rep) => rep
+            .arch_mode
+            .as_ref()
+            .map(|am| normalize_supported_archs(std::slice::from_ref(am)))
+            .unwrap_or_default(),
+        None => vec![],
+    };
+    if default_archs.is_empty() {
+        default_archs = normalize_supported_archs(&app.architectures);
+    }
+
+    let stock_val = resolve_validation_status(id, build_rep, test_item, stock_rel);
+    let mod_val = resolve_validation_status(id, build_rep, test_item, mod_rel);
+    let enrich = |rel, validation_status, module_id| {
+        build_enriched_release(
+            rel,
+            ReleaseEnrichCtx {
+                source_repo: source_repo.clone(),
+                asset_pattern: asset_pattern.clone(),
+                default_archs: &default_archs,
+                default_opt_mode: &default_opt,
+                validation_status,
+                output_dir: inputs.output_dir,
+                module_id,
+            },
+        )
+    };
+    let enriched_stock = stock_rel.map(|r| enrich(r, stock_val.clone(), None));
+    let enriched_mod = mod_rel.map(|r| enrich(r, mod_val.clone(), Some(format!("revancex-{id}"))));
+
+    let primary = enriched_stock.as_ref().or(enriched_mod.as_ref());
+    let version = primary
+        .and_then(|p| p.version.clone())
+        .or_else(|| build_rep.and_then(|r| r.resolved_version.clone()))
+        .or_else(|| {
+            app.version
+                .clone()
+                .filter(|v| !v.eq_ignore_ascii_case("auto"))
+        });
+
+    let sha256 = primary
+        .and_then(|p| p.sha256.clone())
+        .or_else(|| build_rep.and_then(|r| r.sha256.clone()));
+    let size_bytes = primary
+        .and_then(|p| p.size_bytes)
+        .or_else(|| build_rep.and_then(|r| r.size_bytes));
+    let supported_archs = primary
+        .map(|p| p.supported_archs.clone())
+        .filter(|v| !v.is_empty())
+        .unwrap_or_else(|| default_archs.clone());
+    let optimization_mode = primary
+        .map(|p| p.optimization_mode.clone())
+        .unwrap_or(default_opt);
+    let validation_status = primary
+        .map(|p| p.validation_status.clone())
+        .unwrap_or(stock_val);
+    let download_url = primary.map(|p| p.download_url.clone());
+    let tag = primary.map(|p| p.tag.clone());
+    let updated_at = primary.and_then(|p| p.updated_at.clone());
+
+    let mut dependencies = app.dependencies.all();
+    dependencies.sort();
+    dependencies.dedup();
+
+    let mut patches = app.patches.clone();
+    patches.sort();
+
+    maps.versions.insert(id.to_string(), version.clone());
+    maps.validations
+        .insert(id.to_string(), validation_status.clone());
+    maps.sources.insert(id.to_string(), source_repo.clone());
+    maps.archs.insert(id.to_string(), supported_archs.clone());
+
+    EnrichedAppEntry {
+        id: id.to_string(),
+        name: app.display_name(id),
+        enabled: app.enabled,
+        package: app.package.clone(),
+        patch_source: app.patch_source.clone(),
+        source_repo,
+        asset_pattern,
+        categories,
+        architectures: app.architectures.clone(),
+        supported_archs,
+        mode: app.mode.clone(),
+        optimization_mode,
+        patches,
+        dependencies,
+        module: ModuleFlagsEntry {
+            single: app.module.single,
+            bundle: app.module.bundle,
+        },
+        version,
+        sha256,
+        size_bytes,
+        validation_status,
+        download_url,
+        tag: tag.clone(),
+        release_tag: tag,
+        updated_at,
+        releases: AppReleases {
+            stock: enriched_stock,
+            module: enriched_mod,
+        },
+    }
+}
+
+fn build_catalog_bundle_entry(
+    cfg: &Config,
+    key: &str,
+    module_def: &crate::config::loader::ModuleDefinition,
+    registry: &ReleasesRegistry,
+    maps: &AppIndexMaps,
+    output_dir: Option<&str>,
+) -> EnrichedBundleEntry {
+    let filename = module_def
+        .zip_name
+        .clone()
+        .unwrap_or_else(|| format!("revancex-bundle-{key}.zip"));
+    let reg_entry = registry.bundles.get(&filename).or_else(|| {
+        if key == "core" {
+            registry.bundles.get("revancex-bundle.zip")
+        } else {
+            None
+        }
+    });
+    let module_id = module_def
+        .module_id
+        .clone()
+        .unwrap_or_else(|| format!("revancex-{key}"));
+    let name = bundle_display_name(cfg, key);
+
+    let mut payload = output_dir
+        .map(|dir| Path::new(dir).join(&filename))
+        .filter(|p| p.is_file())
+        .and_then(|p| inspect_bundle_zip_payload(cfg, &p, &maps.versions))
+        .or_else(|| reg_entry.and_then(|r| r.payload.clone()))
+        .unwrap_or_else(|| {
+            module_def
+                .apps
+                .iter()
+                .filter_map(|app_id| {
+                    let app_cfg = cfg.apps.get(app_id)?;
+                    if !app_cfg.enabled || !app_cfg.module.bundle {
+                        return None;
+                    }
+                    Some(BundlePayloadEntry {
+                        app: app_id.clone(),
+                        package: app_cfg.package.clone(),
+                        version: maps.versions.get(app_id).cloned().flatten(),
+                        path: format!("apks/{app_id}.apk"),
+                    })
+                })
+                .collect()
+        });
+    payload.sort_by(|a, b| a.app.cmp(&b.app));
+
+    let mut sources_set = BTreeSet::new();
+    let mut archs_set = BTreeSet::new();
+    let mut val_statuses = Vec::new();
+    for item in &payload {
+        if let Some(Some(src)) = maps.sources.get(&item.app) {
+            sources_set.insert(src.clone());
+        }
+        if let Some(archs) = maps.archs.get(&item.app) {
+            archs_set.extend(archs.iter().cloned());
+        }
+        if let Some(vs) = maps.validations.get(&item.app) {
+            val_statuses.push(vs.as_str());
+        }
+    }
+
+    let default_bundle_archs = if archs_set.is_empty() {
+        vec!["arm64-v8a".to_string()]
+    } else {
+        normalize_supported_archs(&archs_set.into_iter().collect::<Vec<_>>())
+    };
+    let validation_status = reg_entry
+        .and_then(|r| r.validation_status.clone())
+        .unwrap_or_else(|| aggregate_validation_status(val_statuses.into_iter()));
+
+    let enriched = reg_entry.map(|re| {
+        build_enriched_release(
+            re,
+            ReleaseEnrichCtx {
+                source_repo: None,
+                asset_pattern: None,
+                default_archs: &default_bundle_archs,
+                default_opt_mode: "full",
+                validation_status: validation_status.clone(),
+                output_dir,
+                module_id: Some(module_id.clone()),
+            },
+        )
+    });
+
+    EnrichedBundleEntry {
+        id: key.to_string(),
+        module_id,
+        name,
+        category: key.to_string(),
+        filename: enriched
+            .as_ref()
+            .map(|e| e.filename.clone())
+            .unwrap_or(filename),
+        source_repo: None,
+        asset_pattern: None,
+        sources: sources_set.into_iter().collect(),
+        sha256: enriched.as_ref().and_then(|e| e.sha256.clone()),
+        size_bytes: enriched.as_ref().and_then(|e| e.size_bytes),
+        release_tag: enriched.as_ref().map(|e| e.release_tag.clone()),
+        tag: enriched.as_ref().map(|e| e.tag.clone()),
+        updated_at: enriched.as_ref().and_then(|e| e.updated_at.clone()),
+        supported_archs: enriched
+            .as_ref()
+            .map(|e| e.supported_archs.clone())
+            .unwrap_or(default_bundle_archs),
+        optimization_mode: enriched
+            .as_ref()
+            .map(|e| e.optimization_mode.clone())
+            .unwrap_or_else(|| "full".to_string()),
+        download_url: enriched.as_ref().map(|e| e.download_url.clone()),
+        validation_status,
+        payload,
+    }
+}
+
+fn build_catalog_custom_bundle_entry(
+    fname: &str,
+    rel: &ReleaseAssetInfo,
+    output_dir: Option<&str>,
+) -> EnrichedBundleEntry {
+    let mut payload = rel.payload.clone().unwrap_or_default();
+    payload.sort_by(|a, b| a.app.cmp(&b.app));
+    let val = rel
+        .validation_status
+        .clone()
+        .unwrap_or_else(|| "unknown".to_string());
+    let enriched = build_enriched_release(
+        rel,
+        ReleaseEnrichCtx {
+            source_repo: None,
+            asset_pattern: None,
+            default_archs: &["arm64-v8a".to_string()],
+            default_opt_mode: "full",
+            validation_status: val.clone(),
+            output_dir,
+            module_id: None,
+        },
+    );
+    let id = fname.trim_end_matches(".zip").to_string();
+    EnrichedBundleEntry {
+        id: id.clone(),
+        module_id: format!("revancex-{id}"),
+        name: fname.to_string(),
+        category: "custom".to_string(),
+        filename: enriched.filename,
+        source_repo: enriched.source_repo,
+        asset_pattern: enriched.asset_pattern,
+        sources: vec![],
+        sha256: enriched.sha256,
+        size_bytes: enriched.size_bytes,
+        release_tag: Some(enriched.release_tag),
+        tag: Some(enriched.tag),
+        updated_at: enriched.updated_at,
+        supported_archs: enriched.supported_archs,
+        optimization_mode: enriched.optimization_mode,
+        download_url: Some(enriched.download_url),
+        validation_status: val,
+        payload,
+    }
+}
+
 fn build_catalog_document(
     cfg: &Config,
     opts: &GenAppsJsonOptions,
@@ -871,21 +1159,8 @@ fn build_catalog_document(
         .as_deref()
         .map(load_registry)
         .unwrap_or_default();
-
-    let build_report: Option<BuildReport> = opts
-        .build_report_path
-        .as_deref()
-        .filter(|p| Path::new(p).exists())
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .and_then(|s| serde_json::from_str(&s).ok());
-
-    let test_report: Option<TestReport> = opts
-        .test_report_path
-        .as_deref()
-        .filter(|p| Path::new(p).exists())
-        .and_then(|p| std::fs::read_to_string(p).ok())
-        .and_then(|s| serde_json::from_str(&s).ok());
-
+    let build_report: Option<BuildReport> = read_optional_json(opts.build_report_path.as_deref());
+    let test_report: Option<TestReport> = read_optional_json(opts.test_report_path.as_deref());
     let test_by_app: BTreeMap<String, crate::testing::TestReportItem> = test_report
         .as_ref()
         .map(|tr| {
@@ -896,331 +1171,47 @@ fn build_catalog_document(
         })
         .unwrap_or_default();
 
-    let mut app_versions: BTreeMap<String, Option<String>> = BTreeMap::new();
-    let mut app_validations: BTreeMap<String, String> = BTreeMap::new();
-    let mut app_sources: BTreeMap<String, Option<String>> = BTreeMap::new();
-    let mut app_archs: BTreeMap<String, Vec<String>> = BTreeMap::new();
-
+    let mut maps = AppIndexMaps {
+        versions: BTreeMap::new(),
+        validations: BTreeMap::new(),
+        sources: BTreeMap::new(),
+        archs: BTreeMap::new(),
+    };
     let mut entries: Vec<_> = cfg.apps.iter().collect();
     entries.sort_by_key(|(id, _)| *id);
 
-    let apps: Vec<EnrichedAppEntry> = entries
+    let catalog_inputs = CatalogAppInputs {
+        registry: &registry,
+        build_report: build_report.as_ref(),
+        test_by_app: &test_by_app,
+        output_dir: opts.output_dir.as_deref(),
+    };
+    let apps = entries
         .into_iter()
-        .map(|(id, app)| {
-            let stock_rel = registry.stock_apps.get(id);
-            let mod_rel = registry.single_modules.get(id);
-            let build_rep = build_report.as_ref().and_then(|br| br.apps.get(id));
-            let test_item = test_by_app.get(id);
-
-            let (source_repo, asset_pattern) = resolve_provenance(cfg, app);
-            let categories = resolve_app_categories(cfg, id);
-            let default_opt = build_rep
-                .and_then(|r| r.optimization_mode.as_deref())
-                .map(normalize_optimization_mode)
-                .unwrap_or_else(|| normalize_optimization_mode(&app.mode));
-
-            let default_archs = {
-                let mut archs = if let Some(rep) = build_rep {
-                    if !rep.supported_archs.is_empty() {
-                        normalize_supported_archs(&rep.supported_archs)
-                    } else if let Some(ref am) = rep.arch_mode {
-                        normalize_supported_archs(std::slice::from_ref(am))
-                    } else {
-                        vec![]
-                    }
-                } else {
-                    vec![]
-                };
-                if archs.is_empty() {
-                    archs = normalize_supported_archs(&app.architectures);
-                }
-                archs
-            };
-
-            let stock_val = resolve_validation_status(id, build_rep, test_item, stock_rel);
-            let mod_val = resolve_validation_status(id, build_rep, test_item, mod_rel);
-
-            let enriched_stock = stock_rel.map(|rel| {
-                build_enriched_release(
-                    rel,
-                    ReleaseEnrichCtx {
-                        source_repo: source_repo.clone(),
-                        asset_pattern: asset_pattern.clone(),
-                        default_archs: &default_archs,
-                        default_opt_mode: &default_opt,
-                        validation_status: stock_val.clone(),
-                        output_dir: opts.output_dir.as_deref(),
-                        module_id: None,
-                    },
-                )
-            });
-
-            let enriched_mod = mod_rel.map(|rel| {
-                build_enriched_release(
-                    rel,
-                    ReleaseEnrichCtx {
-                        source_repo: source_repo.clone(),
-                        asset_pattern: asset_pattern.clone(),
-                        default_archs: &default_archs,
-                        default_opt_mode: &default_opt,
-                        validation_status: mod_val.clone(),
-                        output_dir: opts.output_dir.as_deref(),
-                        module_id: Some(format!("revancex-{id}")),
-                    },
-                )
-            });
-
-            let primary = enriched_stock.as_ref().or(enriched_mod.as_ref());
-            let version = primary
-                .and_then(|p| p.version.clone())
-                .or_else(|| build_rep.and_then(|r| r.resolved_version.clone()))
-                .or_else(|| {
-                    app.version
-                        .clone()
-                        .filter(|v| !v.eq_ignore_ascii_case("auto"))
-                });
-
-            let sha256 = primary
-                .and_then(|p| p.sha256.clone())
-                .or_else(|| build_rep.and_then(|r| r.sha256.clone()));
-            let size_bytes = primary
-                .and_then(|p| p.size_bytes)
-                .or_else(|| build_rep.and_then(|r| r.size_bytes));
-            let supported_archs = primary
-                .map(|p| p.supported_archs.clone())
-                .filter(|v| !v.is_empty())
-                .unwrap_or_else(|| default_archs.clone());
-            let optimization_mode = primary
-                .map(|p| p.optimization_mode.clone())
-                .unwrap_or_else(|| default_opt.clone());
-            let validation_status = primary
-                .map(|p| p.validation_status.clone())
-                .unwrap_or_else(|| stock_val.clone());
-
-            let download_url = primary.map(|p| p.download_url.clone());
-            let tag = primary.map(|p| p.tag.clone());
-            let updated_at = primary.and_then(|p| p.updated_at.clone());
-
-            let mut dependencies = app.dependencies.all();
-            dependencies.sort();
-            dependencies.dedup();
-
-            let mut patches = app.patches.clone();
-            patches.sort();
-
-            app_versions.insert(id.clone(), version.clone());
-            app_validations.insert(id.clone(), validation_status.clone());
-            app_sources.insert(id.clone(), source_repo.clone());
-            app_archs.insert(id.clone(), supported_archs.clone());
-
-            EnrichedAppEntry {
-                id: id.clone(),
-                name: app.display_name(id),
-                enabled: app.enabled,
-                package: app.package.clone(),
-                patch_source: app.patch_source.clone(),
-                source_repo,
-                asset_pattern,
-                categories,
-                architectures: app.architectures.clone(),
-                supported_archs,
-                mode: app.mode.clone(),
-                optimization_mode,
-                patches,
-                dependencies,
-                module: ModuleFlagsEntry {
-                    single: app.module.as_ref().is_none_or(|m| m.single),
-                    bundle: app.module.as_ref().is_none_or(|m| m.bundle),
-                },
-                version,
-                sha256,
-                size_bytes,
-                validation_status,
-                download_url,
-                tag: tag.clone(),
-                release_tag: tag,
-                updated_at,
-                releases: AppReleases {
-                    stock: enriched_stock,
-                    module: enriched_mod,
-                },
-            }
-        })
+        .map(|(id, app)| build_catalog_app_entry(cfg, id, app, &catalog_inputs, &mut maps))
         .collect();
 
-    let mut bundles = Vec::new();
-    let mut seen_bundle_files = BTreeSet::new();
-    for (key, module_def) in &cfg.modules {
-        let filename = module_def
-            .zip_name
-            .clone()
-            .unwrap_or_else(|| format!("revancex-bundle-{key}.zip"));
-        seen_bundle_files.insert(filename.clone());
-
-        let reg_entry = registry.bundles.get(&filename).or_else(|| {
-            if key == "core" {
-                registry.bundles.get("revancex-bundle.zip")
-            } else {
-                None
-            }
-        });
-        if let Some(re) = reg_entry {
-            seen_bundle_files.insert(re.filename.clone());
-        }
-
-        let module_id = module_def
-            .module_id
-            .clone()
-            .unwrap_or_else(|| format!("revancex-{key}"));
-        let name = bundle_display_name(cfg, key);
-
-        let mut payload = if let Some(dir) = opts.output_dir.as_deref() {
-            let p = Path::new(dir).join(&filename);
-            if p.is_file() {
-                inspect_bundle_zip_payload(cfg, &p, &app_versions)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-        .or_else(|| reg_entry.and_then(|r| r.payload.clone()))
-        .unwrap_or_else(|| {
-            let mut items = Vec::new();
-            for app_id in &module_def.apps {
-                if let Some(app_cfg) = cfg.apps.get(app_id) {
-                    if !app_cfg.enabled || !app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
-                        continue;
-                    }
-                    items.push(BundlePayloadEntry {
-                        app: app_id.clone(),
-                        package: app_cfg.package.clone(),
-                        version: app_versions.get(app_id).cloned().flatten(),
-                        path: format!("apks/{app_id}.apk"),
-                    });
-                }
-            }
-            items
-        });
-        payload.sort_by(|a, b| a.app.cmp(&b.app));
-
-        let mut sources_set = BTreeSet::new();
-        let mut archs_set = BTreeSet::new();
-        let mut val_statuses = Vec::new();
-        for item in &payload {
-            if let Some(Some(src)) = app_sources.get(&item.app) {
-                sources_set.insert(src.clone());
-            }
-            if let Some(archs) = app_archs.get(&item.app) {
-                for a in archs {
-                    archs_set.insert(a.clone());
-                }
-            }
-            if let Some(vs) = app_validations.get(&item.app) {
-                val_statuses.push(vs.as_str());
-            }
-        }
-
-        let default_bundle_archs: Vec<String> = if archs_set.is_empty() {
-            vec!["arm64-v8a".to_string()]
-        } else {
-            normalize_supported_archs(&archs_set.into_iter().collect::<Vec<_>>())
-        };
-
-        let validation_status = reg_entry
-            .and_then(|r| r.validation_status.clone())
-            .unwrap_or_else(|| aggregate_validation_status(val_statuses.into_iter()));
-
-        let enriched = reg_entry.map(|re| {
-            build_enriched_release(
-                re,
-                ReleaseEnrichCtx {
-                    source_repo: None,
-                    asset_pattern: None,
-                    default_archs: &default_bundle_archs,
-                    default_opt_mode: "full",
-                    validation_status: validation_status.clone(),
-                    output_dir: opts.output_dir.as_deref(),
-                    module_id: Some(module_id.clone()),
-                },
+    let mut bundles: Vec<_> = cfg
+        .modules
+        .iter()
+        .map(|(key, module_def)| {
+            build_catalog_bundle_entry(
+                cfg,
+                key,
+                module_def,
+                &registry,
+                &maps,
+                opts.output_dir.as_deref(),
             )
-        });
-
-        bundles.push(EnrichedBundleEntry {
-            id: key.clone(),
-            module_id,
-            name,
-            category: key.clone(),
-            filename: enriched
-                .as_ref()
-                .map(|e| e.filename.clone())
-                .unwrap_or(filename),
-            source_repo: None,
-            asset_pattern: None,
-            sources: sources_set.into_iter().collect(),
-            sha256: enriched.as_ref().and_then(|e| e.sha256.clone()),
-            size_bytes: enriched.as_ref().and_then(|e| e.size_bytes),
-            release_tag: enriched.as_ref().map(|e| e.release_tag.clone()),
-            tag: enriched.as_ref().map(|e| e.tag.clone()),
-            updated_at: enriched.as_ref().and_then(|e| e.updated_at.clone()),
-            supported_archs: enriched
-                .as_ref()
-                .map(|e| e.supported_archs.clone())
-                .unwrap_or(default_bundle_archs),
-            optimization_mode: enriched
-                .as_ref()
-                .map(|e| e.optimization_mode.clone())
-                .unwrap_or_else(|| "full".to_string()),
-            download_url: enriched.as_ref().map(|e| e.download_url.clone()),
-            validation_status,
-            payload,
-        });
-    }
+        })
+        .collect();
     bundles.sort_by(|a, b| a.id.cmp(&b.id));
 
     let custom_bundles = registry
         .custom_bundles
         .iter()
         .map(|(fname, rel)| {
-            let mut payload = rel.payload.clone().unwrap_or_default();
-            payload.sort_by(|a, b| a.app.cmp(&b.app));
-            let val = rel
-                .validation_status
-                .clone()
-                .unwrap_or_else(|| "unknown".to_string());
-            let enriched = build_enriched_release(
-                rel,
-                ReleaseEnrichCtx {
-                    source_repo: None,
-                    asset_pattern: None,
-                    default_archs: &["arm64-v8a".to_string()],
-                    default_opt_mode: "full",
-                    validation_status: val.clone(),
-                    output_dir: opts.output_dir.as_deref(),
-                    module_id: None,
-                },
-            );
-            let id = fname.trim_end_matches(".zip").to_string();
-            EnrichedBundleEntry {
-                id: id.clone(),
-                module_id: format!("revancex-{id}"),
-                name: fname.clone(),
-                category: "custom".to_string(),
-                filename: enriched.filename,
-                source_repo: enriched.source_repo,
-                asset_pattern: enriched.asset_pattern,
-                sources: vec![],
-                sha256: enriched.sha256,
-                size_bytes: enriched.size_bytes,
-                release_tag: Some(enriched.release_tag),
-                tag: Some(enriched.tag),
-                updated_at: enriched.updated_at,
-                supported_archs: enriched.supported_archs,
-                optimization_mode: enriched.optimization_mode,
-                download_url: Some(enriched.download_url),
-                validation_status: val,
-                payload,
-            }
+            build_catalog_custom_bundle_entry(fname, rel, opts.output_dir.as_deref())
         })
         .collect();
 

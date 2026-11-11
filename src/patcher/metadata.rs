@@ -8,7 +8,6 @@ use tokio::sync::OnceCell;
 #[derive(Debug, Clone)]
 pub struct PatchMeta {
     pub name: String,
-    pub description: String,
     pub compatible_packages: Vec<PackageCompat>,
 }
 
@@ -29,7 +28,7 @@ async fn get_cache() -> &'static Mutex<HashMap<PathBuf, Arc<Vec<PatchMeta>>>> {
 pub async fn load(cfg: &Config, mpp_path: &str) -> Result<Arc<Vec<PatchMeta>>> {
     let key = PathBuf::from(mpp_path);
     {
-        let cache = get_cache().await.lock().unwrap();
+        let cache = crate::utils::lock_unpoisoned(get_cache().await);
         if let Some(cached) = cache.get(&key) {
             return Ok(cached.clone());
         }
@@ -53,7 +52,7 @@ pub async fn load(cfg: &Config, mpp_path: &str) -> Result<Arc<Vec<PatchMeta>>> {
     let arc = Arc::new(patches);
 
     {
-        let mut cache = get_cache().await.lock().unwrap();
+        let mut cache = crate::utils::lock_unpoisoned(get_cache().await);
         cache.insert(key, arc.clone());
     }
 
@@ -63,7 +62,6 @@ pub async fn load(cfg: &Config, mpp_path: &str) -> Result<Arc<Vec<PatchMeta>>> {
 pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
     let mut patches = Vec::new();
     let mut current_name = String::new();
-    let mut current_desc = String::new();
     let mut current_packages: Vec<PackageCompat> = Vec::new();
     let mut current_pkg_name = String::new();
     let mut current_pkg_versions: Vec<String> = Vec::new();
@@ -81,7 +79,6 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
     };
 
     let flush_patch = |name: &mut String,
-                       desc: &mut String,
                        pkg_name: &mut String,
                        pkg_versions: &mut Vec<String>,
                        packages: &mut Vec<PackageCompat>,
@@ -90,7 +87,6 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
         if !name.is_empty() {
             patches.push(PatchMeta {
                 name: std::mem::take(name),
-                description: std::mem::take(desc),
                 compatible_packages: std::mem::take(packages),
             });
         }
@@ -101,7 +97,6 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
         if let Some(name) = trimmed.strip_prefix("Name:") {
             flush_patch(
                 &mut current_name,
-                &mut current_desc,
                 &mut current_pkg_name,
                 &mut current_pkg_versions,
                 &mut current_packages,
@@ -109,8 +104,6 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
             );
             current_name = name.trim().to_string();
             in_compatible = false;
-        } else if let Some(desc) = trimmed.strip_prefix("Description:") {
-            current_desc = desc.trim().to_string();
         } else if let Some(pkg) = trimmed.strip_prefix("Package name:") {
             flush_pkg(
                 &mut current_pkg_name,
@@ -137,7 +130,6 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
 
     flush_patch(
         &mut current_name,
-        &mut current_desc,
         &mut current_pkg_name,
         &mut current_pkg_versions,
         &mut current_packages,
@@ -158,6 +150,7 @@ pub enum CompatibleVersions {
 }
 
 impl CompatibleVersions {
+    #[cfg(test)]
     pub fn is_empty(&self) -> bool {
         match self {
             CompatibleVersions::Unconstrained | CompatibleVersions::Unknown => true,
@@ -294,9 +287,9 @@ pub fn resolve_compatible_versions(
 
     let mut result: Vec<String> = intersection.into_iter().map(String::from).collect();
     result.sort_by(|a, b| {
-        let pa = crate::utils::semver::parse_version_numbers(a);
-        let pb = crate::utils::semver::parse_version_numbers(b);
-        crate::utils::semver::compare_version_parts(&pa, &pb)
+        let pa = crate::utils::version::parse_version_numbers(a);
+        let pb = crate::utils::version::parse_version_numbers(b);
+        crate::utils::version::compare_version_parts(&pa, &pb)
     });
 
     CompatibleVersions::Intersection(result)
@@ -371,7 +364,7 @@ pub fn check_app_version_compatibility(
                 }
                 has_versioned_patch = true;
                 for v in &compat.versions {
-                    if crate::utils::semver::check_compatibility(v, min_c, max_c) {
+                    if crate::utils::version::check_compatibility(v, min_c, max_c) {
                         any_compatible = true;
                         break;
                     }
@@ -489,7 +482,6 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "PatchA".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.0.0".to_string(), "2.0.0".to_string()],
@@ -497,7 +489,6 @@ mod tests {
             },
             PatchMeta {
                 name: "PatchB".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string(), "3.0.0".to_string()],
@@ -516,7 +507,6 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "PatchA".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.0.0".to_string()],
@@ -524,7 +514,6 @@ mod tests {
             },
             PatchMeta {
                 name: "PatchB".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string()],
@@ -547,7 +536,6 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "PatchA".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.0.0".to_string()],
@@ -555,7 +543,6 @@ mod tests {
             },
             PatchMeta {
                 name: "PatchB".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string()],
@@ -574,7 +561,6 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "Universal".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec![],
@@ -582,7 +568,6 @@ mod tests {
             },
             PatchMeta {
                 name: "Constrained".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string(), "2.1.0".to_string()],
@@ -601,7 +586,6 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "Irrelevant".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.other".to_string(),
                     versions: vec!["9.9.9".to_string()],
@@ -609,7 +593,6 @@ mod tests {
             },
             PatchMeta {
                 name: "Relevant".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.2.3".to_string()],
@@ -628,7 +611,6 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "P1".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.0.0".to_string(), "2.0.0".to_string()],
@@ -636,7 +618,6 @@ mod tests {
             },
             PatchMeta {
                 name: "P2".to_string(),
-                description: "".to_string(),
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string(), "3.0.0".to_string()],

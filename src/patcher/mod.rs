@@ -7,7 +7,6 @@ use crate::config::apps::HookWhen;
 use crate::config::{AppConfig, Config};
 use crate::ui;
 use anyhow::{Context, Result};
-use std::path::Path;
 use tracing::info;
 
 fn strip_cli_log_prefix(line: &str) -> &str {
@@ -131,115 +130,25 @@ pub fn parse_filtered_version(stdout: &str, package: &str) -> Option<String> {
     None
 }
 
-pub fn is_fingerprint_failure(stderr: &str, stdout: &str) -> bool {
-    let combined = format!("{stderr}\n{stdout}").to_lowercase();
-    combined.contains("failed to match the fingerprint")
-        || combined.contains("patch.patchexception")
-        || combined.contains("patching aborted")
-        || (combined.contains("fingerprint") && combined.contains("failed"))
+async fn cleanup_patch_apks(staging_apk: &str, output_apk: &str) {
+    let _ = tokio::fs::remove_file(staging_apk).await;
+    let _ = tokio::fs::remove_file(output_apk).await;
 }
 
-pub async fn patch(
-    cfg: &Config,
+fn build_morphe_patch_command(
     id: &str,
-    app: &AppConfig,
-    apk_path: &str,
-    output_dir: &str,
-    is_root: bool,
-) -> Result<(String, plan::PatchPlan)> {
-    patch_with_arch(cfg, id, app, apk_path, output_dir, is_root, None).await
-}
-
-pub async fn patch_with_arch(
-    cfg: &Config,
-    id: &str,
-    app: &AppConfig,
-    apk_path: &str,
-    output_dir: &str,
-    is_root: bool,
+    args: &cli::MorpheCliArgs,
+    ks: &crate::utils::keystore::ResolvedKeystore,
+    result_json: &str,
     strip_arch: Option<&str>,
-) -> Result<(String, plan::PatchPlan)> {
-    let ks = crate::utils::keystore::resolve(cfg, app).await?;
-    if ks.generated {
-        tracing::warn!("{id}: generated new keystore at {} (first run)", ks.file);
-    };
-
-    let repo = cfg
-        .patch_sources
-        .get(&app.patch_source)
-        .map(|p| p.repo.clone())
-        .unwrap_or_else(|| app.patch_source.clone());
-
-    let apk_version = crate::utils::apk::get_apk_version_name(apk_path).ok();
-    if let Some(ref ver) = apk_version {
-        info!("{id}: parsed actual APK version {ver} from {apk_path}");
-    }
-    let effective_version = apk_version
-        .as_deref()
-        .or(app.version.as_deref())
-        .unwrap_or("auto");
-
-    let (output_apk, staging_apk) = if is_root {
-        let payload = format!("{}/{id}-root-payload.apk", cfg.build.temp_dir);
-        let stage = format!("{}/{id}-root-stage.apk", cfg.build.temp_dir);
-        (payload, stage)
-    } else {
-        let app_name = app.display_name(id);
-        let filename = crate::patcher::name::output_filename(
-            &app_name,
-            effective_version,
-            crate::patcher::name::ArtifactKind::Apk,
-        );
-        let out = format!("{output_dir}/{filename}");
-        let stage = format!("{}/{filename}-stage.apk", cfg.build.temp_dir);
-        (out, stage)
-    };
-
-    let mpp_path = metadata::resolve_mpp_path(cfg, app);
-    let meta = if let Some(ref p) = mpp_path {
-        metadata::load(cfg, p).await.ok()
-    } else {
-        None
-    };
-    if let Some(ref patches) = meta {
-        if let Some(warn) = metadata::check_app_version_compatibility(id, app, patches) {
-            tracing::warn!("{id}: {warn}");
-        }
-    }
-    let plan = plan::resolve(
-        app,
-        is_root,
-        meta.as_ref(),
-        apk_version.as_deref(),
-        &cfg.build.patcher.rules,
-        &cfg.build.patcher.auto_disable,
-    );
-    if !plan.auto_disabled.is_empty() {
-        info!(
-            "{id}: {} patch(es) auto-disabled due to version/rules",
-            plan.auto_disabled.len()
-        );
-    }
-
-    let args = cli::build_args(
-        &cfg.build.tools_dir,
-        &repo,
-        app,
-        apk_path,
-        &staging_apk,
-        &plan,
-    );
-
-    let result_json = format!("{staging_apk}.result.json");
-    let _ = std::fs::remove_file(&result_json);
-
+) -> tokio::process::Command {
     let mut cmd = tokio::process::Command::new("java");
     cmd.args(["-jar", &args.cli_jar, "patch"])
         .arg(format!("--patches={}", args.patches_arg))
         .arg("-f")
         .arg("--continue-on-error")
         .arg("-r")
-        .arg(&result_json)
+        .arg(result_json)
         .arg("-o")
         .arg(&args.output_apk);
 
@@ -252,22 +161,19 @@ pub async fn patch_with_arch(
             cmd.arg(format!("--striplibs={arch}"));
         }
     }
-
     if !args.included.is_empty() {
         cmd.arg("--exclusive");
     }
 
-    if let Some((file, alias, pass)) = &args.keystore {
-        cmd.arg(format!("--keystore={file}"))
-            .arg(format!("--keystore-entry-alias={alias}"))
-            .arg(format!("--keystore-password={pass}"))
-            .arg(format!("--keystore-entry-password={pass}"));
+    let (ks_file, ks_alias, ks_pass) = if let Some((file, alias, pass)) = &args.keystore {
+        (file.as_str(), alias.as_str(), pass.as_str())
     } else {
-        cmd.arg(format!("--keystore={}", ks.file))
-            .arg(format!("--keystore-entry-alias={}", ks.alias))
-            .arg(format!("--keystore-password={}", ks.password))
-            .arg(format!("--keystore-entry-password={}", ks.password));
-    }
+        (ks.file.as_str(), ks.alias.as_str(), ks.password.as_str())
+    };
+    cmd.arg(format!("--keystore={ks_file}"))
+        .arg(format!("--keystore-entry-alias={ks_alias}"))
+        .arg(format!("--keystore-password={ks_pass}"))
+        .arg(format!("--keystore-entry-password={ks_pass}"));
 
     for patch in &args.included {
         cmd.args(["-e", patch]);
@@ -278,7 +184,6 @@ pub async fn patch_with_arch(
     for raw in &args.raw_args {
         cmd.arg(raw);
     }
-
     cmd.arg(&args.input_apk);
 
     // Never let the signing password reach the console or any log file.
@@ -303,45 +208,39 @@ pub async fn patch_with_arch(
             args.excluded.len()
         ),
     );
-    info!("{id}: patching with morphe-cli...");
-    let output = cmd
-        .output()
-        .await
-        .context("java not found — install JDK 21+")?;
+    cmd
+}
 
-    let cli_result: Option<MorphePatchResult> = std::fs::read_to_string(&result_json)
-        .ok()
-        .and_then(|raw| serde_json::from_str(&raw).ok());
-    let _ = std::fs::remove_file(&result_json);
+struct PatchOutcomeCtx<'a> {
+    id: &'a str,
+    app: &'a AppConfig,
+    apk_path: &'a str,
+    staging_apk: &'a str,
+    output_apk: &'a str,
+    apk_version: Option<&'a str>,
+}
 
-    // Raw tool output goes to build/logs/<id>.log, not the console.
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    if !stdout.is_empty() {
-        ui::tool_log(id, "morphe-cli stdout", &stdout);
-    }
-    if !stderr.is_empty() {
-        ui::tool_log(id, "morphe-cli stderr", &stderr);
-    }
-    if ui::is_verbose() {
-        for line in stdout.lines().chain(stderr.lines()) {
-            ui::info(&format!("{id}: {line}"));
-        }
-    }
-    if !output.status.success() {
-        let _ = std::fs::remove_file(&staging_apk);
-        let _ = std::fs::remove_file(&output_apk);
-        anyhow::bail!("{id}: morphe-cli exited with {}", output.status);
-    }
-
+async fn validate_morphe_patch_outcome(
+    ctx: &PatchOutcomeCtx<'_>,
+    stdout: &str,
+    stderr: &str,
+    cli_result: Option<&MorphePatchResult>,
+    plan: &mut plan::PatchPlan,
+) -> Result<(Vec<String>, Vec<(String, String)>)> {
+    let (id, app, apk_path, staging_apk, output_apk, apk_version) = (
+        ctx.id,
+        ctx.app,
+        ctx.apk_path,
+        ctx.staging_apk,
+        ctx.output_apk,
+        ctx.apk_version,
+    );
     let parsed_applied = cli_result
-        .as_ref()
         .filter(|r| !r.applied_patches.is_empty() || !r.failed_patches.is_empty())
         .map(|r| r.applied_patches.clone())
-        .unwrap_or_else(|| parse_applied_patches(&stdout));
+        .unwrap_or_else(|| parse_applied_patches(stdout));
 
     let failed_patches: Vec<(String, String)> = cli_result
-        .as_ref()
         .filter(|r| !r.failed_patches.is_empty() || !r.applied_patches.is_empty())
         .map(|r| {
             r.failed_patches
@@ -349,29 +248,34 @@ pub async fn patch_with_arch(
                 .map(|f| (f.name.clone(), f.error.clone()))
                 .collect()
         })
-        .unwrap_or_else(|| parse_failed_patches(&stderr, &stdout));
+        .unwrap_or_else(|| parse_failed_patches(stderr, stdout));
 
-    let dex_changed = match (
-        crate::utils::apk::dex_entries_crc(apk_path),
-        crate::utils::apk::dex_entries_crc(&staging_apk),
-    ) {
-        (Ok(in_crc), Ok(out_crc)) => in_crc != out_crc,
-        _ => true,
-    };
+    let in_apk_owned = apk_path.to_string();
+    let stg_apk_owned = staging_apk.to_string();
+    let dex_changed = tokio::task::spawn_blocking(move || {
+        match (
+            crate::utils::apk::dex_entries_crc(&in_apk_owned),
+            crate::utils::apk::dex_entries_crc(&stg_apk_owned),
+        ) {
+            (Ok(in_crc), Ok(out_crc)) => in_crc != out_crc,
+            _ => true,
+        }
+    })
+    .await
+    .unwrap_or(true);
 
     let zero_applied = if !parsed_applied.is_empty() {
         false
     } else if !failed_patches.is_empty() {
         true
-    } else if let Some(count) = parse_applied_patch_count(&stdout) {
+    } else if let Some(count) = parse_applied_patch_count(stdout) {
         count == 0
     } else {
         !dex_changed
     };
 
     if zero_applied {
-        let _ = std::fs::remove_file(&staging_apk);
-        let _ = std::fs::remove_file(&output_apk);
+        cleanup_patch_apks(staging_apk, output_apk).await;
         if !failed_patches.is_empty() {
             let failed_names: Vec<&str> = failed_patches.iter().map(|(n, _)| n.as_str()).collect();
             let detail = failed_patches
@@ -385,14 +289,11 @@ pub async fn patch_with_arch(
             );
         }
         let ver_info = apk_version
-            .as_deref()
             .map(|v| format!(" — version {v} not covered by any enabled patch"))
             .unwrap_or_default();
-        let plan_count = plan.included.len();
-        anyhow::bail!("{id}: 0/{plan_count} patches applied{ver_info}");
+        anyhow::bail!("{id}: 0/{} patches applied{ver_info}", plan.included.len());
     }
 
-    let mut plan = plan;
     if !failed_patches.is_empty() {
         let failed_names: Vec<String> = failed_patches.iter().map(|(n, _)| n.clone()).collect();
         let critical_failed: Vec<String> = failed_names
@@ -401,8 +302,7 @@ pub async fn patch_with_arch(
             .cloned()
             .collect();
         if !critical_failed.is_empty() {
-            let _ = std::fs::remove_file(&staging_apk);
-            let _ = std::fs::remove_file(&output_apk);
+            cleanup_patch_apks(staging_apk, output_apk).await;
             anyhow::bail!(
                 "{id}: critical patch(es) failed: [{}]",
                 critical_failed.join(", ")
@@ -417,19 +317,28 @@ pub async fn patch_with_arch(
         plan.warnings.push(warn_msg);
     }
 
-    if let (Some(actual), Some(reported)) = (
-        apk_version.as_deref(),
-        parse_filtered_version(&stdout, &app.package),
-    ) {
-        if !crate::utils::version::versions_match(actual, &reported) {
-            let _ = std::fs::remove_file(&staging_apk);
-            let _ = std::fs::remove_file(&output_apk);
+    if let (Some(actual), Some(reported)) =
+        (apk_version, parse_filtered_version(stdout, &app.package))
+    {
+        if !crate::utils::version::version_eq(actual, &reported) {
+            cleanup_patch_apks(staging_apk, output_apk).await;
             anyhow::bail!(
                 "{id}: version mismatch — downloaded APK is v{actual}, but patcher targeted v{reported}"
             );
         }
     }
 
+    Ok((parsed_applied, failed_patches))
+}
+
+async fn run_post_patch_hooks(
+    id: &str,
+    app: &AppConfig,
+    is_root: bool,
+    staging_apk: &str,
+    output_apk: &str,
+    ks: &crate::utils::keystore::ResolvedKeystore,
+) -> Result<()> {
     for hook in &app.post_patch_hooks {
         let should_run = match hook.when {
             HookWhen::Root => is_root,
@@ -439,65 +348,68 @@ pub async fn patch_with_arch(
         if !should_run {
             continue;
         }
-        if !Path::new(&hook.script).exists() {
+        if !tokio::fs::try_exists(&hook.script).await.unwrap_or(false) {
             if hook.optional {
                 tracing::warn!("{id}: optional hook script not found: {}", hook.script);
                 continue;
-            } else {
-                let _ = std::fs::remove_file(&staging_apk);
-                let _ = std::fs::remove_file(&output_apk);
-                anyhow::bail!("{id}: declared hook script not found: {}", hook.script);
             }
+            cleanup_patch_apks(staging_apk, output_apk).await;
+            anyhow::bail!("{id}: declared hook script not found: {}", hook.script);
         }
         info!("{id}: running post-patch hook: {}", hook.script);
-        let status = tokio::process::Command::new("python")
-            .arg(&hook.script)
-            .arg(&staging_apk)
-            .arg(&ks.file)
-            .arg(&ks.alias)
-            .arg(&ks.password)
+        let output = tokio::process::Command::new("python")
+            .args([&hook.script, staging_apk, &ks.file, &ks.alias, &ks.password])
             .output()
             .await;
-        let status = status.map(|o| {
-            ui::tool_log(
-                id,
-                &format!("hook {}", hook.script),
-                &format!(
-                    "{}{}",
-                    String::from_utf8_lossy(&o.stdout),
-                    String::from_utf8_lossy(&o.stderr)
-                ),
-            );
-            o.status
-        });
-        match status {
-            Ok(st) if st.success() => {
-                info!("{id}: hook {} succeeded", hook.script);
-            }
-            Ok(st) => {
-                if hook.optional {
-                    tracing::warn!("{id}: optional hook {} exited with {st}", hook.script);
+        match output {
+            Ok(o) => {
+                ui::tool_log(
+                    id,
+                    &format!("hook {}", hook.script),
+                    &format!(
+                        "{}{}",
+                        String::from_utf8_lossy(&o.stdout),
+                        String::from_utf8_lossy(&o.stderr)
+                    ),
+                );
+                if o.status.success() {
+                    info!("{id}: hook {} succeeded", hook.script);
+                } else if hook.optional {
+                    tracing::warn!(
+                        "{id}: optional hook {} exited with {}",
+                        hook.script,
+                        o.status
+                    );
                 } else {
-                    let _ = std::fs::remove_file(&staging_apk);
-                    let _ = std::fs::remove_file(&output_apk);
-                    anyhow::bail!("{id}: hook {} exited with {st}", hook.script);
+                    cleanup_patch_apks(staging_apk, output_apk).await;
+                    anyhow::bail!("{id}: hook {} exited with {}", hook.script, o.status);
                 }
+            }
+            Err(e) if hook.optional => {
+                tracing::warn!("{id}: optional hook {} failed to launch: {e}", hook.script);
             }
             Err(e) => {
-                if hook.optional {
-                    tracing::warn!("{id}: optional hook {} failed to launch: {e}", hook.script);
-                } else {
-                    let _ = std::fs::remove_file(&staging_apk);
-                    let _ = std::fs::remove_file(&output_apk);
-                    anyhow::bail!("{id}: hook {} failed to launch: {e}", hook.script);
-                }
+                cleanup_patch_apks(staging_apk, output_apk).await;
+                anyhow::bail!("{id}: hook {} failed to launch: {e}", hook.script);
             }
         }
     }
+    Ok(())
+}
 
-    if !crate::utils::apk::check_apk_integrity(&staging_apk) {
-        let _ = std::fs::remove_file(&staging_apk);
-        let _ = std::fs::remove_file(&output_apk);
+async fn zipalign_and_finalize_apk(
+    id: &str,
+    staging_apk: &str,
+    output_apk: &str,
+    ks: &crate::utils::keystore::ResolvedKeystore,
+) -> Result<()> {
+    let stg_check = staging_apk.to_string();
+    let integrity_ok =
+        tokio::task::spawn_blocking(move || crate::utils::apk::check_apk_integrity(&stg_check))
+            .await
+            .unwrap_or(false);
+    if !integrity_ok {
+        cleanup_patch_apks(staging_apk, output_apk).await;
         anyhow::bail!("{id}: patched APK failed integrity check");
     }
 
@@ -511,76 +423,262 @@ pub async fn patch_with_arch(
     } else {
         "apksigner"
     };
-    let is_aligned = std::process::Command::new(zipalign_bin)
-        .args(["-c", "-p", "4", &staging_apk])
+    let is_aligned = tokio::process::Command::new(zipalign_bin)
+        .args(["-c", "-p", "4", staging_apk])
         .output()
+        .await
         .map(|o| o.status.success())
         .unwrap_or(false);
 
     if !is_aligned {
         let aligned_stage = format!("{staging_apk}.aligned.apk");
-        if let Ok(align_out) = std::process::Command::new(zipalign_bin)
-            .args(["-p", "-f", "4", &staging_apk, &aligned_stage])
+        if let Ok(align_out) = tokio::process::Command::new(zipalign_bin)
+            .args(["-p", "-f", "4", staging_apk, &aligned_stage])
             .output()
+            .await
         {
             if align_out.status.success() {
-                let _ = std::fs::rename(&aligned_stage, &staging_apk);
-                let _ = std::process::Command::new(apksigner_bin)
-                    .args([
-                        "sign",
-                        "--ks",
-                        &ks.file,
-                        "--ks-key-alias",
-                        &ks.alias,
-                        "--ks-pass",
-                        &format!("pass:{}", ks.password),
-                        "--key-pass",
-                        &format!("pass:{}", ks.password),
-                        &staging_apk,
-                    ])
-                    .output();
+                crate::utils::warn_io(
+                    tokio::fs::rename(&aligned_stage, staging_apk).await,
+                    &format!("Renaming aligned APK {aligned_stage} -> {staging_apk}"),
+                );
+                crate::utils::warn_io(
+                    tokio::process::Command::new(apksigner_bin)
+                        .args([
+                            "sign",
+                            "--ks",
+                            &ks.file,
+                            "--ks-key-alias",
+                            &ks.alias,
+                            "--ks-pass",
+                            &format!("pass:{}", ks.password),
+                            "--key-pass",
+                            &format!("pass:{}", ks.password),
+                            staging_apk,
+                        ])
+                        .output()
+                        .await,
+                    &format!("Re-signing zipaligned APK {staging_apk}"),
+                );
             } else {
-                let _ = std::fs::remove_file(&aligned_stage);
+                let _ = tokio::fs::remove_file(&aligned_stage).await;
             }
         }
     }
 
-    std::fs::rename(&staging_apk, &output_apk)
-        .or_else(|_| {
-            std::fs::copy(&staging_apk, &output_apk)
-                .map(|_| ())
-                .and_then(|_| std::fs::remove_file(&staging_apk))
-        })
-        .with_context(|| format!("failed to move patched APK to {output_apk}"))?;
+    if tokio::fs::rename(staging_apk, output_apk).await.is_err() {
+        tokio::fs::copy(staging_apk, output_apk)
+            .await
+            .with_context(|| format!("failed to copy patched APK to {output_apk}"))?;
+        tokio::fs::remove_file(staging_apk)
+            .await
+            .with_context(|| format!("failed to remove staging APK {staging_apk}"))?;
+    }
 
     let staging_idsig = format!("{staging_apk}.idsig");
     let output_idsig = format!("{output_apk}.idsig");
-    if Path::new(&staging_idsig).exists() {
-        let _ = std::fs::rename(&staging_idsig, &output_idsig);
+    if tokio::fs::try_exists(&staging_idsig).await.unwrap_or(false) {
+        crate::utils::warn_io(
+            tokio::fs::rename(&staging_idsig, &output_idsig).await,
+            &format!("Moving signature file {staging_idsig} -> {output_idsig}"),
+        );
     }
+    Ok(())
+}
 
-    let mut final_plan = plan;
-    if !parsed_applied.is_empty() {
-        final_plan.included = parsed_applied;
-    } else if final_plan.included.is_empty() && failed_patches.is_empty() {
-        if let Some(ref patches) = meta {
-            let active: Vec<String> = patches
-                .iter()
-                .filter(|p| {
-                    p.compatible_packages.iter().any(|c| c.name == app.package)
-                        && !final_plan
-                            .excluded
-                            .iter()
-                            .any(|e| e.eq_ignore_ascii_case(&p.name))
-                })
-                .map(|p| p.name.clone())
-                .collect();
-            if !active.is_empty() {
-                final_plan.included = active;
-            }
+fn prepare_patch_outputs_and_meta_paths(
+    cfg: &Config,
+    id: &str,
+    app: &AppConfig,
+    effective_version: &str,
+    is_root: bool,
+    output_dir: &str,
+) -> (String, String) {
+    if is_root {
+        (
+            format!("{}/{id}-root-payload.apk", cfg.build.temp_dir),
+            format!("{}/{id}-root-stage.apk", cfg.build.temp_dir),
+        )
+    } else {
+        let app_name = app.display_name(id);
+        let filename = crate::patcher::name::output_filename(
+            &app_name,
+            effective_version,
+            crate::patcher::name::ArtifactKind::Apk,
+        );
+        (
+            format!("{output_dir}/{filename}"),
+            format!("{}/{filename}-stage.apk", cfg.build.temp_dir),
+        )
+    }
+}
+
+fn log_morphe_cli_output(id: &str, stdout: &str, stderr: &str) {
+    if !stdout.is_empty() {
+        ui::tool_log(id, "morphe-cli stdout", stdout);
+    }
+    if !stderr.is_empty() {
+        ui::tool_log(id, "morphe-cli stderr", stderr);
+    }
+    if ui::is_verbose() {
+        for line in stdout.lines().chain(stderr.lines()) {
+            ui::info(&format!("{id}: {line}"));
         }
     }
+}
+
+fn backfill_plan_included(
+    plan: &mut plan::PatchPlan,
+    parsed_applied: Vec<String>,
+    failed_patches: &[(String, String)],
+    meta: Option<&std::sync::Arc<Vec<metadata::PatchMeta>>>,
+    package: &str,
+) {
+    if !parsed_applied.is_empty() {
+        plan.included = parsed_applied;
+        return;
+    }
+    if !plan.included.is_empty() || !failed_patches.is_empty() {
+        return;
+    }
+    if let Some(patches) = meta {
+        let active: Vec<String> = patches
+            .iter()
+            .filter(|p| {
+                p.compatible_packages.iter().any(|c| c.name == package)
+                    && !plan
+                        .excluded
+                        .iter()
+                        .any(|e| e.eq_ignore_ascii_case(&p.name))
+            })
+            .map(|p| p.name.clone())
+            .collect();
+        if !active.is_empty() {
+            plan.included = active;
+        }
+    }
+}
+
+pub async fn patch_with_arch(
+    cfg: &Config,
+    id: &str,
+    app: &AppConfig,
+    apk_path: &str,
+    output_dir: &str,
+    is_root: bool,
+    strip_arch: Option<&str>,
+) -> Result<(String, plan::PatchPlan)> {
+    let ks = crate::utils::keystore::resolve(cfg, app).await?;
+    if ks.generated {
+        tracing::warn!("{id}: generated new keystore at {} (first run)", ks.file);
+    }
+
+    let repo = cfg
+        .patch_sources
+        .get(&app.patch_source)
+        .map(|p| p.repo.clone())
+        .unwrap_or_else(|| app.patch_source.clone());
+
+    let apk_path_owned = apk_path.to_string();
+    let apk_version = tokio::task::spawn_blocking(move || {
+        crate::utils::apk::get_apk_version_name(&apk_path_owned).ok()
+    })
+    .await
+    .unwrap_or(None);
+    if let Some(ref ver) = apk_version {
+        info!("{id}: parsed actual APK version {ver} from {apk_path}");
+    }
+    let effective_version = apk_version
+        .as_deref()
+        .or(app.version.as_deref())
+        .unwrap_or("auto");
+
+    let (output_apk, staging_apk) =
+        prepare_patch_outputs_and_meta_paths(cfg, id, app, effective_version, is_root, output_dir);
+
+    let meta = match metadata::resolve_mpp_path(cfg, app) {
+        Some(ref p) => metadata::load(cfg, p).await.ok(),
+        None => None,
+    };
+    if let Some(ref patches) = meta {
+        if let Some(warn) = metadata::check_app_version_compatibility(id, app, patches) {
+            tracing::warn!("{id}: {warn}");
+        }
+    }
+    let mut plan = plan::resolve(
+        app,
+        is_root,
+        meta.as_ref(),
+        apk_version.as_deref(),
+        &cfg.build.patcher.rules,
+        &cfg.build.patcher.auto_disable,
+    );
+    if !plan.auto_disabled.is_empty() {
+        info!(
+            "{id}: {} patch(es) auto-disabled due to version/rules",
+            plan.auto_disabled.len()
+        );
+    }
+
+    let args = cli::build_args(
+        &cfg.build.tools_dir,
+        &repo,
+        app,
+        apk_path,
+        &staging_apk,
+        &plan,
+    );
+    let result_json = format!("{staging_apk}.result.json");
+    let _ = tokio::fs::remove_file(&result_json).await;
+
+    let mut cmd = build_morphe_patch_command(id, &args, &ks, &result_json, strip_arch);
+    info!("{id}: patching with morphe-cli...");
+    let output = cmd
+        .output()
+        .await
+        .context("java not found — install JDK 21+")?;
+
+    let cli_result: Option<MorphePatchResult> = tokio::fs::read_to_string(&result_json)
+        .await
+        .ok()
+        .and_then(|raw| serde_json::from_str(&raw).ok());
+    let _ = tokio::fs::remove_file(&result_json).await;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    log_morphe_cli_output(id, &stdout, &stderr);
+    if !output.status.success() {
+        cleanup_patch_apks(&staging_apk, &output_apk).await;
+        anyhow::bail!("{id}: morphe-cli exited with {}", output.status);
+    }
+
+    let outcome_ctx = PatchOutcomeCtx {
+        id,
+        app,
+        apk_path,
+        staging_apk: &staging_apk,
+        output_apk: &output_apk,
+        apk_version: apk_version.as_deref(),
+    };
+    let (parsed_applied, failed_patches) = validate_morphe_patch_outcome(
+        &outcome_ctx,
+        &stdout,
+        &stderr,
+        cli_result.as_ref(),
+        &mut plan,
+    )
+    .await?;
+
+    run_post_patch_hooks(id, app, is_root, &staging_apk, &output_apk, &ks).await?;
+    zipalign_and_finalize_apk(id, &staging_apk, &output_apk, &ks).await?;
+    backfill_plan_included(
+        &mut plan,
+        parsed_applied,
+        &failed_patches,
+        meta.as_ref(),
+        &app.package,
+    );
 
     info!("{id}: patched → {output_apk}");
-    Ok((output_apk, final_plan))
+    Ok((output_apk, plan))
 }

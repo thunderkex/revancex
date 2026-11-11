@@ -91,106 +91,78 @@ pub struct PatchPlan {
     pub critical_disabled: Vec<String>,
 }
 
-pub fn resolve(
+fn canonicalize_patch_name(patch: &str, patch_meta: Option<&Arc<Vec<PatchMeta>>>) -> String {
+    let Some(patches) = patch_meta else {
+        return patch.to_string();
+    };
+    patches
+        .iter()
+        .find(|p| {
+            p.name.eq_ignore_ascii_case(patch)
+                || p.name.replace(' ', "-").eq_ignore_ascii_case(patch)
+                || p.name.replace(['-', '_'], " ").eq_ignore_ascii_case(patch)
+        })
+        .map(|p| p.name.clone())
+        .unwrap_or_else(|| patch.to_string())
+}
+
+fn push_unique_exclude(plan: &mut PatchPlan, name: &str) {
+    if !plan.excluded.iter().any(|e| e.eq_ignore_ascii_case(name)) {
+        plan.excluded.push(name.to_string());
+    }
+}
+
+fn apply_dependency_includes(
     app: &AppConfig,
     is_root: bool,
     patch_meta: Option<&Arc<Vec<PatchMeta>>>,
-    apk_version: Option<&str>,
-    rules: &PatcherRules,
-    auto_disable: &str,
-) -> PatchPlan {
-    let mut plan = PatchPlan::default();
-
-    let mut raw_included = app.included_patches.clone();
-    raw_included.extend(app.patches.clone());
-
-    let mode_rules = if is_root { &rules.root } else { &rules.nonroot };
-
-    for patch in &raw_included {
-        let canonical = if let Some(patches) = patch_meta {
-            patches
-                .iter()
-                .find(|p| {
-                    p.name.eq_ignore_ascii_case(patch)
-                        || p.name.replace(' ', "-").eq_ignore_ascii_case(patch)
-                        || p.name.replace(['-', '_'], " ").eq_ignore_ascii_case(patch)
-                })
-                .map(|p| p.name.clone())
-                .unwrap_or_else(|| patch.clone())
-        } else {
-            patch.clone()
-        };
-        let mut matched_rule = None;
-        for rule in &mode_rules.exclude {
-            if matches(rule, &canonical) {
-                matched_rule = Some(format!("{:?}", rule));
-                break;
-            }
-        }
-        if let Some(rule_desc) = matched_rule {
-            let is_crit = is_critical_patch(&canonical);
-            plan.auto_disabled.push(DisabledPatch {
-                name: canonical,
-                reason: DisableReason::RuleExcluded { rule: rule_desc },
-                critical: is_crit,
-            });
-        } else {
-            plan.included.push(canonical);
-        }
-    }
-
+    mode_rules: &RuleSet,
+    plan: &mut PatchPlan,
+) {
+    let deps = app.dependencies.for_mode(is_root);
+    let Some(patches) = patch_meta else {
+        return;
+    };
     for (dep_name, inc_rules) in &mode_rules.include_if_dependency {
-        let deps = app.dependencies.for_mode(is_root);
-        if deps.iter().any(|d| d == dep_name) {
-            if let Some(patches) = patch_meta {
-                for patch in patches.iter() {
-                    for rule in inc_rules {
-                        if matches(rule, &patch.name)
-                            && !plan
-                                .included
-                                .iter()
-                                .any(|i| i.eq_ignore_ascii_case(&patch.name))
-                        {
-                            plan.included.push(patch.name.clone());
-                        }
-                    }
-                }
+        if !deps.iter().any(|d| d == dep_name) {
+            continue;
+        }
+        for patch in patches.iter() {
+            let matched = inc_rules.iter().any(|r| matches(r, &patch.name));
+            if matched
+                && !plan
+                    .included
+                    .iter()
+                    .any(|i| i.eq_ignore_ascii_case(&patch.name))
+            {
+                plan.included.push(patch.name.clone());
             }
         }
     }
+}
 
-    plan.excluded = app.excluded_patches.clone();
+fn apply_mode_and_root_excludes(
+    is_root: bool,
+    patch_meta: Option<&Arc<Vec<PatchMeta>>>,
+    mode_rules: &RuleSet,
+    plan: &mut PatchPlan,
+) {
     for rule in &mode_rules.exclude {
-        match rule {
-            MatchRule::Equals { equals: name } | MatchRule::Contains { contains: name } => {
-                if !plan.excluded.iter().any(|e| e.eq_ignore_ascii_case(name)) {
-                    plan.excluded.push(name.clone());
-                }
-            }
-            MatchRule::Regex { .. } => {}
+        if let MatchRule::Equals { equals: name } | MatchRule::Contains { contains: name } = rule {
+            push_unique_exclude(plan, name);
         }
     }
-
     if let Some(patches) = patch_meta {
         for patch in patches.iter() {
-            for rule in &mode_rules.exclude {
-                if matches(rule, &patch.name) {
-                    if !plan
-                        .excluded
-                        .iter()
-                        .any(|e| e.eq_ignore_ascii_case(&patch.name))
-                    {
-                        plan.excluded.push(patch.name.clone());
-                    }
-                    plan.included
-                        .retain(|i| !i.eq_ignore_ascii_case(&patch.name));
-                }
+            if mode_rules.exclude.iter().any(|r| matches(r, &patch.name)) {
+                push_unique_exclude(plan, &patch.name);
+                plan.included
+                    .retain(|i| !i.eq_ignore_ascii_case(&patch.name));
             }
         }
     }
-
     if is_root {
-        let root_must_exclude = [
+        const ROOT_MUST_EXCLUDE: [&str; 9] = [
             "GmsCore support",
             "Change package name",
             "MicroG support",
@@ -201,61 +173,100 @@ pub fn resolve(
             "Custom branding icon for YouTube Music",
             "Custom branding name for YouTube Music",
         ];
-        for p in root_must_exclude {
-            if !plan.excluded.iter().any(|e| e.eq_ignore_ascii_case(p)) {
-                plan.excluded.push(p.to_string());
-            }
+        for p in ROOT_MUST_EXCLUDE {
+            push_unique_exclude(plan, p);
             plan.included.retain(|i| !i.eq_ignore_ascii_case(p));
         }
     }
+}
 
-    if auto_disable.eq_ignore_ascii_case("off") || app.version_pin_strict {
-    } else {
-        if let (Some(patches), Some(apk_ver)) = (patch_meta, apk_version) {
-            for patch in patches.iter() {
-                let is_included = plan
-                    .included
+fn auto_disable_incompatible(
+    app: &AppConfig,
+    patches: &[PatchMeta],
+    apk_ver: &str,
+    plan: &mut PatchPlan,
+) {
+    for patch in patches {
+        let is_included = plan
+            .included
+            .iter()
+            .any(|i| i.eq_ignore_ascii_case(&patch.name));
+        if !is_included && !plan.included.is_empty() {
+            continue;
+        }
+        for compat in &patch.compatible_packages {
+            if compat.name != app.package
+                || compat.versions.is_empty()
+                || compat
+                    .versions
                     .iter()
-                    .any(|i| i.eq_ignore_ascii_case(&patch.name));
-                if !is_included && !plan.included.is_empty() {
-                    continue;
-                }
-                for compat in &patch.compatible_packages {
-                    if compat.name == app.package
-                        && !compat.versions.is_empty()
-                        && !compat.versions.iter().any(|v| {
-                            v == apk_ver || crate::utils::version::versions_match(v, apk_ver)
-                        })
-                    {
-                        let is_crit = is_critical_patch(&patch.name);
-                        if is_crit
-                            && !plan
-                                .critical_disabled
-                                .iter()
-                                .any(|c| c.eq_ignore_ascii_case(&patch.name))
-                        {
-                            plan.critical_disabled.push(patch.name.clone());
-                        }
-                        plan.auto_disabled.push(DisabledPatch {
-                            name: patch.name.clone(),
-                            reason: DisableReason::Incompatible {
-                                supported: compat.versions.clone(),
-                                actual: apk_ver.to_string(),
-                            },
-                            critical: is_crit,
-                        });
-                        if !plan
-                            .excluded
-                            .iter()
-                            .any(|e| e.eq_ignore_ascii_case(&patch.name))
-                        {
-                            plan.excluded.push(patch.name.clone());
-                        }
-                        plan.included
-                            .retain(|i| !i.eq_ignore_ascii_case(&patch.name));
-                    }
-                }
+                    .any(|v| crate::utils::version::version_eq(v, apk_ver))
+            {
+                continue;
             }
+            let critical = is_critical_patch(&patch.name);
+            if critical
+                && !plan
+                    .critical_disabled
+                    .iter()
+                    .any(|c| c.eq_ignore_ascii_case(&patch.name))
+            {
+                plan.critical_disabled.push(patch.name.clone());
+            }
+            plan.auto_disabled.push(DisabledPatch {
+                name: patch.name.clone(),
+                reason: DisableReason::Incompatible {
+                    supported: compat.versions.clone(),
+                    actual: apk_ver.to_string(),
+                },
+                critical,
+            });
+            push_unique_exclude(plan, &patch.name);
+            plan.included
+                .retain(|i| !i.eq_ignore_ascii_case(&patch.name));
+        }
+    }
+}
+
+pub fn resolve(
+    app: &AppConfig,
+    is_root: bool,
+    patch_meta: Option<&Arc<Vec<PatchMeta>>>,
+    apk_version: Option<&str>,
+    rules: &PatcherRules,
+    auto_disable: &str,
+) -> PatchPlan {
+    let mut plan = PatchPlan {
+        excluded: app.excluded_patches.clone(),
+        ..Default::default()
+    };
+    let mode_rules = if is_root { &rules.root } else { &rules.nonroot };
+
+    for patch in app.included_patches.iter().chain(app.patches.iter()) {
+        let canonical = canonicalize_patch_name(patch, patch_meta);
+        let matched_rule = mode_rules
+            .exclude
+            .iter()
+            .find(|rule| matches(rule, &canonical))
+            .map(|rule| format!("{rule:?}"));
+        if let Some(rule_desc) = matched_rule {
+            let critical = is_critical_patch(&canonical);
+            plan.auto_disabled.push(DisabledPatch {
+                name: canonical,
+                reason: DisableReason::RuleExcluded { rule: rule_desc },
+                critical,
+            });
+        } else {
+            plan.included.push(canonical);
+        }
+    }
+
+    apply_dependency_includes(app, is_root, patch_meta, mode_rules, &mut plan);
+    apply_mode_and_root_excludes(is_root, patch_meta, mode_rules, &mut plan);
+
+    if !auto_disable.eq_ignore_ascii_case("off") && !app.version_pin_strict {
+        if let (Some(patches), Some(apk_ver)) = (patch_meta, apk_version) {
+            auto_disable_incompatible(app, patches, apk_ver, &mut plan);
         }
     }
 

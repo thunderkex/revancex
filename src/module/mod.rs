@@ -2,15 +2,13 @@ pub mod bundle;
 pub mod single;
 pub mod webui;
 
-pub use bundle::build_bundle_module;
-pub use single::build_single_module;
-
 use anyhow::{Context, Result};
 use tracing::info;
 
-pub fn verify_bundle(zip_path: &str) -> Result<()> {
+pub fn verify_bundle(zip_path: impl AsRef<std::path::Path>) -> Result<()> {
+    let zip_path = zip_path.as_ref();
     let file = std::fs::File::open(zip_path)
-        .with_context(|| format!("Failed to open module zip at {zip_path}"))?;
+        .with_context(|| format!("Failed to open module zip at {}", zip_path.display()))?;
     let mut archive = zip::ZipArchive::new(file).with_context(|| "Failed to read zip archive")?;
 
     let mut has_update_binary = false;
@@ -20,7 +18,10 @@ pub fn verify_bundle(zip_path: &str) -> Result<()> {
     let mut has_service_sh = false;
     let mut has_utils_sh = false;
     let mut apk_count = 0;
-    let id_re = regex::Regex::new(r"^[a-zA-Z][a-zA-Z0-9._-]+$")?;
+    static ID_RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    let id_re = ID_RE.get_or_init(|| {
+        regex::Regex::new(r"^[a-zA-Z][a-zA-Z0-9._-]+$").expect("valid module id regex")
+    });
 
     for i in 0..archive.len() {
         let mut item = archive.by_index(i)?;

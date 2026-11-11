@@ -1,4 +1,15 @@
 #!/sbin/sh
-SKIPUNZIP=1
-unzip -o "$ZIPFILE" 'system/*' -d "$MODPATH" >&2
-set_perm_recursive "$MODPATH" root root 0755 0644
+OUTFD="$2"
+
+ui_print() {
+    if [ -n "$OUTFD" ] && [ -e "/proc/self/fd/$OUTFD" ]; then
+        printf 'ui_print %s\nui_print\n' "$1" > "/proc/self/fd/$OUTFD"
+    else
+        echo "$1"
+    fi
+}
+
+ui_print "! Custom recovery flashing is not supported by ReVanceX."
+ui_print "! Android PackageManager (pm) is unavailable in recovery."
+ui_print "! Flash this module inside the Magisk, KernelSU, or APatch app."
+exit 1

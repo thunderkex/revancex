@@ -27,7 +27,7 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: revancex-release-write
@@ -36,6 +36,8 @@ concurrency:
 jobs:
   build:
     name: Auto Build
+    permissions:
+      contents: write
     uses: ./.github/workflows/build-and-release.yml
     with:
       apps: ${{ inputs.apps || 'all' }}
@@ -51,5 +53,7 @@ jobs:
     name: Update Catalogue
     needs: build
     if: success()
+    permissions:
+      contents: write
     uses: ./.github/workflows/update-pages.yml
     secrets: inherit

@@ -49,7 +49,7 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: revancex-release-write
@@ -69,21 +69,35 @@ jobs:
     steps:
       - name: Resolve and validate inputs (dispatch vs manual)
         id: inputs
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PAYLOAD_APPS: ${{ github.event.client_payload.apps }}
+          PAYLOAD_ARCH: ${{ github.event.client_payload.arch }}
+          PAYLOAD_MODE: ${{ github.event.client_payload.mode }}
+          PAYLOAD_PACKAGING: ${{ github.event.client_payload.packaging }}
+          PAYLOAD_INCLUDE_WEBUI: ${{ github.event.client_payload.include_webui }}
+          PAYLOAD_SKIP_FAIL_THRESHOLD: ${{ github.event.client_payload.skip_fail_threshold }}
+          INPUT_APPS: ${{ inputs.apps }}
+          INPUT_ARCH: ${{ inputs.arch }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_PACKAGING: ${{ inputs.packaging }}
+          INPUT_INCLUDE_WEBUI: ${{ inputs.include_webui }}
+          INPUT_SKIP_FAIL_THRESHOLD: ${{ inputs.skip_fail_threshold }}
         run: |
-          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
-            APPS="${{ github.event.client_payload.apps }}"
-            ARCH="${{ github.event.client_payload.arch }}"
-            MODE="${{ github.event.client_payload.mode }}"
-            PACKAGING="${{ github.event.client_payload.packaging }}"
-            WEBUI="${{ github.event.client_payload.include_webui }}"
-            SKIP_FAIL_THRESHOLD="${{ github.event.client_payload.skip_fail_threshold }}"
+          if [ "$EVENT_NAME" = "repository_dispatch" ]; then
+            APPS="$PAYLOAD_APPS"
+            ARCH="$PAYLOAD_ARCH"
+            MODE="$PAYLOAD_MODE"
+            PACKAGING="$PAYLOAD_PACKAGING"
+            WEBUI="$PAYLOAD_INCLUDE_WEBUI"
+            SKIP_FAIL_THRESHOLD="$PAYLOAD_SKIP_FAIL_THRESHOLD"
           else
-            APPS="${{ inputs.apps }}"
-            ARCH="${{ inputs.arch }}"
-            MODE="${{ inputs.mode }}"
-            PACKAGING="${{ inputs.packaging }}"
-            WEBUI="${{ inputs.include_webui }}"
-            SKIP_FAIL_THRESHOLD="${{ inputs.skip_fail_threshold }}"
+            APPS="$INPUT_APPS"
+            ARCH="$INPUT_ARCH"
+            MODE="$INPUT_MODE"
+            PACKAGING="$INPUT_PACKAGING"
+            WEBUI="$INPUT_INCLUDE_WEBUI"
+            SKIP_FAIL_THRESHOLD="$INPUT_SKIP_FAIL_THRESHOLD"
           fi
 
           ARCH="${ARCH:-arm64-v8a}"
@@ -126,16 +140,18 @@ jobs:
             WEBUI="false"
           fi
 
-          echo "apps=$APPS" >> $GITHUB_OUTPUT
-          echo "arch=$ARCH" >> $GITHUB_OUTPUT
-          echo "mode=$MODE" >> $GITHUB_OUTPUT
-          echo "packaging=$PACKAGING" >> $GITHUB_OUTPUT
-          echo "include_webui=$WEBUI" >> $GITHUB_OUTPUT
-          echo "skip_fail_threshold=$SKIP_FAIL_THRESHOLD" >> $GITHUB_OUTPUT
+          echo "apps=$APPS" >> "$GITHUB_OUTPUT"
+          echo "arch=$ARCH" >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "packaging=$PACKAGING" >> "$GITHUB_OUTPUT"
+          echo "include_webui=$WEBUI" >> "$GITHUB_OUTPUT"
+          echo "skip_fail_threshold=$SKIP_FAIL_THRESHOLD" >> "$GITHUB_OUTPUT"
 
   build:
     name: Custom Build
     needs: resolve
+    permissions:
+      contents: write
     uses: ./.github/workflows/build-and-release.yml
     with:
       apps: ${{ needs.resolve.outputs.apps }}

@@ -17,7 +17,7 @@ on:
         type: boolean
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: check-updates
@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: check-updates
 
@@ -44,45 +44,48 @@ jobs:
 
       - name: Verify Pre-built CLI Binary Availability
         run: |
-          if [ "${{ env.CLI_SOURCE }}" = "built from source" ]; then
+          if [ "$CLI_SOURCE" = "built from source" ]; then
             echo "::warning title=CLI built from source::pre-built revancex-linux-x86_64.tar.gz not found in releases"
-            echo "### ⚠️ Pre-built CLI Binary Missing" >> $GITHUB_STEP_SUMMARY
-            echo "No pre-built \`revancex-linux-x86_64.tar.gz\` was found in GitHub Releases. The job had to build the CLI from source using cargo (~10 minutes)." >> $GITHUB_STEP_SUMMARY
-            echo "To fix this, trigger the **Release CLI Binaries** workflow manually or push a new release tag." >> $GITHUB_STEP_SUMMARY
+            echo "### ⚠️ Pre-built CLI Binary Missing" >> "$GITHUB_STEP_SUMMARY"
+            echo "No pre-built \`revancex-linux-x86_64.tar.gz\` was found in GitHub Releases. The job had to build the CLI from source using cargo (~10 minutes)." >> "$GITHUB_STEP_SUMMARY"
+            echo "To fix this, trigger the **Release CLI Binaries** workflow manually or push a new release tag." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "### ✅ Pre-built CLI Binary Used" >> $GITHUB_STEP_SUMMARY
-            echo "CLI downloaded quickly from pre-built GitHub Release asset." >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ Pre-built CLI Binary Used" >> "$GITHUB_STEP_SUMMARY"
+            echo "CLI downloaded quickly from pre-built GitHub Release asset." >> "$GITHUB_STEP_SUMMARY"
           fi
-
 
       - name: Poll patch repositories for updates
         id: poll
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_BUILD: ${{ inputs.force_build }}
         run: |
           source scripts/ci-log.sh
-          if [ "${{ inputs.force_build }}" = "true" ]; then
+          if [ "$FORCE_BUILD" = "true" ]; then
             step_skip "Check updates" "force_build is true"
-            echo "has_updates=true" >> $GITHUB_OUTPUT
-            echo "changed_apps=all" >> $GITHUB_OUTPUT
+            echo "has_updates=true" >> "$GITHUB_OUTPUT"
+            echo "changed_apps=all" >> "$GITHUB_OUTPUT"
           else
             step_run "Poll patch repositories for updates" revancex check-updates --json
             OUTPUT=$(cat build/logs/poll-patch-repositories-for-updates.log)
             HAS_UPDATES=$(echo "$OUTPUT" | jq -r '.has_updates // false')
             CHANGED_APPS=$(echo "$OUTPUT" | jq -r '.changed_apps // [] | join(",")')
             [ -z "$CHANGED_APPS" ] && [ "$HAS_UPDATES" = "true" ] && CHANGED_APPS="all"
-            echo "has_updates=$HAS_UPDATES" >> $GITHUB_OUTPUT
-            echo "changed_apps=$CHANGED_APPS" >> $GITHUB_OUTPUT
+            echo "has_updates=$HAS_UPDATES" >> "$GITHUB_OUTPUT"
+            echo "changed_apps=$CHANGED_APPS" >> "$GITHUB_OUTPUT"
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Report status
+        env:
+          HAS_UPDATES: ${{ steps.poll.outputs.has_updates }}
+          CHANGED_APPS: ${{ steps.poll.outputs.changed_apps }}
         run: |
-          echo "● updates: ${{ steps.poll.outputs.has_updates }}   changed apps: ${{ steps.poll.outputs.changed_apps }}"
+          echo "● updates: ${HAS_UPDATES}   changed apps: ${CHANGED_APPS}"
 
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-logs-${{ github.job }}-main
           path: build/logs/
@@ -92,14 +95,18 @@ jobs:
       - name: Render Process Summary
         if: always()
         shell: bash
+        env:
+          JOB_ID: ${{ github.job }}
         run: |
           source scripts/ci-log.sh
-          step_summary "build-logs-${{ github.job }}-main"
+          step_summary "build-logs-${JOB_ID}-main"
 
   build:
     name: Trigger Auto Build
     needs: check
     if: needs.check.outputs.has_updates == 'true'
+    permissions:
+      contents: write
     uses: ./.github/workflows/auto-build.yml
     with:
       apps: ${{ needs.check.outputs.changed_apps }}

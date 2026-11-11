@@ -25,15 +25,19 @@ runs:
     - name: Download and unpack revancex CLI
       id: download
       shell: bash
+      env:
+        INPUT_TAG: ${{ inputs.tag }}
+        FORCE_BUILD: ${{ inputs.force_build }}
+        GITHUB_REPO: ${{ github.repository }}
       run: |
         mkdir -p bin
         CARGO_VER=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
-        TARGET_TAG="${{ inputs.tag }}"
+        TARGET_TAG="$INPUT_TAG"
         if [ -z "$TARGET_TAG" ]; then
           TARGET_TAG="v${CARGO_VER}"
         fi
 
-        CLI_URL="https://github.com/${{ github.repository }}/releases/download/${TARGET_TAG}/revancex-linux-x86_64.tar.gz"
+        CLI_URL="https://github.com/${GITHUB_REPO}/releases/download/${TARGET_TAG}/revancex-linux-x86_64.tar.gz"
 
         export CARGO_TERM_COLOR=always CARGO_TERM_PROGRESS_WHEN=never
         mkdir -p build/logs bin
@@ -43,7 +47,7 @@ runs:
         fi
 
         DOWNLOADED=false
-        if [ "${{ inputs.force_build }}" = "true" ]; then
+        if [ "$FORCE_BUILD" = "true" ]; then
           if type step_skip >/dev/null 2>&1; then
             step_skip "Download pre-built CLI (${TARGET_TAG})" "force_build=true"
           else
@@ -65,22 +69,22 @@ runs:
 
         if [ "$DOWNLOADED" = "false" ]; then
           echo "::warning title=CLI built from source::No pre-built CLI release for ${TARGET_TAG}; building from source."
-          echo "cli_source=built from source" >> $GITHUB_OUTPUT
-          echo "CLI_SOURCE=built from source" >> $GITHUB_ENV
+          echo "cli_source=built from source" >> "$GITHUB_OUTPUT"
+          echo "CLI_SOURCE=built from source" >> "$GITHUB_ENV"
           if ! command -v cargo >/dev/null 2>&1; then
             curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
             source "$HOME/.cargo/env"
           fi
           if type step_run >/dev/null 2>&1; then
-            step_run "Build CLI from source (${TARGET_TAG})" cargo build --release --quiet
+            step_run "Build CLI from source (${TARGET_TAG})" cargo build --release --locked --quiet
           else
-            cargo build --release --quiet
+            cargo build --release --locked --quiet
           fi
           cp target/release/revancex bin/revancex
         else
-          echo "cli_source=pre-built binary" >> $GITHUB_OUTPUT
-          echo "CLI_SOURCE=pre-built binary" >> $GITHUB_ENV
+          echo "cli_source=pre-built binary" >> "$GITHUB_OUTPUT"
+          echo "CLI_SOURCE=pre-built binary" >> "$GITHUB_ENV"
         fi
 
         chmod +x bin/revancex*
-        echo "$PWD/bin" >> $GITHUB_PATH
+        echo "$PWD/bin" >> "$GITHUB_PATH"

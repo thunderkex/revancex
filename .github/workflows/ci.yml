@@ -9,6 +9,8 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'config/**'
+      - 'templates/**'
+      - 'scripts/**'
       - 'Cargo.toml'
       - '.github/workflows/ci.yml'
   pull_request:
@@ -17,6 +19,8 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'config/**'
+      - 'templates/**'
+      - 'scripts/**'
       - 'Cargo.toml'
 
 permissions:
@@ -40,11 +44,11 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: ci-validate
           cache-on-failure: true
@@ -59,13 +63,13 @@ jobs:
         shell: bash
         run: |
           source scripts/ci-log.sh
-          step_run "Linter check (cargo clippy)" cargo clippy --quiet --all-targets -- -D warnings
+          step_run "Linter check (cargo clippy)" cargo clippy --locked --quiet --all-targets -- -D warnings
 
       - name: Run unit & integration tests
         shell: bash
         run: |
           source scripts/ci-log.sh
-          step_run "Run tests (cargo test)" cargo test --quiet
+          step_run "Run tests (cargo test)" cargo test --locked --quiet
 
       # pip cache skips PyPI network round-trips; pip install --quiet no-ops fast on warm cache
       - name: Cache pip dependencies
@@ -83,19 +87,25 @@ jobs:
           pip install -q --disable-pip-version-check -r scripts/requirements.txt
           step_run "Smoke-test scripts" bash -c "python3 scripts/tests/test_update_readme.py && python3 scripts/tests/test_summarize_build_report.py && bash scripts/tests/test_ci_log.sh"
 
+      - name: ShellCheck scripts and module templates
+        shell: bash
+        run: |
+          source scripts/ci-log.sh
+          step_run "ShellCheck scripts" shellcheck templates/customize.sh templates/utils.sh templates/action.sh templates/uninstall.sh templates/update-binary templates/service.sh.tpl scripts/ci-log.sh scripts/tests/test_ci_log.sh
+
       - name: Validate config
         shell: bash
         run: |
           source scripts/ci-log.sh
-          step_run "Validate config" cargo run --quiet -- validate
+          step_run "Validate config" cargo run --locked --quiet -- validate
 
       - name: Validate apps.json generation and JSON Schema
         shell: bash
         run: |
           source scripts/ci-log.sh
           step_run "Validate apps.json schema" bash -c "
-            cargo run --quiet -- gen-apps-json --registry config/releases_registry.json --out /tmp/apps1.json
-            cargo run --quiet -- gen-apps-json --registry config/releases_registry.json --out /tmp/apps2.json
+            cargo run --locked --quiet -- gen-apps-json --registry config/releases_registry.json --out /tmp/apps1.json
+            cargo run --locked --quiet -- gen-apps-json --registry config/releases_registry.json --out /tmp/apps2.json
             diff -u /tmp/apps1.json /tmp/apps2.json
             python3 scripts/validate_apps_json.py /tmp/apps1.json docs/apps.schema.json
           "
@@ -108,7 +118,7 @@ jobs:
 
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-logs-${{ github.job }}-main
           path: build/logs/
@@ -118,6 +128,8 @@ jobs:
       - name: Render Process Summary
         if: always()
         shell: bash
+        env:
+          JOB_ID: ${{ github.job }}
         run: |
           source scripts/ci-log.sh
-          step_summary "build-logs-${{ github.job }}-main"
+          step_summary "build-logs-${JOB_ID}-main"

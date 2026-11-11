@@ -69,7 +69,7 @@ on:
         value: ${{ jobs.build.outputs.release_tag }}
 
 permissions:
-  contents: write
+  contents: read
 
 # Quiet, uniform tool output. Raw tool output is captured under build/logs/
 # (uploaded as an artifact). Re-running with "Enable debug logging" sets
@@ -82,6 +82,8 @@ env:
 jobs:
   build:
     name: Build & Release (${{ inputs.apps || 'all' }} · ${{ inputs.arch }})
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     services:
       flaresolverr:
@@ -142,7 +144,7 @@ jobs:
           java-version: '21'
           distribution: temurin
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: build-and-release
 
@@ -157,7 +159,7 @@ jobs:
         if: steps.cache_cli.outputs.cache-hit == 'true'
         run: |
           chmod +x bin/revancex
-          echo "$PWD/bin" >> $GITHUB_PATH
+          echo "$PWD/bin" >> "$GITHUB_PATH"
 
       - name: Download CLI
         if: steps.cache_cli.outputs.cache-hit != 'true'
@@ -167,7 +169,7 @@ jobs:
           force_build: 'true'
 
       - name: Cache & install download accelerator (aria2)
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
         with:
           packages: aria2
           version: 1.0
@@ -191,23 +193,15 @@ jobs:
           restore-keys: |
             tools-${{ runner.os }}-
 
-      - name: Restore signing keys cache
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            keys/
-          key: signing-keys-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            signing-keys-${{ runner.os }}-
-
       - name: Download tools
         id: tools
         shell: bash
-        run: |
-          source scripts/ci-log.sh
-          step_run "Download patch tools" revancex download-tools --apps "${{ inputs.apps || 'all' }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_APPS: ${{ inputs.apps || 'all' }}
+        run: |
+          source scripts/ci-log.sh
+          step_run "Download patch tools" revancex download-tools --apps "$INPUT_APPS"
 
       - name: Clean stale tools
         shell: bash
@@ -225,38 +219,35 @@ jobs:
 
       - name: Validate configuration
         shell: bash
+        env:
+          INPUT_APPS: ${{ inputs.apps || 'all' }}
         run: |
           source scripts/ci-log.sh
-          step_run "Validate configuration" revancex validate --apps "${{ inputs.apps || 'all' }}"
+          step_run "Validate configuration" revancex validate --apps "$INPUT_APPS"
 
       - name: Build apps
         shell: bash
-        run: |
-          source scripts/ci-log.sh
-          mkdir -p output build/logs
-          MODE_ARGS=()
-          if [ -n "${{ inputs.mode }}" ]; then
-            MODE_ARGS=(--mode "${{ inputs.mode }}")
-          fi
-          step_run "Build apps (${{ inputs.apps || 'all' }}-${{ inputs.arch }})" revancex build \
-            --apps "${{ inputs.apps || 'all' }}" \
-            --arch "${{ inputs.arch }}" \
-            "${MODE_ARGS[@]}" \
-            --keep-going \
-            --output output
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
           FLARESOLVERR_URL: http://localhost:8191/v1
           TRAWL_URL: http://localhost:8000
-
-      - name: Save signing keys cache
-        if: always()
-        uses: actions/cache/save@v6
-        with:
-          path: |
-            keys/
-          key: signing-keys-${{ runner.os }}-${{ github.run_id }}
+          INPUT_APPS: ${{ inputs.apps || 'all' }}
+          INPUT_ARCH: ${{ inputs.arch }}
+          INPUT_MODE: ${{ inputs.mode }}
+        run: |
+          source scripts/ci-log.sh
+          mkdir -p output build/logs
+          MODE_ARGS=()
+          if [ -n "$INPUT_MODE" ]; then
+            MODE_ARGS=(--mode "$INPUT_MODE")
+          fi
+          step_run "Build apps (${INPUT_APPS}-${INPUT_ARCH})" revancex build \
+            --apps "$INPUT_APPS" \
+            --arch "$INPUT_ARCH" \
+            "${MODE_ARGS[@]}" \
+            --keep-going \
+            --output output
 
       - name: Upload detailed build logs
         if: always()
@@ -284,9 +275,11 @@ jobs:
 
       - name: Validate Build Report
         shell: bash
+        env:
+          SKIP_FAIL_THRESHOLD: ${{ inputs.skip_fail_threshold }}
         run: |
           source scripts/ci-log.sh
-          if [ "${{ inputs.skip_fail_threshold }}" = "true" ]; then
+          if [ "$SKIP_FAIL_THRESHOLD" = "true" ]; then
             step_run "Validate build report (fail_threshold skipped)" revancex report check output/BUILD_REPORT.json --continue
           else
             step_run "Validate build report" revancex report check output/BUILD_REPORT.json --fail-threshold 40
@@ -303,15 +296,22 @@ jobs:
 
       - name: Resolve Release Metadata
         id: meta
+        env:
+          TAG_PREFIX: ${{ inputs.tag_prefix }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RELEASE_TITLE: ${{ inputs.release_title }}
+          RELEASE_NOTE: ${{ inputs.release_note }}
+          INPUT_APPS: ${{ inputs.apps }}
+          INPUT_ARCH: ${{ inputs.arch }}
         run: |
           CARGO_VER=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           DATE_STR=$(date -u +'%Y.%m.%d')
           YMD=$(date -u +'%Y%m%d')
-          TAG="${{ inputs.tag_prefix }}-v${CARGO_VER}-${DATE_STR}-b${{ github.run_number }}"
+          TAG="${TAG_PREFIX}-v${CARGO_VER}-${DATE_STR}-b${RUN_NUMBER}"
 
-          VERSION_CODE=$(python3 - <<PY
+          VERSION_CODE=$(YMD="$YMD" python3 - <<'PY'
           import json, os
-          ymd = "${YMD}"
+          ymd = os.environ["YMD"]
           base = int(ymd) * 100
           max_bb = 0
           reg_path = "config/releases_registry.json"
@@ -330,71 +330,81 @@ jobs:
           PY
           )
 
-          TITLE="${{ inputs.release_title }}"
+          TITLE="$RELEASE_TITLE"
           if [ -z "$TITLE" ]; then
-            if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
-              TITLE="Custom Bundle — ${{ inputs.apps }} (${DATE_STR})"
+            if [ "$TAG_PREFIX" = "custom" ]; then
+              TITLE="Custom Bundle — ${INPUT_APPS} (${DATE_STR})"
             else
-              TITLE="ReVanceX Apps & Modules — ${DATE_STR} (Build #${{ github.run_number }})"
+              TITLE="ReVanceX Apps & Modules — ${DATE_STR} (Build #${RUN_NUMBER})"
             fi
           fi
 
-          BODY="${{ inputs.release_note }}"
+          BODY="$RELEASE_NOTE"
           if [ -z "$BODY" ]; then
-            if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
-              BODY=$(printf "Custom bundle requested via GitHub Pages.\n- **Apps**: %s\n- **Arch**: %s\n- **CLI Version**: \`v%s\`\n- **Date**: %s" "${{ inputs.apps }}" "${{ inputs.arch }}" "$CARGO_VER" "$DATE_STR")
+            if [ "$TAG_PREFIX" = "custom" ]; then
+              BODY=$(printf "Custom bundle requested via GitHub Pages.\n- **Apps**: %s\n- **Arch**: %s\n- **CLI Version**: \`v%s\`\n- **Date**: %s" "$INPUT_APPS" "$INPUT_ARCH" "$CARGO_VER" "$DATE_STR")
             else
               BODY=$(printf "## %s\n\nAutomatic build triggered by schedule or patch updates.\n- **CLI Version**: \`v%s\`\n- **Date**: %s" "$TITLE" "$CARGO_VER" "$DATE_STR")
             fi
           fi
 
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "title=$TITLE" >> $GITHUB_OUTPUT
-          echo "version=$CARGO_VER" >> $GITHUB_OUTPUT
-          echo "date=$DATE_STR" >> $GITHUB_OUTPUT
-          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+          echo "version=$CARGO_VER" >> "$GITHUB_OUTPUT"
+          echo "date=$DATE_STR" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           {
             echo "body<<EOF"
             echo "$BODY"
             echo "EOF"
-          } >> $GITHUB_OUTPUT
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build bundle modules
         if: inputs.packaging == 'all' || inputs.packaging == 'bundle'
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INCLUDE_WEBUI: ${{ inputs.include_webui }}
+          TAG_PREFIX: ${{ inputs.tag_prefix }}
+          INPUT_APPS: ${{ inputs.apps }}
+          VERSION_CODE: ${{ steps.meta.outputs.version_code }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
         run: |
           source scripts/ci-log.sh
           WEBUI_FLAG="--include-webui"
-          if [ "${{ inputs.include_webui }}" != "true" ]; then
+          if [ "$INCLUDE_WEBUI" != "true" ]; then
             WEBUI_FLAG="--no-webui"
           fi
-          if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
-            step_run "Build bundle module (${{ inputs.apps }})" revancex module \
+          if [ "$TAG_PREFIX" = "custom" ]; then
+            step_run "Build bundle module (${INPUT_APPS})" revancex module \
               --bundle \
-              --apps "${{ inputs.apps }}" \
+              --apps "$INPUT_APPS" \
               "$WEBUI_FLAG" \
-              --version-code "${{ steps.meta.outputs.version_code }}" \
-              --release-tag "${{ steps.meta.outputs.tag }}" \
+              --version-code "$VERSION_CODE" \
+              --release-tag "$RELEASE_TAG" \
               --output output
           else
             step_run "Build bundle module (all)" revancex module \
               --bundle \
               --apps all \
               "$WEBUI_FLAG" \
-              --version-code "${{ steps.meta.outputs.version_code }}" \
-              --release-tag "${{ steps.meta.outputs.tag }}" \
+              --version-code "$VERSION_CODE" \
+              --release-tag "$RELEASE_TAG" \
               --output output
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build single modules for enabled apps
         if: inputs.build_single_modules || inputs.packaging == 'single_module'
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INCLUDE_WEBUI: ${{ inputs.include_webui }}
+          VERSION_CODE: ${{ steps.meta.outputs.version_code }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
         run: |
           source scripts/ci-log.sh
           WEBUI_FLAG="--include-webui"
-          if [ "${{ inputs.include_webui }}" != "true" ]; then
+          if [ "$INCLUDE_WEBUI" != "true" ]; then
             WEBUI_FLAG="--no-webui"
           fi
           FAILED_MODULES=""
@@ -407,25 +417,25 @@ jobs:
               step_skip "Build single module microg" "microg is standalone APK"
               continue
             fi
-            if ! step_run "Build single module $appid" revancex module --single --apps "$appid" "$WEBUI_FLAG" --version-code "${{ steps.meta.outputs.version_code }}" --release-tag "${{ steps.meta.outputs.tag }}" --output output; then
+            if ! step_run "Build single module $appid" revancex module --single --apps "$appid" "$WEBUI_FLAG" --version-code "$VERSION_CODE" --release-tag "$RELEASE_TAG" --output output; then
               FAILED_MODULES="$FAILED_MODULES $appid"
             fi
           done
 
           if [ -n "$FAILED_MODULES" ]; then
-            echo "**Single module failures:**$FAILED_MODULES" >> $GITHUB_STEP_SUMMARY
+            echo "**Single module failures:**$FAILED_MODULES" >> "$GITHUB_STEP_SUMMARY"
             echo "::warning title=Single modules::failed for:$FAILED_MODULES"
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Smoke test built APKs
         shell: bash
+        env:
+          INPUT_APPS: ${{ inputs.apps || 'all' }}
         run: |
           source scripts/ci-log.sh
           step_run "Smoke test built APKs" env REVANCEX_STATIC_TEST=1 revancex test \
             --output output \
-            --apps "${{ inputs.apps || 'all' }}" \
+            --apps "$INPUT_APPS" \
             --continue
 
       - name: Verify and cap asset sizes for release upload
@@ -440,7 +450,7 @@ jobs:
           done
 
       - name: Create release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
           name: ${{ steps.meta.outputs.title }}
@@ -493,12 +503,14 @@ jobs:
           RELEASE_TAG: ${{ steps.meta.outputs.tag }}
           VERSION_CODE: ${{ steps.meta.outputs.version_code }}
           OUTPUT_DIR: output
-          TG_CHAT: ${{ secrets.TG_CHAT || secrets.TELEGRAM_CHAT_ID }}
-          TG_TOKEN: ${{ secrets.TG_TOKEN || secrets.TELEGRAM_BOT_TOKEN }}
-          TG_TOPIC: ${{ secrets.TG_TOPIC || secrets.TG_THREAD_ID || secrets.TELEGRAM_TOPIC_ID }}
+          TG_CHAT: ${{ secrets.TG_CHAT }}
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_TOPIC: ${{ secrets.TG_TOPIC }}
 
       - name: Regenerate docs/apps.json with release registry
         shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
         run: |
           source scripts/ci-log.sh
           step_run "Regenerate docs/apps.json" revancex gen-apps-json \
@@ -506,7 +518,7 @@ jobs:
             --report output/BUILD_REPORT.json \
             --test-report output/TEST_REPORT.json \
             --output-dir output \
-            --release-tag "${{ steps.meta.outputs.tag }}"
+            --release-tag "$RELEASE_TAG"
 
       - name: Update version cache
         shell: bash
@@ -531,26 +543,31 @@ jobs:
           if-no-files-found: ignore
 
       - name: Commit and push updated README & release registry
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_PREFIX: ${{ inputs.tag_prefix }}
+          RELEASE_TAG: ${{ steps.meta.outputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+          TARGET_REF: ${{ github.ref }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md config/releases_registry.json docs/apps.json docs/update config/version_cache.json config/modules.yaml
-          # [skip ci] is mandatory in commit messages to prevent triggering release-cli.yml via config/** path filters
-          if [ "${{ inputs.tag_prefix }}" = "custom" ]; then
-            COMMIT_MSG="docs: update custom bundle registry for ${{ steps.meta.outputs.tag }} [skip ci]"
+          git add README.md config/releases_registry.json docs/apps.json docs/update
+          if [ "$TAG_PREFIX" = "custom" ]; then
+            COMMIT_MSG="docs: update custom bundle registry for ${RELEASE_TAG} [skip ci]"
           else
-            COMMIT_MSG="docs: auto-update apps and modules registry for ${{ steps.meta.outputs.tag }} [skip ci]"
+            COMMIT_MSG="docs: auto-update apps and modules registry for ${RELEASE_TAG} [skip ci]"
           fi
           git diff --staged --quiet || git commit -m "$COMMIT_MSG"
           # Discard any leftover untracked/unstaged working-tree changes before rebase
           git checkout -- . 2>/dev/null || :
           PUSH_OK=false
           for i in 1 2 3 4 5; do
-            git fetch -q origin ${{ github.ref_name }}
-            if ! git rebase -q origin/${{ github.ref_name }} >/dev/null 2>&1; then
+            git fetch -q origin "$REF_NAME"
+            if ! git rebase -q "origin/${REF_NAME}" >/dev/null 2>&1; then
               git rebase --abort 2>/dev/null || :
             fi
-            if git push -q origin HEAD:${{ github.ref }}; then
+            if git push -q origin "HEAD:${TARGET_REF}"; then
               PUSH_OK=true
               echo "✔ pushed registry update (attempt $i/5)"
               break
@@ -561,12 +578,13 @@ jobs:
             echo "::error title=Push failed::could not push README and releases registry after 5 attempts; re-run the job or push config/releases_registry.json manually"
             exit 1
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Build Summary
         if: always()
         shell: bash
+        env:
+          TAG_PREFIX: ${{ inputs.tag_prefix }}
+          INPUT_ARCH: ${{ inputs.arch }}
         run: |
           source scripts/ci-log.sh
-          step_summary "build-logs-${{ inputs.tag_prefix }}-${{ inputs.arch }}"
+          step_summary "build-logs-${TAG_PREFIX}-${INPUT_ARCH}"

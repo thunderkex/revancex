@@ -24,7 +24,7 @@ on:
         default: ''
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-cli-${{ github.ref }}
@@ -48,42 +48,49 @@ jobs:
 
       - name: Check version and determine release need
         id: check
+        env:
+          FORCE_RELEASE: ${{ inputs.force_release }}
+          INPUT_TAG_NAME: ${{ inputs.tag_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
         run: |
           CARGO_VER=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n1)
           TAG="v${CARGO_VER}"
-          echo "version=${CARGO_VER}" >> $GITHUB_OUTPUT
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${CARGO_VER}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
-          if [ "${{ inputs.force_release }}" = "true" ]; then
+          if [ "$FORCE_RELEASE" = "true" ]; then
             echo "● force release requested"
-            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if [ -n "${{ inputs.tag_name }}" ]; then
-            echo "tag=${{ inputs.tag_name }}" >> $GITHUB_OUTPUT
-            echo "should_release=true" >> $GITHUB_OUTPUT
+          if [ -n "$INPUT_TAG_NAME" ]; then
+            echo "tag=${INPUT_TAG_NAME}" >> "$GITHUB_OUTPUT"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
-            echo "should_release=true" >> $GITHUB_OUTPUT
+          if [ "$REF_TYPE" = "tag" ]; then
+            echo "tag=${REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          RELEASE_JSON=$(curl -sSL -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${TAG}")
+          RELEASE_JSON=$(curl -sSL -H "Authorization: token ${GITHUB_TOKEN}" \
+            "https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${TAG}")
 
           HTTP_STATUS=$(echo "$RELEASE_JSON" | jq -r '.message // empty')
           HAS_ASSET=$(echo "$RELEASE_JSON" | jq -r '[.assets[]?.name == "revancex-linux-x86_64.tar.gz"] | any' 2>/dev/null || echo "false")
 
           if [ "$HTTP_STATUS" = "Not Found" ] || [ "$HAS_ASSET" != "true" ]; then
             echo "● ${TAG}: release or asset missing → will build binaries"
-            echo "should_release=true" >> $GITHUB_OUTPUT
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
           else
             echo "↷ ${TAG}: release with asset already exists, skipping"
-            echo "should_release=false" >> $GITHUB_OUTPUT
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
           fi
 
   build-release:
@@ -113,50 +120,61 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           targets: ${{ matrix.target }}
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           shared-key: release-${{ matrix.target }}
           cache-on-failure: true
 
       - name: Cache & install ARM64 cross-compiler
         if: matrix.cross
-        uses: awalsh128/cache-apt-pkgs-action@latest
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
         with:
           packages: gcc-aarch64-linux-gnu
           version: 1.0
 
       - name: Build release binary
         shell: bash
+        env:
+          MATRIX_CROSS: ${{ matrix.cross }}
+          MATRIX_TARGET: ${{ matrix.target }}
         run: |
           source scripts/ci-log.sh
-          if [ "${{ matrix.cross }}" = "true" ]; then
-            step_run "Build binary (${{ matrix.target }})" bash -c "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --quiet --target ${{ matrix.target }}"
+          if [ "$MATRIX_CROSS" = "true" ]; then
+            step_run "Build binary (${MATRIX_TARGET})" bash -c 'CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --locked --quiet --target "$MATRIX_TARGET"'
           else
-            step_run "Build binary (${{ matrix.target }})" cargo build --release --quiet --target ${{ matrix.target }}
+            step_run "Build binary (${MATRIX_TARGET})" cargo build --release --locked --quiet --target "$MATRIX_TARGET"
           fi
 
       - name: Package binary (Linux)
         if: runner.os == 'Linux'
         shell: bash
+        env:
+          MATRIX_TARGET: ${{ matrix.target }}
+          ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          BIN_NAME: ${{ matrix.bin_name }}
         run: |
           source scripts/ci-log.sh
-          step_run "Package binary (${{ matrix.target }})" bash -c "
-            cd target/${{ matrix.target }}/release
-            tar -czf ../../../${{ matrix.artifact_name }} ${{ matrix.bin_name }}
+          step_run "Package binary (${MATRIX_TARGET})" bash -c '
+            cd "target/${MATRIX_TARGET}/release"
+            tar -czf "../../../${ARTIFACT_NAME}" "$BIN_NAME"
             cd ../../..
-            sha256sum ${{ matrix.artifact_name }} > ${{ matrix.artifact_name }}.sha256
-          "
+            sha256sum "$ARTIFACT_NAME" > "${ARTIFACT_NAME}.sha256"
+          '
 
       - name: Package binary (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          MATRIX_TARGET: ${{ matrix.target }}
+          ARTIFACT_NAME: ${{ matrix.artifact_name }}
+          BIN_NAME: ${{ matrix.bin_name }}
         run: |
-          Compress-Archive -Path "target\${{ matrix.target }}\release\${{ matrix.bin_name }}" -DestinationPath "${{ matrix.artifact_name }}"
-          (Get-FileHash "${{ matrix.artifact_name }}" -Algorithm SHA256).Hash.ToLower() + "  ${{ matrix.artifact_name }}" | Out-File -Encoding ascii "${{ matrix.artifact_name }}.sha256"
+          Compress-Archive -Path "target\$env:MATRIX_TARGET\release\$env:BIN_NAME" -DestinationPath "$env:ARTIFACT_NAME"
+          (Get-FileHash "$env:ARTIFACT_NAME" -Algorithm SHA256).Hash.ToLower() + "  $env:ARTIFACT_NAME" | Out-File -Encoding ascii "$env:ARTIFACT_NAME.sha256"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -168,7 +186,7 @@ jobs:
 
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-logs-${{ github.job }}-${{ matrix.target }}
           path: build/logs/
@@ -178,22 +196,29 @@ jobs:
       - name: Report Build & Cache Summary
         if: always()
         shell: bash
+        env:
+          JOB_ID: ${{ github.job }}
+          MATRIX_TARGET: ${{ matrix.target }}
+          MATRIX_CROSS: ${{ matrix.cross || 'false' }}
+          JOB_STATUS: ${{ job.status }}
         run: |
           if [ -f scripts/ci-log.sh ]; then
             source scripts/ci-log.sh
-            step_summary "build-logs-${{ github.job }}-${{ matrix.target }}"
+            step_summary "build-logs-${JOB_ID}-${MATRIX_TARGET}"
           fi
-          echo "### ⚡ Build & Cache Summary (${{ matrix.target }})" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "| --- | --- |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Target** | \`${{ matrix.target }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Cross-Compile** | \`${{ matrix.cross || 'false' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Status** | \`${{ job.status }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚡ Build & Cache Summary (${MATRIX_TARGET})" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Target** | \`${MATRIX_TARGET}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Cross-Compile** | \`${MATRIX_CROSS}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| **Status** | \`${JOB_STATUS}\` |" >> "$GITHUB_STEP_SUMMARY"
 
   publish:
     name: Publish GitHub Release
     needs: [check_release, build-release]
     if: needs.check_release.outputs.should_release == 'true'
+    permissions:
+      contents: write
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -216,7 +241,7 @@ jobs:
           done
 
       - name: Create or Update GitHub Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
         with:
           tag_name: ${{ needs.check_release.outputs.tag }}
           name: "ReVanceX CLI ${{ needs.check_release.outputs.tag }}"

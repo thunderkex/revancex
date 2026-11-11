@@ -13,20 +13,20 @@
 | AdGuard | `com.adguard.android` | 4.14.68 | `apks/adguard.apk` | rushiranpise/morphe-patches |
 | CamScanner | `com.intsig.camscanner` | 7.24.5.2608200000 | `apks/camscanner.apk` | rushiranpise/morphe-patches |
 | CapCut | `com.lemon.lvoverseas` | 19.9.0 | `apks/capcut.apk` | kveld9/kveld-extra-morphe-patches |
-| Cloudflare WARP | `com.cloudflare.onedotonedotonedotone` | 6.38.9 | `apks/cloudflare_warp.apk` | rushiranpise/morphe-patches |
+| Cloudflare WARP | `com.cloudflare.onedotonedotonedotone` | 6.38.11 | `apks/cloudflare_warp.apk` | rushiranpise/morphe-patches |
 | DramaBox | `com.storymatrix.drama` | latest | `apks/drama_box.apk` | rushiranpise/morphe-patches |
-| Duolingo | `com.duolingo` | latest | `apks/duolingo.apk` | hoo-dles/morphe-patches |
+| Duolingo | `com.duolingo` | 6.98.4 | `apks/duolingo.apk` | hoo-dles/morphe-patches |
 | Facebook | `com.facebook.katana` | 585.0.0.47.54 | `apks/facebook.apk` | SysAdminDoc/Hushfacebook |
-| Flightradar24 | `com.flightradar24free` | 11.12.0 | `apks/flightradar24.apk` | rushiranpise/morphe-patches |
-| Gboard | `com.google.android.inputmethod.latin` | 18.5.4.993608717 | `apks/gboard.apk` | jasonwu1994/Gboard-patches |
+| Flightradar24 | `com.flightradar24free` | 11.13.0 | `apks/flightradar24.apk` | rushiranpise/morphe-patches |
+| Gboard | `com.google.android.inputmethod.latin` | 18.5.4.993608717-release-arm64-v8a | `apks/gboard.apk` | jasonwu1994/Gboard-patches |
 | Google Maps | `com.google.android.apps.maps` | 26.36.04.973607363 | `apks/google_maps.apk` | bearinmindcat/morphe-patches |
 | Hungry Shark Evolution | `com.fgol.HungrySharkEvolution` | 14.5.0 | `apks/hungry_shark_evolution.apk` | legendsciber/morphe-patches |
-| Instagram | `com.instagram.android` | 452.1.0.53.64 | `apks/instagram.apk` | crimera/piko-ig-lite |
+| Instagram | `com.instagram.android` | 453.0.0.57.79 | `apks/instagram.apk` | crimera/piko-ig-lite |
 | Lightroom | `com.adobe.lrmobile` | 11.5.31 | `apks/lightroom.apk` | hoo-dles/morphe-patches |
 | Moviebox | `com.community.oneroom` | 4.0.03.1020.03 | `apks/moviebox.apk` | hxreborn/morphe-patches |
-| MX Player | `com.mxtech.videoplayer.ad` | 3.4.1 | `apks/mx_player.apk` | BlazeFTL/FTL-Patches |
+| MX Player | `com.mxtech.videoplayer.ad` | 3.4.3 | `apks/mx_player.apk` | BlazeFTL/FTL-Patches |
 | Pinterest | `com.pinterest` | 14.23.0 | `apks/pinterest.apk` | browzomje/browzomje-patches |
-| Pixiv | `jp.pxv.android` | latest | `apks/pixiv.apk` | Fripe070/PixivPatches |
+| Pixiv | `jp.pxv.android` | 6.196.0 | `apks/pixiv.apk` | Fripe070/PixivPatches |
 | Proton VPN | `ch.protonvpn.android` | 5.21.9.0 | `apks/proton_vpn.apk` | hxreborn/morphe-patches |
 | Plants vs Zombies | `com.ea.game.pvzfree_row` | 3.18.0 | `apks/pvz_free.apk` | byehi98/okish-morphe-patches |
 | Reddit | `com.reddit.frontpage` | 2026.42.0 | `apks/reddit.apk` | jkennethcarino/adobo |

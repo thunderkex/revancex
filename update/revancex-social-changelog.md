@@ -1,9 +1,9 @@
 # ReVanceX Social Bundle (`revancex-social`)
 
-- **Release Tag**: `auto-v1.1.0-2026.11.11-b173`
+- **Release Tag**: `auto-v1.1.0-2026.11.11-b174`
 - **Version Code**: `2026111102`
-- **Updated**: 2026-11-11T07:44:02Z
-- **Download**: [revancex-bundle-social.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b173/revancex-bundle-social.zip)
+- **Updated**: 2026-11-11T09:29:12Z
+- **Download**: [revancex-bundle-social.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b174/revancex-bundle-social.zip)
 - **Upstream Patch Sources**: `Fripe070/PixivPatches`, `SysAdminDoc/HushFeed`, `SysAdminDoc/HushThreads`, `crimera/piko-ig-lite`, `crimera/piko-newx`, `jkennethcarino/adobo`
 
 ## Payload APKs & App Versions

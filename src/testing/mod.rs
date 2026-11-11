@@ -237,20 +237,35 @@ fn collect_output_test_apks(
     apks
 }
 
-fn find_input_apk_for_static_test(app_id: &str, tmp_dir: &Path) -> Option<std::path::PathBuf> {
-    let entries = std::fs::read_dir(tmp_dir).ok()?;
-    entries.flatten().find_map(|entry| {
-        let p = entry.path();
-        let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        let matches = fname == format!("{app_id}-input.apk")
-            || fname == format!("{app_id}.apk")
-            || (fname.starts_with(&format!("{app_id}-"))
-                && (fname.ends_with("-input.apk") || fname.ends_with(".apk")));
-        matches.then_some(p)
-    })
+pub(crate) fn find_input_apk_for_static_test(
+    app_id: &str,
+    tmp_dir: &Path,
+) -> Option<std::path::PathBuf> {
+    let exact_input = tmp_dir.join(format!("{app_id}-input.apk"));
+    if exact_input.is_file() {
+        return Some(exact_input);
+    }
+
+    let prefix = format!("{app_id}-");
+    let mut input_candidates: Vec<std::path::PathBuf> = std::fs::read_dir(tmp_dir)
+        .ok()?
+        .flatten()
+        .map(|entry| entry.path())
+        .filter(|p| {
+            let fname = p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            fname.starts_with(&prefix) && fname.ends_with("-input.apk") && p.is_file()
+        })
+        .collect();
+    input_candidates.sort();
+    if let Some(found) = input_candidates.into_iter().next() {
+        return Some(found);
+    }
+
+    let plain_apk = tmp_dir.join(format!("{app_id}.apk"));
+    plain_apk.is_file().then_some(plain_apk)
 }
 
-fn verify_static_apk_item(
+pub(crate) fn verify_static_apk_item(
     app_id: &str,
     path: &Path,
     app_cfg: Option<&crate::config::AppConfig>,

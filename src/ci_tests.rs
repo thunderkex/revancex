@@ -3594,3 +3594,40 @@ fn test_render_table_characterization() {
     assert!(joined.contains("reddit"));
     assert!(joined.contains("[SKIP]"));
 }
+
+#[test]
+fn test_static_smoke_test_ignores_root_payload_and_stage_in_tmp() {
+    let tmp_dir = tempfile::tempdir().expect("tmp tempdir");
+    let out_dir = tempfile::tempdir().expect("out tempdir");
+    let manifest_bytes =
+        std::fs::read("tests/fixtures/test_manifest.xml").expect("test_manifest.xml missing");
+
+    let write_apk = |path: &std::path::Path, dex: &[u8]| {
+        let file = std::fs::File::create(path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+        zip.start_file("AndroidManifest.xml", opts).unwrap();
+        zip.write_all(&manifest_bytes).unwrap();
+        zip.start_file("classes.dex", opts).unwrap();
+        zip.write_all(dex).unwrap();
+        zip.finish().unwrap();
+    };
+
+    let input_apk = tmp_dir.path().join("reddit-arm64-v8a-input.apk");
+    let root_payload = tmp_dir.path().join("reddit-root-payload.apk");
+    let root_stage = tmp_dir.path().join("reddit-root-stage.apk");
+    let out_apk = out_dir.path().join("Reddit-2026.42.0.apk");
+
+    write_apk(&input_apk, b"unpatched stock dex");
+    write_apk(&root_payload, b"patched dex bytecode");
+    write_apk(&root_stage, b"patched dex bytecode");
+    write_apk(&out_apk, b"patched dex bytecode");
+
+    assert_eq!(
+        crate::testing::find_input_apk_for_static_test("reddit", tmp_dir.path()),
+        Some(input_apk)
+    );
+
+    let item = crate::testing::verify_static_apk_item("reddit", &out_apk, None, tmp_dir.path());
+    assert_eq!(item.status, crate::testing::TestStatus::Passed);
+}

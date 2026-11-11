@@ -100,7 +100,7 @@ step_mask() {
   fi
 }
 
-for _var in GITHUB_TOKEN KEYSTORE_B64 KEYSTORE_PASSWORD TG_TOKEN TELEGRAM_BOT_TOKEN; do
+for _var in GITHUB_TOKEN KEYSTORE_B64 KEYSTORE_PASSWORD TG_TOKEN; do
   if [ -n "${!_var:-}" ]; then
     step_mask "${!_var}"
   fi

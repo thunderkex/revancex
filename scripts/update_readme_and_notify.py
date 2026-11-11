@@ -3,18 +3,14 @@ import sys
 import re
 import json
 import hashlib
+import tempfile
 import zipfile
 import urllib.request
-import urllib.parse
 from datetime import datetime, timezone
 
-import ulog
+import yaml
 
-try:
-    import yaml
-    _YAML_AVAILABLE = True
-except ImportError:
-    _YAML_AVAILABLE = False
+import ulog
 
 README_PATH = "README.md"
 RELEASES_REGISTRY_PATH = "config/releases_registry.json"
@@ -24,6 +20,25 @@ PATCH_SOURCES_START = "<!-- AUTO-PATCH-SOURCES-START -->"
 PATCH_SOURCES_END = "<!-- AUTO-PATCH-SOURCES-END -->"
 BUNDLE_BREAKDOWN_START = "<!-- AUTO-BUNDLE-BREAKDOWN-START -->"
 BUNDLE_BREAKDOWN_END = "<!-- AUTO-BUNDLE-BREAKDOWN-END -->"
+
+
+def _atomic_write(path, content):
+    parent = os.path.dirname(os.path.abspath(path))
+    os.makedirs(parent, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(prefix=".tmp_", dir=parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, path)
+    except BaseException:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
 
 def _replace_block(content, start_marker, end_marker, new_inner):
     pattern = re.compile(
@@ -35,15 +50,78 @@ def _replace_block(content, start_marker, end_marker, new_inner):
     return content
 
 
-def build_patch_sources_table(sources_yaml_path):
-    if not (_YAML_AVAILABLE and os.path.exists(sources_yaml_path)):
-        return None
-    try:
-        with open(sources_yaml_path, "r", encoding="utf-8") as f:
+def _display_app_name(app_id, apps_cfg):
+    app_data = apps_cfg.get(app_id)
+    if isinstance(app_data, dict):
+        name = app_data.get("name") or app_data.get("display_name")
+        if name:
+            return name
+    return app_id.replace("_", " ").title()
+
+
+def _format_asset_link(info, label=None):
+    if not isinstance(info, dict):
+        return "-"
+    url = (info.get("url") or "").strip()
+    if not url or url.startswith("#"):
+        return "-"
+    text = label or info.get("filename") or "Download"
+    return f"[{text}]({url})"
+
+
+def _bundle_apps_from_cfg(apps_cfg):
+    return sorted(
+        k
+        for k, v in apps_cfg.items()
+        if isinstance(v, dict)
+        and v.get("enabled", True)
+        and k.lower() != "microg"
+        and v.get("mode") != "install"
+        and (v.get("module") or {}).get("bundle", True)
+    )
+
+
+def _single_module_apps_from_cfg(apps_cfg):
+    return {
+        k
+        for k, v in apps_cfg.items()
+        if isinstance(v, dict)
+        and v.get("enabled", True)
+        and k.lower() != "microg"
+        and (v.get("module") or {}).get("single", False)
+    }
+
+
+def _load_modules_cfg(modules_yaml_path, apps_cfg):
+    modules_cfg = {}
+    if os.path.exists(modules_yaml_path):
+        with open(modules_yaml_path, "r", encoding="utf-8") as f:
             y = yaml.safe_load(f)
-    except Exception as e:
-        ulog.warn(f"sources.yaml: Failed to load: {e}")
+        if y and isinstance(y.get("modules"), dict):
+            for key, data in y["modules"].items():
+                if not isinstance(data, dict):
+                    continue
+                filtered = [
+                    a
+                    for a in (data.get("apps") or [])
+                    if isinstance(apps_cfg.get(a), dict)
+                    and apps_cfg[a].get("enabled", True)
+                    and (apps_cfg[a].get("module") or {}).get("bundle", True)
+                ]
+                modules_cfg[key] = {**data, "apps": filtered}
+
+    if "all" not in modules_cfg:
+        bundle_apps = _bundle_apps_from_cfg(apps_cfg)
+        if bundle_apps:
+            modules_cfg = {"all": {"apps": bundle_apps}, **modules_cfg}
+    return modules_cfg
+
+
+def build_patch_sources_table(sources_yaml_path):
+    if not os.path.exists(sources_yaml_path):
         return None
+    with open(sources_yaml_path, "r", encoding="utf-8") as f:
+        y = yaml.safe_load(f)
     patch_sources = (y or {}).get("patch_sources", {})
     if not patch_sources:
         return None
@@ -58,29 +136,18 @@ def build_patch_sources_table(sources_yaml_path):
     return "\n".join(rows)
 
 
-def build_bundle_breakdown_table(modules_yaml_path):
-    if not (_YAML_AVAILABLE and os.path.exists(modules_yaml_path)):
-        return None
-    try:
-        with open(modules_yaml_path, "r", encoding="utf-8") as f:
-            y = yaml.safe_load(f)
-    except Exception as e:
-        ulog.warn(f"modules.yaml: Failed to load for breakdown: {e}")
-        return None
-    modules = (y or {}).get("modules", {})
-    if not modules:
+def build_bundle_breakdown_table(modules_cfg, apps_cfg):
+    if not modules_cfg:
         return None
     rows = [
         "| Bundle | Zip File | Apps | Included Applications |",
         "| :--- | :--- | :---: | :--- |",
     ]
-    for key, data in modules.items():
+    for key, data in sorted(modules_cfg.items()):
         apps = data.get("apps") or []
-        zip_name = data.get("zip_name") or (
-            "revancex-bundle.zip" if key == "core" else f"revancex-bundle-{key}.zip"
-        )
+        zip_name = data.get("zip_name") or f"revancex-bundle-{key}.zip"
         bundle_name = "Core Essentials" if key == "core" else key.replace("-", " ").title()
-        included = ", ".join(a.replace("_", " ").title() for a in apps)
+        included = ", ".join(_display_app_name(a, apps_cfg) for a in apps)
         rows.append(f"| **{bundle_name}** | `{zip_name}` | {len(apps)} | {included} |")
     return "\n".join(rows)
 
@@ -89,7 +156,7 @@ def send_telegram_message(token, chat_id, message, topic_id=None):
     if not token or not chat_id:
         ulog.skip("Telegram: Bot token or chat ID missing. Skipping notification.")
         return
-    
+
     if not topic_id:
         for sep in [":", "/", "#"]:
             if sep in str(chat_id):
@@ -104,7 +171,7 @@ def send_telegram_message(token, chat_id, message, topic_id=None):
         "chat_id": chat_id,
         "text": message,
         "parse_mode": "HTML",
-        "disable_web_page_preview": False
+        "disable_web_page_preview": False,
     }
     if topic_id:
         try:
@@ -116,7 +183,7 @@ def send_telegram_message(token, chat_id, message, topic_id=None):
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "ReVanceX-Updater"}
+        headers={"Content-Type": "application/json", "User-Agent": "ReVanceX-Updater"},
     )
     try:
         with urllib.request.urlopen(req, timeout=15) as res:
@@ -127,63 +194,47 @@ def send_telegram_message(token, chat_id, message, topic_id=None):
     except Exception as e:
         ulog.warn(f"Telegram: Error sending message: {e}")
 
+
 def main():
     repo_slug = os.environ.get("GITHUB_REPOSITORY", "")
     run_number = os.environ.get("GITHUB_RUN_NUMBER", "0")
-    run_id = os.environ.get("GITHUB_RUN_ID", "0")
     tag_name = os.environ.get("RELEASE_TAG", f"auto-{run_number}")
     output_dir = os.environ.get("OUTPUT_DIR", "output")
-    telegram_token = os.environ.get("TG_TOKEN") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
-    telegram_chat_id = os.environ.get("TG_CHAT") or os.environ.get("TELEGRAM_CHAT_ID", "")
-    telegram_topic_id = (
-        os.environ.get("TG_TOPIC")
-        or os.environ.get("TG_THREAD_ID")
-        or os.environ.get("TELEGRAM_TOPIC_ID")
-        or os.environ.get("TELEGRAM_THREAD_ID", "")
-    )
+    telegram_token = os.environ.get("TG_TOKEN", "")
+    telegram_chat_id = os.environ.get("TG_CHAT", "")
+    telegram_topic_id = os.environ.get("TG_TOPIC", "")
 
     os.makedirs("tmp", exist_ok=True)
     registry = {
         "stock_apps": {},
         "single_modules": {},
         "bundles": {},
-        "custom_bundles": {}
+        "custom_bundles": {},
     }
     if os.path.exists(RELEASES_REGISTRY_PATH):
         try:
             with open(RELEASES_REGISTRY_PATH, "r", encoding="utf-8") as f:
                 loaded = json.load(f)
-            for key, val in loaded.items():
-                if key != "root_apps":
-                    registry[key] = val
-        except Exception:
-            pass
+        except json.JSONDecodeError as e:
+            ulog.fail(f"{RELEASES_REGISTRY_PATH}: Corrupt JSON: {e}")
+            sys.exit(1)
+        if not isinstance(loaded, dict):
+            ulog.fail(f"{RELEASES_REGISTRY_PATH}: Top-level JSON must be an object")
+            sys.exit(1)
+        for key, val in loaded.items():
+            if key != "root_apps":
+                registry[key] = val
 
     apps_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "apps.yaml")
-    apps_cfg = {}
-    if _YAML_AVAILABLE and os.path.exists(apps_yaml_path):
-        try:
-            with open(apps_yaml_path, "r", encoding="utf-8") as f:
-                y = yaml.safe_load(f)
-                if y and "apps" in y:
-                    apps_cfg = y["apps"]
-        except Exception as e:
-            ulog.warn(f"apps.yaml: Failed to load: {e}")
-    elif os.path.exists(apps_yaml_path):
-        try:
-            with open(apps_yaml_path, "r", encoding="utf-8") as f:
-                current_app = None
-                for line in f:
-                    m_app = re.match(r"^  ([a-zA-Z0-9_-]+):\s*$", line)
-                    if m_app:
-                        current_app = m_app.group(1)
-                        apps_cfg[current_app] = {}
-                    elif current_app:
-                        m_name = re.match(r"^\s+name:\s*[\"']?([^\"'\n\r]+)[\"']?\s*$", line)
-                        if m_name:
-                            apps_cfg[current_app]["name"] = m_name.group(1).strip()
-        except Exception as e:
-            ulog.warn(f"apps.yaml: Failed fallback parse: {e}")
+    if not os.path.exists(apps_yaml_path):
+        ulog.fail(f"{apps_yaml_path}: Missing apps.yaml")
+        sys.exit(1)
+    with open(apps_yaml_path, "r", encoding="utf-8") as f:
+        apps_doc = yaml.safe_load(f)
+    if not isinstance(apps_doc, dict) or not isinstance(apps_doc.get("apps"), dict):
+        ulog.fail(f"{apps_yaml_path}: Invalid apps.yaml structure")
+        sys.exit(1)
+    apps_cfg = apps_doc["apps"]
 
     def _resolve_app_key(filename, is_module=False):
         stem = filename[:-4]
@@ -219,7 +270,6 @@ def main():
         if candidates:
             candidates.sort(key=lambda c: c[0], reverse=True)
             return candidates[0][1]
-        # Fallback: if filename is like Name-1.2.3, strip version suffix
         m = re.match(r"^([a-zA-Z0-9_\s]+?)-v?\d", clean)
         if m:
             prefix = m.group(1).strip("-")
@@ -230,28 +280,19 @@ def main():
         return clean.lower()
 
     now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    new_files = []
-    
-    if os.path.exists(output_dir):
-        new_files = sorted(os.listdir(output_dir))
+    new_files = sorted(os.listdir(output_dir)) if os.path.exists(output_dir) else []
 
     build_report = {}
     build_report_path = os.path.join(output_dir, "BUILD_REPORT.json")
     if os.path.exists(build_report_path):
-        try:
-            with open(build_report_path, "r", encoding="utf-8") as f:
-                build_report = json.load(f)
-        except Exception:
-            build_report = {}
+        with open(build_report_path, "r", encoding="utf-8") as f:
+            build_report = json.load(f)
 
     test_report = {}
     test_report_path = os.path.join(output_dir, "TEST_REPORT.json")
     if os.path.exists(test_report_path):
-        try:
-            with open(test_report_path, "r", encoding="utf-8") as f:
-                test_report = json.load(f)
-        except Exception:
-            test_report = {}
+        with open(test_report_path, "r", encoding="utf-8") as f:
+            test_report = json.load(f)
 
     test_by_app = {
         it.get("app"): it for it in (test_report.get("items") or []) if isinstance(it, dict) and it.get("app")
@@ -339,8 +380,8 @@ def main():
         fpath = os.path.join(output_dir, fname)
         if not os.path.isfile(fpath):
             continue
-        
-        url = f"https://github.com/{repo_slug}/releases/download/{tag_name}/{fname}" if repo_slug else f"#{fname}"
+
+        url = f"https://github.com/{repo_slug}/releases/download/{tag_name}/{fname}" if repo_slug else ""
         sha256, size_bytes = _file_sha256_and_size(fpath)
 
         if fname.endswith(".apk") and not fname.endswith(".idsig"):
@@ -436,64 +477,61 @@ def main():
             "active_sources": [],
         }
 
+    # Prune stock_apps and single_modules against apps.yaml on every run, and drop dead #anchor placeholders.
+    active_apps = {
+        k for k, v in apps_cfg.items() if isinstance(v, dict) and v.get("enabled", True)
+    }
+    registry["stock_apps"] = {
+        k: v
+        for k, v in (registry.get("stock_apps") or {}).items()
+        if k in active_apps
+        and isinstance(v, dict)
+        and not (str(v.get("url", "")).startswith("#") and v.get("tag") == "auto-0")
+    }
+    valid_single_modules = _single_module_apps_from_cfg(apps_cfg)
+    registry["single_modules"] = {
+        k: v
+        for k, v in (registry.get("single_modules") or {}).items()
+        if k in valid_single_modules
+        and isinstance(v, dict)
+        and not (str(v.get("url", "")).startswith("#") and v.get("tag") == "auto-0")
+    }
+
     modules_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "modules.yaml")
-    modules_cfg = {}
-    valid_single_modules = None
-    if _YAML_AVAILABLE and os.path.exists(modules_yaml_path):
-        try:
-            with open(modules_yaml_path, "r", encoding="utf-8") as f:
-                y = yaml.safe_load(f)
-                if y:
-                    if "modules" in y:
-                        modules_cfg = y["modules"]
-                    if "single_modules" in y and isinstance(y["single_modules"], list):
-                        valid_single_modules = set(y["single_modules"])
-        except Exception as e:
-            ulog.warn(f"modules.yaml: Failed to load, bundle table will use fallback: {e}")
+    modules_cfg = _load_modules_cfg(modules_yaml_path, apps_cfg)
 
-    if valid_single_modules is not None:
-        registry["single_modules"] = {
-            k: v for k, v in registry.get("single_modules", {}).items()
-            if k in valid_single_modules
-        }
+    _atomic_write(RELEASES_REGISTRY_PATH, json.dumps(registry, indent=2, sort_keys=True) + "\n")
 
-    with open(RELEASES_REGISTRY_PATH, "w", encoding="utf-8") as f:
-        json.dump(registry, f, indent=2, sort_keys=True)
+    app_names = sorted(
+        active_apps | set(registry["stock_apps"].keys()) | set(registry["single_modules"].keys())
+    )
 
-    app_names = sorted(list(set(
-        list(registry["stock_apps"].keys()) +
-        list(registry["single_modules"].keys())
-    )))
-    
     stock_module_table = [
         "| App | Patched APK | Single Root Module | Last Updated |",
-        "| :--- | :--- | :--- | :--- |"
+        "| :--- | :--- | :--- | :--- |",
     ]
     for app in app_names:
         stock_info = registry["stock_apps"].get(app)
         module_info = registry["single_modules"].get(app)
+        clean_name = _display_app_name(app, apps_cfg)
 
-        clean_name = apps_cfg.get(app, {}).get("name") if isinstance(apps_cfg.get(app), dict) else None
-        if not clean_name:
-            clean_name = app.replace("_", " ").title()
-        
-        stock_str = f"[{stock_info['filename']}]({stock_info['url']})" if stock_info else "—"
-        module_str = f"[{module_info['filename']}]({module_info['url']})" if module_info else "—"
-        
+        stock_str = _format_asset_link(stock_info)
+        module_str = _format_asset_link(module_info)
+
         timestamps = [
             info["updated_at"]
             for info in (stock_info, module_info)
-            if info and "updated_at" in info
+            if isinstance(info, dict) and info.get("updated_at")
         ]
-        date_str = max(timestamps) if timestamps else ""
+        date_str = max(timestamps) if timestamps else "-"
 
         stock_module_table.append(f"| **{clean_name}** | {stock_str} | {module_str} | {date_str} |")
     if len(stock_module_table) == 2:
-        stock_module_table.append("| _None yet_ | — | — | — |")
+        stock_module_table.append("| _None yet_ | - | - | - |")
 
     bundle_table = [
         "| Bundle Name | Included Apps & Payload Files | Download Link | Release Tag | Updated At |",
-        "| :--- | :--- | :--- | :--- | :--- |"
+        "| :--- | :--- | :--- | :--- | :--- |",
     ]
     for bname, bdata in sorted(registry["bundles"].items()):
         mod_key = "core" if bname == "revancex-bundle.zip" else bname.replace("revancex-bundle-", "").replace(".zip", "")
@@ -501,35 +539,44 @@ def main():
         if mod_info and "apps" in mod_info:
             apps = mod_info["apps"]
             clean_bname = "Core Essentials Bundle" if mod_key == "core" else f"{mod_key.replace('-', ' ').title()} Bundle"
-            list_items = "".join([f"<li><b>{app.replace('_', ' ').title()}</b>: <code>apks/{app}.apk</code></li>" for app in apps])
+            list_items = "".join(
+                f"<li><b>{_display_app_name(app, apps_cfg)}</b>: <code>apks/{app}.apk</code></li>"
+                for app in apps
+            )
             included = f"<details><summary><b>{len(apps)} Apps / APKs (Click to view)</b></summary><ul>{list_items}</ul></details>"
         else:
             clean_bname = bname.replace("revancex-bundle-", "").replace(".zip", "").replace("-", " ").title() + " Bundle"
             included = "Configured apps"
-        bundle_table.append(f"| **{clean_bname}**<br><code>{bname}</code> | {included} | [Download Zip]({bdata['url']}) | `{bdata['tag']}` | {bdata.get('updated_at', '')} |")
+        dl_link = _format_asset_link(bdata, label="Download Zip")
+        bundle_table.append(
+            f"| **{clean_bname}**<br><code>{bname}</code> | {included} | {dl_link} | `{bdata['tag']}` | {bdata.get('updated_at', '')} |"
+        )
     if len(bundle_table) == 2:
-        bundle_table.append("| _None yet_ | — | — | — | — |")
+        bundle_table.append("| _None yet_ | - | - | - | - |")
 
     custom_table = [
         "| Custom Bundle | Download Link | Release Tag | Updated At |",
-        "| :--- | :--- | :--- | :--- |"
+        "| :--- | :--- | :--- | :--- |",
     ]
     for cname, cdata in sorted(registry["custom_bundles"].items()):
-        custom_table.append(f"| **{cname}** | [Download Zip]({cdata['url']}) | `{cdata['tag']}` | {cdata.get('updated_at', '')} |")
+        dl_link = _format_asset_link(cdata, label="Download Zip")
+        custom_table.append(
+            f"| **{cname}** | {dl_link} | `{cdata['tag']}` | {cdata.get('updated_at', '')} |"
+        )
     if len(custom_table) == 2:
-        custom_table.append("| _None yet_ | — | — | — |")
+        custom_table.append("| _None yet_ | - | - | - |")
 
     content_parts = [
         START_MARKER,
-        '### <i class="fa-solid fa-mobile-screen"></i> Patched Apps & Single Root Modules',
+        "### Patched Apps & Single Root Modules",
         "\n".join(stock_module_table),
         "",
-        '### <i class="fa-solid fa-box-archive"></i> Bundle Modules (Multi-App)',
+        "### Bundle Modules (Multi-App)",
         "\n".join(bundle_table),
         "",
-        '### <i class="fa-solid fa-screwdriver-wrench"></i> Custom Bundle Modules',
+        "### Custom Bundle Modules",
         "\n".join(custom_table),
-        END_MARKER
+        END_MARKER,
     ]
     replacement_text = "\n\n".join(content_parts)
 
@@ -544,28 +591,23 @@ def main():
     else:
         updated_readme = readme_content.rstrip() + "\n\n" + replacement_text + "\n"
 
-    with open(README_PATH, "w", encoding="utf-8") as f:
-        f.write(updated_readme)
-    ulog.ok("README: Updated successfully with persistent releases registry.")
-
     sources_yaml_path = os.path.join(os.path.dirname(__file__), "..", "config", "sources.yaml")
     patch_sources_table = build_patch_sources_table(sources_yaml_path)
     if patch_sources_table:
-        with open(README_PATH, "r", encoding="utf-8") as f:
-            readme_content = f.read()
-        updated = _replace_block(readme_content, PATCH_SOURCES_START, PATCH_SOURCES_END, patch_sources_table)
-        with open(README_PATH, "w", encoding="utf-8") as f:
-            f.write(updated)
+        updated_readme = _replace_block(
+            updated_readme, PATCH_SOURCES_START, PATCH_SOURCES_END, patch_sources_table
+        )
         ulog.ok("README: Patch sources block updated from sources.yaml.")
 
-    bundle_breakdown_table = build_bundle_breakdown_table(modules_yaml_path)
+    bundle_breakdown_table = build_bundle_breakdown_table(modules_cfg, apps_cfg)
     if bundle_breakdown_table:
-        with open(README_PATH, "r", encoding="utf-8") as f:
-            readme_content = f.read()
-        updated = _replace_block(readme_content, BUNDLE_BREAKDOWN_START, BUNDLE_BREAKDOWN_END, bundle_breakdown_table)
-        with open(README_PATH, "w", encoding="utf-8") as f:
-            f.write(updated)
+        updated_readme = _replace_block(
+            updated_readme, BUNDLE_BREAKDOWN_START, BUNDLE_BREAKDOWN_END, bundle_breakdown_table
+        )
         ulog.ok("README: Bundle breakdown block updated from modules.yaml.")
+
+    _atomic_write(README_PATH, updated_readme)
+    ulog.ok("README: Updated successfully with persistent releases registry.")
 
     if new_files:
         built_list_str = "\n".join([f"• <code>{f}</code>" for f in new_files if not f.endswith(".idsig")])
@@ -578,6 +620,7 @@ def main():
             f"🔗 <a href='https://github.com/{repo_slug}/releases/tag/{tag_name}'>View GitHub Release</a>"
         )
         send_telegram_message(telegram_token, telegram_chat_id, tg_text, topic_id=telegram_topic_id)
+
 
 if __name__ == "__main__":
     main()

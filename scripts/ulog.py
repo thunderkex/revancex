@@ -15,7 +15,7 @@ import time
 _CI = bool(os.environ.get("GITHUB_ACTIONS"))
 _RICH = not os.environ.get("NO_COLOR") and (sys.stdout.isatty() or _CI)
 _VERBOSE = os.environ.get("VERBOSE", "0") not in ("", "0") or os.environ.get("RUNNER_DEBUG") == "1"
-_SECRET_ENVS = ("TG_TOKEN", "TELEGRAM_BOT_TOKEN", "TG_CHAT", "TELEGRAM_CHAT_ID", "GITHUB_TOKEN")
+_SECRET_ENVS = ("TG_TOKEN", "TG_CHAT", "GITHUB_TOKEN")
 
 _MARKERS = {
     "ok": ("\u2714", "[OK]"),

@@ -188,11 +188,11 @@ pub struct ModuleDefinition {
     pub apps: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub disabled_apps: Vec<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub module_id: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub zip_name: Option<String>,
 }
 
@@ -211,7 +211,7 @@ fn default_module_name() -> String {
     "ReVanceX".to_string()
 }
 fn default_module_version() -> String {
-    "1.0".to_string()
+    env!("CARGO_PKG_VERSION").to_string()
 }
 fn default_module_author() -> String {
     "Thunderkex".to_string()
@@ -322,12 +322,26 @@ pub struct ModuleMetaFile {
 }
 
 #[derive(Debug, Clone)]
+pub struct AppPaths {
+    pub config_dir: std::path::PathBuf,
+    pub temp_dir: std::path::PathBuf,
+}
+
+impl Default for AppPaths {
+    fn default() -> Self {
+        Self {
+            config_dir: std::path::PathBuf::from("./config"),
+            temp_dir: std::path::PathBuf::from(default_temp()),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Config {
     pub apps: BTreeMap<String, AppConfig>,
     pub modules: BTreeMap<String, ModuleDefinition>,
     pub cli_repo: String,
     pub cli_pattern: String,
-    pub cli_provider: String,
     pub patch_sources: BTreeMap<String, PatchSourceEntry>,
     pub apk_sources: BTreeMap<String, ApkSourceEntry>,
     pub apk_source_order: Vec<String>,
@@ -335,6 +349,7 @@ pub struct Config {
     pub fetch: crate::config::sources::FetchConfig,
     pub build: BuildConfig,
     pub module_meta: ModuleMetaConfig,
+    pub paths: AppPaths,
 }
 
 impl Config {
@@ -369,92 +384,142 @@ struct BuildFile {
     build: BuildConfig,
 }
 
+pub fn bundle_eligible_apps(apps: &BTreeMap<String, AppConfig>) -> Vec<String> {
+    apps.iter()
+        .filter(|(id, a)| {
+            a.enabled
+                && !id.eq_ignore_ascii_case("microg")
+                && a.mode != "install"
+                && a.module.bundle
+        })
+        .map(|(id, _)| id.clone())
+        .collect()
+}
+
+#[cfg(test)]
 pub fn sync_modules_file(config_dir: &str, cfg: &Config) -> Result<ModulesFile> {
     let path = format!("{config_dir}/modules.yaml");
     let mut modules_file: ModulesFile = if std::path::Path::new(&path).exists() {
-        let content = std::fs::read_to_string(&path)?;
-        serde_yaml::from_str(&content).unwrap_or_default()
+        let content = std::fs::read_to_string(&path).with_context(|| format!("Reading {path}"))?;
+        serde_yaml::from_str(&content).with_context(|| format!("Parsing {path}"))?
     } else {
         ModulesFile::default()
     };
 
-    for module in modules_file.modules.values_mut() {
-        let mut all_apps = Vec::new();
-        for a in &module.apps {
-            if !all_apps.contains(a) {
-                all_apps.push(a.clone());
-            }
-        }
-        for a in &module.disabled_apps {
-            if !all_apps.contains(a) {
-                all_apps.push(a.clone());
-            }
-        }
-
+    for (mod_name, module) in &mut modules_file.modules {
         let mut active = Vec::new();
         let mut disabled = Vec::new();
-        for a in all_apps {
+        let mut seen = std::collections::HashSet::new();
+
+        for a in module.apps.drain(..) {
+            if !seen.insert(a.clone()) {
+                continue;
+            }
             if let Some(app_cfg) = cfg.apps.get(&a) {
-                if app_cfg.enabled && app_cfg.module.as_ref().is_none_or(|m| m.bundle) {
+                if app_cfg.enabled && app_cfg.module.bundle {
                     active.push(a);
                 } else {
                     disabled.push(a);
                 }
+            } else {
+                tracing::warn!(
+                    "Module '{mod_name}' references unknown app '{a}'; preserving without deleting"
+                );
+                active.push(a);
             }
         }
+
+        for a in module.disabled_apps.drain(..) {
+            if !seen.insert(a.clone()) {
+                continue;
+            }
+            if let Some(app_cfg) = cfg.apps.get(&a) {
+                if app_cfg.enabled && app_cfg.module.bundle {
+                    active.push(a);
+                } else {
+                    disabled.push(a);
+                }
+            } else {
+                tracing::warn!(
+                    "Module '{mod_name}' references unknown app '{a}' in disabled_apps; preserving without deleting"
+                );
+                disabled.push(a);
+            }
+        }
+
         module.apps = active;
         module.disabled_apps = disabled;
     }
 
-    let mut single_mods: Vec<String> = cfg
-        .apps
-        .iter()
-        .filter(|(id, a)| {
-            a.enabled
-                && !id.eq_ignore_ascii_case("microg")
-                && a.module.as_ref().is_none_or(|m| m.single)
-        })
-        .map(|(id, _)| id.clone())
-        .collect();
-    single_mods.sort();
-    modules_file.single_modules = single_mods;
+    if let Some(all_mod) = modules_file.modules.get_mut("all") {
+        all_mod.apps = bundle_eligible_apps(&cfg.apps);
+        all_mod.disabled_apps.clear();
+    }
+    modules_file.single_modules.clear();
 
     let yaml_str = serde_yaml::to_string(&modules_file)?;
     std::fs::write(&path, yaml_str)?;
     Ok(modules_file)
 }
 
-pub fn sync_and_reload_modules(config_dir: &str, mut cfg: Config) -> Result<Config> {
-    let synced = sync_modules_file(config_dir, &cfg)?;
-    cfg.modules = synced.modules;
-    Ok(cfg)
-}
-
-pub fn load_config(config_dir: &str) -> Result<Config> {
+pub fn load_config(config_dir: impl AsRef<std::path::Path>) -> Result<Config> {
+    let config_dir = config_dir.as_ref();
     let read = |name: &str| -> Result<String> {
-        let path = format!("{config_dir}/{name}");
-        std::fs::read_to_string(&path).with_context(|| format!("Reading {path}"))
+        let path = config_dir.join(name);
+        std::fs::read_to_string(&path).with_context(|| format!("Reading {}", path.display()))
     };
 
-    let apps: AppsFile = serde_yaml::from_str(&read("apps.yaml")?)?;
-    let sources: SourcesFile = serde_yaml::from_str(&read("sources.yaml")?)?;
-    let build_file: BuildFile = serde_yaml::from_str(&read("build.yaml")?)?;
-    let modules: ModulesFile = match read("modules.yaml") {
-        Ok(content) => serde_yaml::from_str(&content).unwrap_or_default(),
-        Err(_) => ModulesFile::default(),
-    };
-    let module_meta_file: ModuleMetaFile = match read("module.yaml") {
-        Ok(content) => serde_yaml::from_str(&content).unwrap_or_default(),
-        Err(_) => ModuleMetaFile::default(),
+    let apps: AppsFile = serde_yaml::from_str(&read("apps.yaml")?).context("Parsing apps.yaml")?;
+    let sources: SourcesFile =
+        serde_yaml::from_str(&read("sources.yaml")?).context("Parsing sources.yaml")?;
+    let build_file: BuildFile =
+        serde_yaml::from_str(&read("build.yaml")?).context("Parsing build.yaml")?;
+
+    let modules_path = config_dir.join("modules.yaml");
+    let mut modules: ModulesFile = if modules_path.exists() {
+        let content = std::fs::read_to_string(&modules_path)
+            .with_context(|| format!("Reading {}", modules_path.display()))?;
+        serde_yaml::from_str(&content)
+            .with_context(|| format!("Parsing {}", modules_path.display()))?
+    } else {
+        ModulesFile::default()
     };
 
-    let (cli_repo, cli_pattern, cli_provider) = match sources.cli {
-        Some(c) => (c.repo, c.asset_pattern, c.provider),
+    // Single source of truth: apps.yaml `enabled` + `module.bundle` defines the `all` bundle.
+    if !modules.modules.contains_key("all") {
+        let all_apps = bundle_eligible_apps(&apps.apps);
+        if !all_apps.is_empty() {
+            modules.modules.insert(
+                "all".to_string(),
+                ModuleDefinition {
+                    apps: all_apps,
+                    ..Default::default()
+                },
+            );
+        }
+    }
+
+    let module_meta_path = config_dir.join("module.yaml");
+    let module_meta_file: ModuleMetaFile = if module_meta_path.exists() {
+        let content = std::fs::read_to_string(&module_meta_path)
+            .with_context(|| format!("Reading {}", module_meta_path.display()))?;
+        serde_yaml::from_str(&content)
+            .with_context(|| format!("Parsing {}", module_meta_path.display()))?
+    } else {
+        ModuleMetaFile::default()
+    };
+
+    let (cli_repo, cli_pattern) = match sources.cli {
+        Some(c) => (c.repo, c.asset_pattern),
         None => (
             "MorpheApp/morphe-desktop".to_string(),
             "morphe-*-all.jar".to_string(),
-            "github".to_string(),
         ),
+    };
+
+    let paths = AppPaths {
+        config_dir: config_dir.to_path_buf(),
+        temp_dir: std::path::PathBuf::from(&build_file.build.temp_dir),
     };
 
     Ok(Config {
@@ -462,7 +527,6 @@ pub fn load_config(config_dir: &str) -> Result<Config> {
         modules: modules.modules,
         cli_repo,
         cli_pattern,
-        cli_provider,
         patch_sources: sources.patch_sources,
         apk_sources: sources.apk_sources,
         apk_source_order: sources.apk_source_order,
@@ -470,6 +534,7 @@ pub fn load_config(config_dir: &str) -> Result<Config> {
         fetch: sources.fetch,
         build: build_file.build,
         module_meta: module_meta_file.module,
+        paths,
     })
 }
 
@@ -498,22 +563,62 @@ pub fn validate_config(cfg: &Config, strict: bool) -> Result<()> {
                 );
             }
         }
+    }
 
-        for (module_name, module_def) in &cfg.modules {
-            let mut pkg_map: HashMap<String, Vec<String>> = HashMap::new();
-            for app_id in &module_def.apps {
-                let app = cfg.apps.get(app_id).ok_or_else(|| {
-                    anyhow::anyhow!("Module '{module_name}' references non-existent app '{app_id}'")
-                })?;
-                if !app.enabled {
-                    anyhow::bail!("Module '{module_name}' references disabled app '{app_id}'");
+    for (module_name, module_def) in &cfg.modules {
+        let mut pkg_map: HashMap<String, Vec<String>> = HashMap::new();
+        for app_id in &module_def.apps {
+            let Some(app) = cfg.apps.get(app_id) else {
+                if strict {
+                    anyhow::bail!("Module '{module_name}' references non-existent app '{app_id}'");
+                } else {
+                    crate::ui::warn_once(&format!(
+                        "Module '{module_name}' references non-existent app '{app_id}'"
+                    ));
+                    continue;
                 }
-                pkg_map
-                    .entry(app.package.clone())
-                    .or_default()
-                    .push(app_id.clone());
+            };
+            if !app.enabled {
+                if strict {
+                    anyhow::bail!("Module '{module_name}' references disabled app '{app_id}'");
+                } else {
+                    crate::ui::warn_once(&format!(
+                        "Module '{module_name}' references disabled app '{app_id}'"
+                    ));
+                }
             }
+            if !app.module.bundle {
+                if strict {
+                    anyhow::bail!(
+                        "Module '{module_name}' references app '{app_id}' which has module.bundle=false in apps.yaml"
+                    );
+                } else {
+                    crate::ui::warn_once(&format!(
+                        "Module '{module_name}' references app '{app_id}' with module.bundle=false"
+                    ));
+                }
+            }
+            pkg_map
+                .entry(app.package.clone())
+                .or_default()
+                .push(app_id.clone());
+        }
 
+        for app_id in &module_def.disabled_apps {
+            if !cfg.apps.contains_key(app_id) {
+                if strict {
+                    anyhow::bail!(
+                        "Module '{module_name}' references non-existent app '{app_id}' in disabled_apps"
+                    );
+                } else {
+                    crate::ui::warn_once(&format!(
+                        "Module '{module_name}' references non-existent app '{app_id}' in disabled_apps"
+                    ));
+                }
+            }
+        }
+
+        if strict {
             for (pkg, app_ids) in pkg_map {
                 if app_ids.len() > 1 {
                     anyhow::bail!(
@@ -525,7 +630,12 @@ pub fn validate_config(cfg: &Config, strict: bool) -> Result<()> {
         }
     }
 
-    println!("Config valid. Total apps configured: {}", cfg.apps.len());
+    crate::ui::item_ok(
+        "validate",
+        "",
+        &format!("Config valid. Total apps configured: {}", cfg.apps.len()),
+        None,
+    );
     Ok(())
 }
 
@@ -584,7 +694,8 @@ pub fn check_yaml_duplicate_keys(content: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn validate_yaml_duplicates(config_dir: &str) -> Result<()> {
+pub fn validate_yaml_duplicates(config_dir: impl AsRef<std::path::Path>) -> Result<()> {
+    let config_dir = config_dir.as_ref();
     let files = [
         "apps.yaml",
         "sources.yaml",
@@ -593,12 +704,13 @@ pub fn validate_yaml_duplicates(config_dir: &str) -> Result<()> {
         "module.yaml",
     ];
     for file in &files {
-        let path = format!("{config_dir}/{file}");
-        if std::path::Path::new(&path).exists() {
-            let content = std::fs::read_to_string(&path)
-                .with_context(|| format!("Reading {path} for duplicate key validation"))?;
+        let path = config_dir.join(file);
+        if path.exists() {
+            let content = std::fs::read_to_string(&path).with_context(|| {
+                format!("Reading {} for duplicate key validation", path.display())
+            })?;
             check_yaml_duplicate_keys(&content)
-                .with_context(|| format!("Duplicate key check failed in {path}"))?;
+                .with_context(|| format!("Duplicate key check failed in {}", path.display()))?;
         }
     }
     Ok(())
@@ -630,5 +742,105 @@ patch_sources:
 "#;
         let err = check_yaml_duplicate_keys(yaml_dup).unwrap_err();
         assert!(err.to_string().contains("Duplicate key 'rushiranpise'"));
+    }
+
+    #[test]
+    fn test_load_config_parse_error_is_fatal() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dir = tmp.path().to_str().unwrap();
+        std::fs::write(tmp.path().join("apps.yaml"), "apps: {}\n").unwrap();
+        std::fs::write(tmp.path().join("sources.yaml"), "patch_sources: {}\n").unwrap();
+        std::fs::write(tmp.path().join("build.yaml"), "build: {}\n").unwrap();
+        std::fs::write(tmp.path().join("modules.yaml"), "modules: [broken\n").unwrap();
+
+        let err = load_config(dir).unwrap_err();
+        assert!(
+            err.to_string().contains("Parsing"),
+            "Expected fatal parse error for modules.yaml, got: {err}"
+        );
+    }
+
+    #[test]
+    fn test_sync_modules_file_preserves_unknown_and_skips_nulls() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let dir = tmp.path().to_str().unwrap();
+        std::fs::write(
+            tmp.path().join("apps.yaml"),
+            "apps:\n  youtube:\n    enabled: true\n    package: com.google.android.youtube\n",
+        )
+        .unwrap();
+        std::fs::write(tmp.path().join("sources.yaml"), "patch_sources: {}\n").unwrap();
+        std::fs::write(tmp.path().join("build.yaml"), "build: {}\n").unwrap();
+        std::fs::write(
+            tmp.path().join("modules.yaml"),
+            "modules:\n  core:\n    apps:\n    - youtube\n    - ghost_app\n",
+        )
+        .unwrap();
+
+        let cfg = load_config(dir).unwrap();
+        let synced = sync_modules_file(dir, &cfg).unwrap();
+        let core = synced.modules.get("core").unwrap();
+        assert!(core.apps.contains(&"youtube".to_string()));
+        assert!(
+            core.apps.contains(&"ghost_app".to_string()),
+            "Unknown app id must never be auto-deleted"
+        );
+
+        let written = std::fs::read_to_string(tmp.path().join("modules.yaml")).unwrap();
+        assert!(
+            !written.contains(": null"),
+            "None fields must not serialize as null:\n{written}"
+        );
+
+        // Corrupt modules.yaml must fail without overwriting
+        let broken = "modules:\n  core: [unclosed\n";
+        std::fs::write(tmp.path().join("modules.yaml"), broken).unwrap();
+        assert!(sync_modules_file(dir, &cfg).is_err());
+        assert_eq!(
+            std::fs::read_to_string(tmp.path().join("modules.yaml")).unwrap(),
+            broken
+        );
+    }
+
+    #[test]
+    fn test_validate_config_unknown_app_strict_vs_non_strict() {
+        let mut cfg = load_config("./config").expect("load default config");
+        cfg.modules.insert(
+            "custom_test".to_string(),
+            ModuleDefinition {
+                apps: vec!["nonexistent_app_xyz".to_string()],
+                ..Default::default()
+            },
+        );
+        assert!(validate_config(&cfg, false).is_ok());
+        assert!(validate_config(&cfg, true).is_err());
+    }
+
+    #[test]
+    fn test_single_source_of_truth_bundle_all() {
+        let cfg = load_config("./config").expect("load default config");
+        let all_mod = cfg.modules.get("all").expect("synthesized 'all' bundle");
+        for app_id in [
+            "google_maps",
+            "pinterest",
+            "mx_player",
+            "capcut",
+            "pvz_free",
+            "cloudflare_warp",
+            "sticker_maker",
+            "drama_box",
+            "stellarium",
+            "serverauditor",
+            "moviebox",
+        ] {
+            assert!(
+                all_mod.apps.contains(&app_id.to_string()),
+                "Expected bundle:true app '{app_id}' in synthesized 'all' bundle"
+            );
+        }
+        assert!(
+            !all_mod.apps.contains(&"microg".to_string()),
+            "microg (bundle:false) must not be in 'all' bundle"
+        );
     }
 }

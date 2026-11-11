@@ -156,7 +156,7 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         pin_policy: None,
         patches: vec![],
         keystore: None,
-        module: None,
+        module: crate::config::apps::ModuleFlags::default(),
         dependencies: crate::config::apps::AppDependencies::default(),
         on_unknown_compat: None,
         description: None,
@@ -169,9 +169,9 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
         ..Default::default()
     };
     let ks = resolve(cfg, &app_dummy).await?;
-    println!("Keystore file:  {}", ks.file);
-    println!("Alias:          {}", ks.alias);
-    println!("Generated:      {}", ks.generated);
+    crate::ui::line(&format!("Keystore file:  {}", ks.file));
+    crate::ui::line(&format!("Alias:          {}", ks.alias));
+    crate::ui::line(&format!("Generated:      {}", ks.generated));
 
     let output = tokio::process::Command::new("keytool")
         .args([
@@ -192,13 +192,13 @@ pub async fn print_info(cfg: &Config) -> Result<()> {
             let text = String::from_utf8_lossy(&o.stdout);
             for line in text.lines() {
                 if line.trim_start().starts_with("SHA256:") {
-                    println!("SHA-256:        {}", line.trim());
+                    crate::ui::line(&format!("SHA-256:        {}", line.trim()));
                     break;
                 }
             }
         }
         _ => {
-            println!("SHA-256:        (keytool not available)");
+            crate::ui::line("SHA-256:        (keytool not available)");
         }
     }
 

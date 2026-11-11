@@ -3,35 +3,32 @@ use anyhow::Result;
 use std::path::Path;
 
 pub async fn run_doctor(cfg: &Config) -> Result<()> {
-    println!("=== ReVanceX Doctor ===");
-    println!(
+    crate::ui::line("=== ReVanceX Doctor ===");
+    crate::ui::line(&format!(
         "OS:             {} ({})",
         std::env::consts::OS,
         std::env::consts::ARCH
-    );
+    ));
 
-    print!("Java:           ");
-    match crate::utils::check_java_version(cfg.build.java_min_version) {
-        Ok(v) => println!("v{v} (meets minimum {})", cfg.build.java_min_version),
-        Err(e) => println!("NOT FOUND or TOO OLD: {e}"),
-    }
+    let java_line = match crate::utils::check_java_version(cfg.build.java_min_version) {
+        Ok(v) => format!("v{v} (meets minimum {})", cfg.build.java_min_version),
+        Err(e) => format!("NOT FOUND or TOO OLD: {e}"),
+    };
+    crate::ui::line(&format!("Java:           {java_line}"));
 
-    print!("ADB:            ");
-    match crate::testing::device::devices().await {
+    let adb_line = match crate::testing::device::devices().await {
+        Ok(devs) if devs.is_empty() => "found, 0 devices connected".to_string(),
         Ok(devs) => {
-            if devs.is_empty() {
-                println!("found, 0 devices connected");
-            } else {
-                let dev_list = devs
-                    .iter()
-                    .map(|d| format!("{} ({})", d.serial, d.state))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                println!("found, devices: {dev_list}");
-            }
+            let dev_list = devs
+                .iter()
+                .map(|d| format!("{} ({})", d.serial, d.state))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("found, devices: {dev_list}")
         }
-        Err(_) => println!("not found on PATH"),
-    }
+        Err(_) => "not found on PATH".to_string(),
+    };
+    crate::ui::line(&format!("ADB:            {adb_line}"));
 
     check_tool("aria2c", "optional, accelerates downloads");
     check_tool("apkeep", "optional, direct playstore/apkeep download");
@@ -39,145 +36,122 @@ pub async fn run_doctor(cfg: &Config) -> Result<()> {
     check_tool("python", "optional, post-patch hooks");
     check_tool("keytool", "required for keystore generation/info");
 
-    println!("\n--- Bypass & Network Services ---");
+    crate::ui::line("\n--- Bypass & Network Services ---");
+    let http_client = crate::utils::make_browser_client(cfg)?;
     let fs_url =
         std::env::var("FLARESOLVERR_URL").unwrap_or_else(|_| cfg.fetch.flaresolverr.url.clone());
-    check_http_service("FlareSolverr", &fs_url).await;
+    check_http_service(&http_client, "FlareSolverr", &fs_url).await;
 
     let trawl_url = std::env::var("TRAWL_URL").unwrap_or_else(|_| cfg.fetch.trawl.url.clone());
     if !trawl_url.is_empty() {
-        check_http_service("Trawl", &trawl_url).await;
+        check_http_service(&http_client, "Trawl", &trawl_url).await;
     } else {
-        println!("{:<16}[UNCONFIGURED] (TRAWL_URL not set)", "Trawl");
+        crate::ui::line(&format!(
+            "{:<16}[UNCONFIGURED] (TRAWL_URL not set)",
+            "Trawl"
+        ));
     }
 
-    print!("{:<16}", "GITHUB_TOKEN");
-    match std::env::var("GITHUB_TOKEN") {
+    let token_status = match std::env::var("GITHUB_TOKEN") {
         Ok(t) if !t.is_empty() => {
             let masked = if t.len() > 8 {
                 format!("{}...{}", &t[..4], &t[t.len() - 4..])
             } else {
                 "PRESENT".to_string()
             };
-            println!("[OK] ({masked})");
+            format!("[OK] ({masked})")
         }
-        _ => println!("[MISSING] (Rate limit: 60 req/hr unauthenticated)"),
-    }
+        _ => "[MISSING] (Rate limit: 60 req/hr unauthenticated)".to_string(),
+    };
+    crate::ui::line(&format!("{:<16}{token_status}", "GITHUB_TOKEN"));
 
-    println!("\n--- Dependency Graph ---");
-    let lock_path = Path::new("Cargo.lock");
-    if lock_path.exists() {
-        println!("Cargo.lock:     PRESENT and tracked (reproducible dependency graph)");
+    crate::ui::line("\n--- Dependency Graph ---");
+    if Path::new("Cargo.lock").exists() {
+        crate::ui::line("Cargo.lock:     PRESENT and tracked (reproducible dependency graph)");
     } else {
-        println!("Cargo.lock:     MISSING (builds may not be reproducible)");
+        crate::ui::line("Cargo.lock:     MISSING (builds may not be reproducible)");
     }
 
-    println!("\n--- Keystore ---");
+    crate::ui::line("\n--- Keystore ---");
     let dummy_app = crate::config::apps::AppConfig {
-        enabled: true,
-        package: String::new(),
-        sources: std::collections::HashMap::new(),
-        patch_source: String::new(),
-        patch_branch: None,
-        cli_source: String::new(),
-        uptodown_url: None,
-        apkmirror_url: None,
-        archive_url: None,
-        apkpure_url: None,
-        aptoide_url: None,
-        source_priority: vec![],
-        strict_sources: false,
-        allow_build_failure: false,
-        expected_cert_sha256: None,
-        apk_source: String::new(),
-        apk_url: None,
-        architectures: vec![],
-        mode: String::new(),
-        included_patches: vec![],
-        excluded_patches: vec![],
-        patcher_args: None,
-        patches_version: None,
-        version: None,
-        version_pin_strict: false,
-        pin_policy: None,
-        patches: vec![],
-        keystore: None,
-        module: None,
-        dependencies: crate::config::apps::AppDependencies::default(),
-        description: None,
-        min_version: None,
-        max_version: None,
-        on_unknown_compat: None,
-        post_patch_hooks: vec![],
-        name: None,
-        display_name: None,
+        package: "org.revancex.doctor".to_string(),
         bundle_priority: 100,
         ..Default::default()
     };
     match crate::utils::keystore::resolve(cfg, &dummy_app).await {
         Ok(ks) => {
-            println!("Resolved file:  {}", ks.file);
-            println!("Alias:          {}", ks.alias);
-            println!(
+            crate::ui::line(&format!("Resolved file:  {}", ks.file));
+            crate::ui::line(&format!("Alias:          {}", ks.alias));
+            crate::ui::line(&format!(
                 "Status:         {}",
                 if Path::new(&ks.file).exists() {
                     "exists on disk"
                 } else {
                     "will be generated"
                 }
-            );
+            ));
         }
-        Err(e) => println!("Keystore error: {e}"),
+        Err(e) => crate::ui::line(&format!("Keystore error: {e}")),
     }
 
-    println!("\n--- Tools Directory ({}) ---", cfg.build.tools_dir);
+    crate::ui::line(&format!(
+        "\n--- Tools Directory ({}) ---",
+        cfg.build.tools_dir
+    ));
     let tools_dir = Path::new(&cfg.build.tools_dir);
     if tools_dir.exists() {
         if let Ok(entries) = std::fs::read_dir(tools_dir) {
             for entry in entries.flatten() {
                 let name = entry.file_name().to_string_lossy().to_string();
                 let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
-                println!("  {:36} ({:.1} MB)", name, size as f64 / 1_048_576.0);
+                crate::ui::line(&format!(
+                    "  {:36} ({:.1} MB)",
+                    name,
+                    size as f64 / 1_048_576.0
+                ));
             }
         }
     } else {
-        println!("  (directory does not exist yet)");
+        crate::ui::line("  (directory does not exist yet)");
     }
 
-    println!("\n--- Config Summary ---");
-    println!("Total apps configured:   {}", cfg.apps.len());
+    crate::ui::line("\n--- Config Summary ---");
+    crate::ui::line(&format!("Total apps configured:   {}", cfg.apps.len()));
     let enabled_count = cfg.apps.values().filter(|a| a.enabled).count();
-    println!("Enabled apps:            {}", enabled_count);
-    println!("Patch sources:           {}", cfg.patch_sources.len());
-    println!("Modules configured:      {}", cfg.modules.len());
+    crate::ui::line(&format!("Enabled apps:            {}", enabled_count));
+    crate::ui::line(&format!(
+        "Patch sources:           {}",
+        cfg.patch_sources.len()
+    ));
+    crate::ui::line(&format!("Modules configured:      {}", cfg.modules.len()));
 
-    println!("\nDoctor check complete.");
+    crate::ui::line("\nDoctor check complete.");
     Ok(())
 }
 
-async fn check_http_service(name: &str, url: &str) {
-    let client = reqwest::Client::builder()
+async fn check_http_service(client: &reqwest::Client, name: &str, url: &str) {
+    match client
+        .get(url)
         .timeout(std::time::Duration::from_secs(3))
-        .build()
-        .unwrap_or_default();
-    match client.get(url).send().await {
+        .send()
+        .await
+    {
         Ok(r) => {
-            println!("{:<16}[OK] (Status: {}, URL: {})", name, r.status(), url);
+            crate::ui::line(&format!(
+                "{:<16}[OK] (Status: {}, URL: {})",
+                name,
+                r.status(),
+                url
+            ));
         }
         Err(_) => {
-            println!("{:<16}[UNREACHABLE] (URL: {})", name, url);
+            crate::ui::line(&format!("{:<16}[UNREACHABLE] (URL: {})", name, url));
         }
     }
 }
 
 fn check_tool(name: &str, purpose: &str) {
-    let which_cmd = if cfg!(windows) { "where" } else { "which" };
-    let found = std::process::Command::new(which_cmd)
-        .arg(name)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false);
-
+    let found = crate::utils::is_command_available(name);
     let status = if found { "OK" } else { "MISSING" };
-    println!("{:<16}[{}] ({})", name, status, purpose);
+    crate::ui::line(&format!("{:<16}[{}] ({})", name, status, purpose));
 }

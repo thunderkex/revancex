@@ -81,102 +81,131 @@ fn read_manifest<P: AsRef<Path>>(apk_path: P) -> Result<Vec<u8>> {
     Ok(data)
 }
 
-pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
+fn decode_axml_string(data: &[u8], mut idx: usize, is_utf8: bool) -> String {
+    if idx >= data.len() {
+        return String::new();
+    }
+    if is_utf8 {
+        let u16len = data[idx] as usize;
+        idx += 1;
+        if (u16len & 0x80) != 0 && idx < data.len() {
+            idx += 1;
+        }
+        if idx >= data.len() {
+            return String::new();
+        }
+        let mut u8len = data[idx] as usize;
+        idx += 1;
+        if (u8len & 0x80) != 0 && idx < data.len() {
+            u8len = ((u8len & 0x7F) << 8) | (data[idx] as usize);
+            idx += 1;
+        }
+        return if idx + u8len <= data.len() {
+            String::from_utf8_lossy(&data[idx..idx + u8len]).to_string()
+        } else {
+            String::new()
+        };
+    }
+
+    if idx + 2 > data.len() {
+        return String::new();
+    }
+    let mut u16len = u16::from_le_bytes([data[idx], data[idx + 1]]) as usize;
+    idx += 2;
+    if (u16len & 0x8000) != 0 && idx + 2 <= data.len() {
+        u16len =
+            ((u16len & 0x7FFF) << 16) | (u16::from_le_bytes([data[idx], data[idx + 1]]) as usize);
+        idx += 2;
+    }
+    let byte_len = u16len * 2;
+    if idx + byte_len <= data.len() {
+        let u16_slice: Vec<u16> = data[idx..idx + byte_len]
+            .chunks_exact(2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
+        String::from_utf16_lossy(&u16_slice)
+    } else {
+        String::new()
+    }
+}
+
+fn parse_axml_string_pool(data: &[u8]) -> Option<(Vec<String>, usize)> {
     if data.len() < 36 {
         return None;
     }
-    let magic = u16::from_le_bytes([data[0], data[1]]);
-    if magic != 0x0003 {
+    if u16::from_le_bytes([data[0], data[1]]) != 0x0003 {
         return None;
     }
-
-    let chunk_type = u16::from_le_bytes([data[8], data[9]]);
-    if chunk_type != 0x0001 {
+    if u16::from_le_bytes([data[8], data[9]]) != 0x0001 {
         return None;
     }
 
     let c_hdr_sz = u16::from_le_bytes([data[10], data[11]]) as usize;
     let chunk_sz = u32::from_le_bytes([data[12], data[13], data[14], data[15]]) as usize;
     let str_count = u32::from_le_bytes([data[16], data[17], data[18], data[19]]) as usize;
-    let _style_count = u32::from_le_bytes([data[20], data[21], data[22], data[23]]) as usize;
     let flags = u32::from_le_bytes([data[24], data[25], data[26], data[27]]);
     let str_start = u32::from_le_bytes([data[28], data[29], data[30], data[31]]) as usize;
 
     let is_utf8 = (flags & (1 << 8)) != 0;
     let offset_table_start = 8 + c_hdr_sz;
     let offset_table_end = offset_table_start + str_count * 4;
-
-    if data.len() < offset_table_end {
-        return None;
-    }
-
     let pool_start = 8 + str_start;
-    if data.len() < pool_start {
+    if data.len() < offset_table_end || data.len() < pool_start {
         return None;
     }
 
-    let mut strings: Vec<String> = Vec::with_capacity(str_count);
-
+    let mut strings = Vec::with_capacity(str_count);
     for i in 0..str_count {
         let pos = offset_table_start + i * 4;
         let str_off =
             u32::from_le_bytes([data[pos], data[pos + 1], data[pos + 2], data[pos + 3]]) as usize;
-        let mut idx = pool_start + str_off;
-
-        if idx >= data.len() {
-            strings.push(String::new());
-            continue;
-        }
-
-        if is_utf8 {
-            let u16len = data[idx] as usize;
-            idx += 1;
-            if (u16len & 0x80) != 0 && idx < data.len() {
-                idx += 1;
-            }
-            if idx >= data.len() {
-                strings.push(String::new());
-                continue;
-            }
-            let mut u8len = data[idx] as usize;
-            idx += 1;
-            if (u8len & 0x80) != 0 && idx < data.len() {
-                u8len = ((u8len & 0x7F) << 8) | (data[idx] as usize);
-                idx += 1;
-            }
-            if idx + u8len <= data.len() {
-                strings.push(String::from_utf8_lossy(&data[idx..idx + u8len]).to_string());
-            } else {
-                strings.push(String::new());
-            }
-        } else {
-            if idx + 2 > data.len() {
-                strings.push(String::new());
-                continue;
-            }
-            let mut u16len = u16::from_le_bytes([data[idx], data[idx + 1]]) as usize;
-            idx += 2;
-            if (u16len & 0x8000) != 0 && idx + 2 <= data.len() {
-                u16len = ((u16len & 0x7FFF) << 16)
-                    | (u16::from_le_bytes([data[idx], data[idx + 1]]) as usize);
-                idx += 2;
-            }
-            let byte_len = u16len * 2;
-            if idx + byte_len <= data.len() {
-                let u16_slice: Vec<u16> = data[idx..idx + byte_len]
-                    .chunks_exact(2)
-                    .map(|c| u16::from_le_bytes([c[0], c[1]]))
-                    .collect();
-                strings.push(String::from_utf16_lossy(&u16_slice));
-            } else {
-                strings.push(String::new());
-            }
-        }
+        strings.push(decode_axml_string(data, pool_start + str_off, is_utf8));
     }
 
+    Some((strings, 8 + chunk_sz))
+}
+
+fn read_axml_attr_value(
+    data: &[u8],
+    off: usize,
+    target_idx: u32,
+    strings: &[String],
+    allow_int: bool,
+) -> Option<String> {
+    let a_name = u32::from_le_bytes([data[off + 4], data[off + 5], data[off + 6], data[off + 7]]);
+    if a_name != target_idx {
+        return None;
+    }
+    let a_raw = u32::from_le_bytes([data[off + 8], data[off + 9], data[off + 10], data[off + 11]]);
+    if a_raw != 0xFFFFFFFF && (a_raw as usize) < strings.len() {
+        let val = strings[a_raw as usize].trim().to_string();
+        if !val.is_empty() {
+            return Some(val);
+        }
+    }
+    let val_type = data[off + 15];
+    let val_data = u32::from_le_bytes([
+        data[off + 16],
+        data[off + 17],
+        data[off + 18],
+        data[off + 19],
+    ]);
+    if val_type == 0x03 && (val_data as usize) < strings.len() {
+        let val = strings[val_data as usize].trim().to_string();
+        if !val.is_empty() {
+            return Some(val);
+        }
+    }
+    if allow_int && (val_type == 0x10 || val_type == 0x11) {
+        return Some(val_data.to_string());
+    }
+    None
+}
+
+pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
+    let (strings, chunks_start) = parse_axml_string_pool(data)?;
     let target_idx = strings.iter().position(|s| s == attr)? as u32;
 
-    let chunks_start = 8 + chunk_sz;
     let mut cur = chunks_start;
     while cur + 8 <= data.len() {
         let chunk_type = u16::from_le_bytes([data[cur], data[cur + 1]]);
@@ -187,52 +216,19 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
         if node_chunk_sz < 8 || cur + node_chunk_sz > data.len() {
             break;
         }
-
         if chunk_type == 0x0102 && cur + 36 <= data.len() {
             let attr_start = u16::from_le_bytes([data[cur + 24], data[cur + 25]]) as usize;
             let attr_sz = u16::from_le_bytes([data[cur + 26], data[cur + 27]]) as usize;
             let attr_cnt = u16::from_le_bytes([data[cur + 28], data[cur + 29]]) as usize;
             let first_attr = cur + chunk_hdr_sz + attr_start;
-
             if attr_sz >= 20 {
                 for a in 0..attr_cnt {
                     let a_off = first_attr + a * attr_sz;
                     if a_off + 20 <= data.len() {
-                        let a_name = u32::from_le_bytes([
-                            data[a_off + 4],
-                            data[a_off + 5],
-                            data[a_off + 6],
-                            data[a_off + 7],
-                        ]);
-                        if a_name == target_idx {
-                            let a_raw = u32::from_le_bytes([
-                                data[a_off + 8],
-                                data[a_off + 9],
-                                data[a_off + 10],
-                                data[a_off + 11],
-                            ]);
-                            if a_raw != 0xFFFFFFFF && (a_raw as usize) < strings.len() {
-                                let val = strings[a_raw as usize].trim().to_string();
-                                if !val.is_empty() {
-                                    return Some(val);
-                                }
-                            }
-                            let val_type = data[a_off + 15];
-                            let val_data = u32::from_le_bytes([
-                                data[a_off + 16],
-                                data[a_off + 17],
-                                data[a_off + 18],
-                                data[a_off + 19],
-                            ]);
-                            if val_type == 0x03 && (val_data as usize) < strings.len() {
-                                let val = strings[val_data as usize].trim().to_string();
-                                if !val.is_empty() {
-                                    return Some(val);
-                                }
-                            }
-                            if val_type == 0x10 || val_type == 0x11 {
-                                return Some(val_data.to_string());
-                            }
+                        if let Some(val) =
+                            read_axml_attr_value(data, a_off, target_idx, &strings, true)
+                        {
+                            return Some(val);
                         }
                     }
                 }
@@ -243,25 +239,8 @@ pub fn find_manifest_attr(data: &[u8], attr: &str) -> Option<String> {
 
     let mut i = chunks_start;
     while i + 20 <= data.len() {
-        let name_ref = u32::from_le_bytes([data[i + 4], data[i + 5], data[i + 6], data[i + 7]]);
-        if name_ref == target_idx {
-            let raw_ref =
-                u32::from_le_bytes([data[i + 8], data[i + 9], data[i + 10], data[i + 11]]);
-            if raw_ref != 0xFFFFFFFF && (raw_ref as usize) < strings.len() {
-                let val = strings[raw_ref as usize].trim().to_string();
-                if !val.is_empty() {
-                    return Some(val);
-                }
-            }
-            let val_type = data[i + 15];
-            let val_data =
-                u32::from_le_bytes([data[i + 16], data[i + 17], data[i + 18], data[i + 19]]);
-            if val_type == 0x03 && (val_data as usize) < strings.len() {
-                let val = strings[val_data as usize].trim().to_string();
-                if !val.is_empty() {
-                    return Some(val);
-                }
-            }
+        if let Some(val) = read_axml_attr_value(data, i, target_idx, &strings, false) {
+            return Some(val);
         }
         i += 4;
     }
@@ -444,4 +423,25 @@ pub fn verify_apk_integrity<P: AsRef<Path>>(apk_path: P) -> Result<(), ApkIntegr
 
 pub fn check_apk_integrity<P: AsRef<Path>>(apk_path: P) -> bool {
     verify_apk_integrity(apk_path).is_ok()
+}
+
+fn apk_has_lib_prefix(apk: &str, prefix: &str) -> Result<bool> {
+    let file = std::fs::File::open(apk)?;
+    let mut archive = zip::ZipArchive::new(file)?;
+    for i in 0..archive.len() {
+        let entry = archive.by_index(i)?;
+        let name = entry.name()?;
+        if name.starts_with(prefix) && name.ends_with(".so") {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+pub fn apk_has_any_native_libs(apk: &str) -> Result<bool> {
+    apk_has_lib_prefix(apk, "lib/")
+}
+
+pub fn apk_has_arch(apk: &str, target_arch: &str) -> Result<bool> {
+    apk_has_lib_prefix(apk, &format!("lib/{target_arch}/"))
 }

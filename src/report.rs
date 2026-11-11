@@ -110,27 +110,6 @@ pub struct SourceAttemptRecord {
     pub block_kind: Option<crate::sources::breaker::BlockKind>,
 }
 
-impl SourceAttemptRecord {
-    pub fn new(
-        source: impl Into<String>,
-        outcome: impl Into<String>,
-        reason: impl Into<String>,
-    ) -> Self {
-        Self {
-            source: source.into(),
-            outcome: outcome.into(),
-            version: None,
-            url: None,
-            reason: reason.into(),
-            duration_ms: 0,
-            breaker_state: None,
-            breaker_state_at_attempt: None,
-            breaker_final_state: None,
-            block_kind: None,
-        }
-    }
-}
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default, PartialEq, Eq)]
 pub struct IntegrityStatus {
     pub package_ok: bool,
@@ -138,9 +117,77 @@ pub struct IntegrityStatus {
     pub cert_ok: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BuildStatus {
+    Success,
+    Failed,
+    #[default]
+    Skipped,
+    Degraded,
+    SuccessUnpatched,
+}
+
+impl BuildStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Success => "success",
+            Self::Failed => "failed",
+            Self::Skipped => "skipped",
+            Self::Degraded => "degraded",
+            Self::SuccessUnpatched => "success_unpatched",
+        }
+    }
+}
+
+impl std::fmt::Display for BuildStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl PartialEq<&str> for BuildStatus {
+    fn eq(&self, other: &&str) -> bool {
+        self.as_str() == *other
+    }
+}
+
+impl PartialEq<str> for BuildStatus {
+    fn eq(&self, other: &str) -> bool {
+        self.as_str() == other
+    }
+}
+
+/// Shared threshold check for both `test` and `report check`.
+/// Returns `Some(failure_pct)` when the failure rate exceeds policy and should fail.
+pub fn failure_threshold_exceeded(
+    failed: usize,
+    total: usize,
+    continue_on_error: bool,
+    fail_threshold: Option<u32>,
+) -> Option<f64> {
+    if continue_on_error || failed == 0 {
+        return None;
+    }
+    if let Some(threshold) = fail_threshold {
+        if total == 0 {
+            return None;
+        }
+        let fail_pct = (failed as f64 / total as f64) * 100.0;
+        (fail_pct > threshold as f64).then_some(fail_pct)
+    } else {
+        let pct = if total == 0 {
+            100.0
+        } else {
+            (failed as f64 / total as f64) * 100.0
+        };
+        Some(pct)
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq, Default)]
 pub struct AppBuildReport {
-    pub status: String,
+    pub status: BuildStatus,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub requested_version: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -217,7 +264,7 @@ impl AppBuildReport {
         let cat = FailureCategory::from_error_message(&err_str);
         let action = cat.suggested_action().to_string();
         Self {
-            status: "failed".to_string(),
+            status: BuildStatus::Failed,
             requested_version: None,
             version_candidates_tried: vec![],
             version_downgraded: false,
@@ -305,10 +352,10 @@ impl BuildReport {
                 }
             }
 
-            match rep.status.as_str() {
-                "success" => success += 1,
-                "degraded" => degraded += 1,
-                "failed" => {
+            match rep.status {
+                BuildStatus::Success => success += 1,
+                BuildStatus::Degraded => degraded += 1,
+                BuildStatus::Failed => {
                     failed += 1;
                     let cat = rep
                         .failure_category
@@ -330,8 +377,7 @@ impl BuildReport {
                         .unwrap_or_else(|| "other".to_string());
                     *failures_by_category.entry(cat_name).or_insert(0) += 1;
                 }
-                "skipped" | "success_unpatched" => skipped += 1,
-                _ => {}
+                BuildStatus::Skipped | BuildStatus::SuccessUnpatched => skipped += 1,
             }
         }
 

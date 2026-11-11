@@ -5,7 +5,6 @@ use zip::write::SimpleFileOptions;
 pub enum EntryAction {
     Keep,
     Drop,
-    Recompress(zip::CompressionMethod),
 }
 
 pub fn rewrite<F>(src_path: &str, dst_path: &str, mut transform: F) -> Result<()>
@@ -27,14 +26,11 @@ where
 
         match action {
             EntryAction::Drop => continue,
-            EntryAction::Keep | EntryAction::Recompress(_) => {
+            EntryAction::Keep => {
                 let compression = if name == "resources.arsc" {
                     zip::CompressionMethod::Stored
                 } else {
-                    match action {
-                        EntryAction::Recompress(m) => m,
-                        _ => entry.compression(),
-                    }
+                    entry.compression()
                 };
                 let opts = SimpleFileOptions::default().compression_method(compression);
                 zip_out.start_file(&name, opts)?;

@@ -50,13 +50,13 @@ pub fn is_negative_cached_file(
     package: &str,
     version: Option<&str>,
 ) -> bool {
-    let _guard = CACHE_LOCK.lock().unwrap();
+    let _guard = crate::utils::lock_unpoisoned(&CACHE_LOCK);
     let cache = load_version_cache(path);
     is_negative_cached(&cache, source, package, version)
 }
 
 pub fn record_negative_cache_file(path: &str, source: &str, package: &str, version: Option<&str>) {
-    let _guard = CACHE_LOCK.lock().unwrap();
+    let _guard = crate::utils::lock_unpoisoned(&CACHE_LOCK);
     let mut cache = load_version_cache(path);
     record_negative_cache(&mut cache, source, package, version);
     save_version_cache(path, &cache);
@@ -85,27 +85,44 @@ pub fn prune_stale_cache_keys(cache: &mut VersionCache, cfg: &crate::config::Con
         .retain(|_, &mut ts| now - ts < NEGATIVE_CACHE_TTL_SECS);
 }
 
-pub fn load_version_cache(path: &str) -> VersionCache {
-    let mut cache: VersionCache = std::fs::read_to_string(path)
+pub fn load_version_cache(path: impl AsRef<Path>) -> VersionCache {
+    load_version_cache_with_config(path, None)
+}
+
+pub fn load_version_cache_with_config(
+    path: impl AsRef<Path>,
+    cfg: Option<&crate::config::Config>,
+) -> VersionCache {
+    let mut cache: VersionCache = std::fs::read_to_string(path.as_ref())
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default();
 
-    let config_dir =
-        std::env::var("REVANCEX_CONFIG_DIR").unwrap_or_else(|_| "./config".to_string());
-    if let Ok(cfg) = crate::config::load_config(&config_dir) {
-        prune_stale_cache_keys(&mut cache, &cfg);
+    if let Some(c) = cfg {
+        prune_stale_cache_keys(&mut cache, c);
+    } else {
+        let now = chrono::Utc::now().timestamp();
+        cache
+            .negative_cache
+            .retain(|_, &mut ts| now - ts < NEGATIVE_CACHE_TTL_SECS);
     }
 
     cache
 }
 
-pub fn save_version_cache(path: &str, cache: &VersionCache) {
-    if let Some(parent) = Path::new(path).parent() {
-        let _ = std::fs::create_dir_all(parent);
+pub fn save_version_cache(path: impl AsRef<Path>, cache: &VersionCache) {
+    let path = path.as_ref();
+    if let Some(parent) = path.parent() {
+        crate::utils::warn_io(
+            std::fs::create_dir_all(parent),
+            &format!("Creating cache parent dir {}", parent.display()),
+        );
     }
     if let Ok(json) = serde_json::to_string_pretty(cache) {
-        let _ = std::fs::write(path, json);
+        crate::utils::warn_io(
+            std::fs::write(path, json),
+            &format!("Writing version cache to {}", path.display()),
+        );
     }
 }
 
@@ -123,6 +140,6 @@ pub fn clean_cache(cfg: &crate::config::Config, all: bool) -> Result<()> {
             std::fs::create_dir_all(tools)?;
         }
     }
-    println!("Cache cleaned successfully.");
+    crate::ui::line("Cache cleaned successfully.");
     Ok(())
 }

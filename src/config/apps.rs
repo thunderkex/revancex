@@ -38,6 +38,7 @@ impl Default for AppDependencies {
 }
 
 impl AppDependencies {
+    #[cfg(test)]
     pub fn contains(&self, dep: &str) -> bool {
         match self {
             AppDependencies::Flat(list) => list.iter().any(|d| d == dep),
@@ -116,6 +117,7 @@ pub enum PinPolicy {
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct AppConfig {
+    #[serde(default = "default_true")]
     pub enabled: bool,
     #[serde(default)]
     pub package: String,
@@ -191,7 +193,7 @@ pub struct AppConfig {
     #[serde(default)]
     pub keystore: Option<KeystoreRef>,
     #[serde(default)]
-    pub module: Option<ModuleFlags>,
+    pub module: ModuleFlags,
     #[serde(default)]
     pub dependencies: AppDependencies,
     #[serde(default)]
@@ -214,7 +216,95 @@ fn default_bundle_priority() -> u32 {
     100
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AppMode {
+    #[default]
+    Patch,
+    Full,
+    Lite,
+    Root,
+    Nonroot,
+    Install,
+}
+
+impl AppMode {
+    pub fn parse(s: &str) -> Self {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "full" => Self::Full,
+            "lite" => Self::Lite,
+            "root" => Self::Root,
+            "nonroot" => Self::Nonroot,
+            "install" => Self::Install,
+            _ => Self::Patch,
+        }
+    }
+
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Patch => "patch",
+            Self::Full => "full",
+            Self::Lite => "lite",
+            Self::Root => "root",
+            Self::Nonroot => "nonroot",
+            Self::Install => "install",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Arch {
+    Arm64V8a,
+    ArmeabiV7a,
+    X86,
+    X86_64,
+    All,
+    Universal,
+    Other(String),
+}
+
+impl Arch {
+    pub fn parse(s: &str) -> Self {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "arm64-v8a" => Self::Arm64V8a,
+            "armeabi-v7a" => Self::ArmeabiV7a,
+            "x86" => Self::X86,
+            "x86_64" => Self::X86_64,
+            "all" | "" => Self::All,
+            "universal" => Self::Universal,
+            other => Self::Other(other.to_string()),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Arm64V8a => "arm64-v8a",
+            Self::ArmeabiV7a => "armeabi-v7a",
+            Self::X86 => "x86",
+            Self::X86_64 => "x86_64",
+            Self::All => "all",
+            Self::Universal => "universal",
+            Self::Other(s) => s.as_str(),
+        }
+    }
+
+    pub fn is_wildcard(&self) -> bool {
+        matches!(self, Self::All | Self::Universal)
+    }
+}
+
 impl AppConfig {
+    pub fn resolved_mode(&self, cli_mode: Option<&str>) -> AppMode {
+        match cli_mode {
+            Some(m) if !m.is_empty() => AppMode::parse(m),
+            _ if !self.mode.is_empty() => match AppMode::parse(&self.mode) {
+                AppMode::Patch => AppMode::Full,
+                other => other,
+            },
+            _ => AppMode::Full,
+        }
+    }
+
     pub fn effective_pin_policy(&self) -> PinPolicy {
         if let Some(p) = self.pin_policy {
             p
@@ -264,7 +354,7 @@ fn default_arch() -> Vec<String> {
     vec!["arm64-v8a".to_string()]
 }
 fn default_mode() -> String {
-    "full".to_string()
+    "patch".to_string()
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
@@ -282,12 +372,21 @@ fn default_keystore_file() -> String {
     "keys/default.jks".to_string()
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ModuleFlags {
-    #[serde(default = "default_true")]
+    #[serde(default)]
     pub single: bool,
     #[serde(default = "default_true")]
     pub bundle: bool,
+}
+
+impl Default for ModuleFlags {
+    fn default() -> Self {
+        Self {
+            single: false,
+            bundle: true,
+        }
+    }
 }
 
 fn default_true() -> bool {

@@ -128,7 +128,6 @@ impl State {
             "KEYSTORE_B64",
             "KEYSTORE_PASSWORD",
             "TG_TOKEN",
-            "TELEGRAM_BOT_TOKEN",
         ] {
             if let Ok(v) = std::env::var(key) {
                 if v.len() >= 6 {
@@ -208,10 +207,6 @@ fn redact_with(secrets: &[String], text: &str) -> String {
     out
 }
 
-pub fn redact(text: &str) -> String {
-    redact_with(&st().secrets, text)
-}
-
 fn first_line(s: &str) -> &str {
     s.lines().next().unwrap_or("").trim()
 }
@@ -219,10 +214,10 @@ fn first_line(s: &str) -> &str {
 pub fn render_table(rows: &[Row], unicode: bool) -> Vec<String> {
     let header = [
         "App",
-        "Versi",
-        "Patch (ok/skip/gagal)",
-        "Ukuran",
-        "Durasi",
+        "Version",
+        "Patches (ok/skip/fail)",
+        "Size",
+        "Duration",
         "Status",
     ];
     let cells: Vec<[String; 6]> = rows
@@ -311,6 +306,14 @@ fn colorize(s: &State, status: Status, glyph: &str) -> String {
 fn write_err(text: &str) {
     let mut e = std::io::stderr().lock();
     let _ = writeln!(e, "{text}");
+}
+
+/// Write one plain human-facing line through the UI layer (redacted, flushed after pending).
+pub fn line(text: &str) {
+    let mut s = st();
+    flush_pending(&mut s);
+    let safe = redact_with(&s.secrets, text);
+    write_err(&safe);
 }
 
 fn render_pending(s: &State, p: &Pending) -> String {
@@ -405,10 +408,6 @@ pub fn is_verbose() -> bool {
     st().verbose
 }
 
-pub fn is_ci() -> bool {
-    st().ci
-}
-
 pub fn log_dir() -> PathBuf {
     st().log_dir.clone()
 }
@@ -485,10 +484,6 @@ pub fn item_ok(name: &str, version: &str, detail: &str, dur: Option<Duration>) {
     item(Status::Ok, name, version, detail, dur);
 }
 
-pub fn item_skip(name: &str, version: &str, detail: &str, dur: Option<Duration>) {
-    item(Status::Skip, name, version, detail, dur);
-}
-
 pub fn item_fail(id: &str, name: &str, version: &str, err: &str, dur: Option<Duration>) {
     let mut s = st();
     let summary = first_line(err).to_string();
@@ -561,10 +556,6 @@ pub fn record_duration(id: &str, d: Duration) {
 
 pub fn duration_of(id: &str) -> Option<Duration> {
     st().durations.get(id).copied()
-}
-
-pub fn tool_log_path(name: &str) -> PathBuf {
-    st().log_dir.join(format!("{name}.log"))
 }
 
 pub fn tool_log(name: &str, title: &str, content: &str) {
@@ -705,7 +696,7 @@ pub fn fatal(err: &anyhow::Error) {
         first_line(&err.to_string())
     );
     for cause in err.chain().skip(1) {
-        let _ = write!(text, "\n    penyebab: {}", first_line(&cause.to_string()));
+        let _ = write!(text, "\n    cause: {}", first_line(&cause.to_string()));
     }
     let _ = write!(text, "\n    log detail: {}", s.log_dir.display());
     let _ = write!(text, "\n    add --verbose for detail");

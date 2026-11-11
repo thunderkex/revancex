@@ -1,9 +1,9 @@
 # ReVanceX Core Bundle (`revancex-core`)
 
-- **Release Tag**: `auto-v1.1.0-2026.11.11-b170`
+- **Release Tag**: `auto-v1.1.0-2026.11.11-b172`
 - **Version Code**: `2026111101`
-- **Updated**: 2026-11-11T01:43:46Z
-- **Download**: [revancex-bundle-core.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b170/revancex-bundle-core.zip)
+- **Updated**: 2026-11-11T06:03:53Z
+- **Download**: [revancex-bundle-core.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b172/revancex-bundle-core.zip)
 - **Upstream Patch Sources**: `anddea/revanced-patches`, `crimera/piko-newx`
 
 ## Payload APKs & App Versions

@@ -1,9 +1,9 @@
 # ReVanceX — YouTube Music (`revancex-youtube_music`)
 
-- **Release Tag**: `auto-v1.1.0-2026.11.11-b172`
-- **Version Code**: `2026111101`
-- **Updated**: 2026-11-11T06:03:53Z
-- **Download**: [YouTube-Music-9.15.51-module.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b172/YouTube-Music-9.15.51-module.zip)
+- **Release Tag**: `auto-v1.1.0-2026.11.11-b173`
+- **Version Code**: `2026111102`
+- **Updated**: 2026-11-11T07:44:02Z
+- **Download**: [YouTube-Music-9.15.51-module.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b173/YouTube-Music-9.15.51-module.zip)
 
 ## Included App & Upstream Patch Source
 

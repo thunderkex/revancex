@@ -19,8 +19,8 @@
 | Facebook | `com.facebook.katana` | 585.0.0.47.54 | `apks/facebook.apk` | SysAdminDoc/Hushfacebook |
 | Flightradar24 | `com.flightradar24free` | 11.12.0 | `apks/flightradar24.apk` | rushiranpise/morphe-patches |
 | Gboard | `com.google.android.inputmethod.latin` | 18.5.4.993608717 | `apks/gboard.apk` | jasonwu1994/Gboard-patches |
-| Google Maps | `com.google.android.apps.maps` | latest | `apks/google_maps.apk` | bearinmindcat/morphe-patches |
-| Hungry Shark World | `com.ubisoft.hungrysharkworld` | latest | `apks/hungry_shark_world.apk` | legendsciber/morphe-patches |
+| Google Maps | `com.google.android.apps.maps` | 26.36.04.973607363 | `apks/google_maps.apk` | bearinmindcat/morphe-patches |
+| Hungry Shark Evolution | `com.fgol.HungrySharkEvolution` | 14.5.0 | `apks/hungry_shark_evolution.apk` | legendsciber/morphe-patches |
 | Instagram | `com.instagram.android` | 452.1.0.53.64 | `apks/instagram.apk` | crimera/piko-ig-lite |
 | Lightroom | `com.adobe.lrmobile` | 11.5.31 | `apks/lightroom.apk` | hoo-dles/morphe-patches |
 | Moviebox | `com.community.oneroom` | 4.0.03.1020.03 | `apks/moviebox.apk` | hxreborn/morphe-patches |
@@ -33,10 +33,10 @@
 | Termius | `com.server.auditor.ssh.client` | 7.11.2 | `apks/serverauditor.apk` | rushiranpise/morphe-patches |
 | Stellarium | `com.noctuasoftware.stellarium_free` | 1.16.3 | `apks/stellarium.apk` | BholeyKaBhakt/android-patches-xtra |
 | Sticker Maker | `com.marsvard.stickermakerforwhatsapp` | 1.0.12-7 | `apks/sticker_maker.apk` | rushiranpise/morphe-patches |
-| Strava | `com.strava` | latest | `apks/strava.apk` | RookieEnough/De-Vanced |
+| Strava | `com.strava` | 477.14 | `apks/strava.apk` | RookieEnough/De-Vanced |
 | Threads | `com.instagram.barcelona` | 454.0.0.54.79 | `apks/threads.apk` | SysAdminDoc/HushThreads |
 | TikTok | `com.zhiliaoapp.musically` | 47.7.2 | `apks/tiktok.apk` | SysAdminDoc/HushFeed |
 | WPS Office | `cn.wps.moffice_eng` | 18.24 | `apks/wps_office.apk` | hoo-dles/morphe-patches |
 | X Piko | `com.twitter.android` | 12.41.0-prod.01 | `apks/x_piko.apk` | crimera/piko-newx |
-| YouTube | `com.google.android.youtube` | 20.05.46 | `apks/youtube.apk` | anddea/revanced-patches |
+| YouTube | `com.google.android.youtube` | 21.13.164 | `apks/youtube.apk` | anddea/revanced-patches |
 | YouTube Music | `com.google.android.apps.youtube.music` | 9.15.51 | `apks/youtube_music.apk` | anddea/revanced-patches |

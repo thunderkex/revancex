@@ -1,9 +1,9 @@
 # ReVanceX Productivity Bundle (`revancex-productivity`)
 
-- **Release Tag**: `auto-v1.1.0-2026.11.11-b172`
-- **Version Code**: `2026111101`
-- **Updated**: 2026-11-11T06:03:53Z
-- **Download**: [revancex-bundle-productivity.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b172/revancex-bundle-productivity.zip)
+- **Release Tag**: `auto-v1.1.0-2026.11.11-b173`
+- **Version Code**: `2026111102`
+- **Updated**: 2026-11-11T07:44:02Z
+- **Download**: [revancex-bundle-productivity.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b173/revancex-bundle-productivity.zip)
 - **Upstream Patch Sources**: `hoo-dles/morphe-patches`, `rushiranpise/morphe-patches`
 
 ## Payload APKs & App Versions

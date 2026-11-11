@@ -955,12 +955,17 @@ async fn try_source_for_candidate(
     let resolved = match src.resolve(ctx, rctx.app, cur_target, rctx.arch).await {
         Ok(Some(r)) => r,
         Ok(None) => {
-            crate::utils::cache::record_negative_cache_file(
-                &rctx.cfg.build.version_cache,
+            if !matches!(
                 sname,
-                &rctx.app.package,
-                cur_target,
-            );
+                "apkeep" | "apkmirror" | "uptodown" | "archive" | "aptoide"
+            ) {
+                crate::utils::cache::record_negative_cache_file(
+                    &rctx.cfg.build.version_cache,
+                    sname,
+                    &rctx.app.package,
+                    cur_target,
+                );
+            }
             crate::utils::lock_unpoisoned(rctx.shared_attempts).push(make_attempt(AttemptArgs {
                 source: sname,
                 outcome: "not_found",

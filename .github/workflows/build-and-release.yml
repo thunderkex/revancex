@@ -232,6 +232,7 @@ jobs:
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
           FLARESOLVERR_URL: http://localhost:8191/v1
           TRAWL_URL: http://localhost:8000
+          REVANCEX_APKEEP_ACKNOWLEDGE_DANGERS: "true"
           INPUT_APPS: ${{ inputs.apps || 'all' }}
           INPUT_ARCH: ${{ inputs.arch }}
           INPUT_MODE: ${{ inputs.mode }}
@@ -521,10 +522,21 @@ jobs:
             --release-tag "$RELEASE_TAG"
 
       - name: Update version cache
+        if: inputs.tag_prefix == 'auto'
         shell: bash
         run: |
           source scripts/ci-log.sh
           step_run "Update version cache" revancex check-updates --json
+          python3 - <<'PY'
+          import json
+          path = "config/version_cache.json"
+          with open(path, "r", encoding="utf-8") as f:
+              data = json.load(f)
+          data.pop("negative_cache", None)
+          with open(path, "w", encoding="utf-8") as f:
+              json.dump(data, f, indent=2)
+              f.write("\n")
+          PY
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -553,6 +565,9 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md config/releases_registry.json docs/apps.json docs/update
+          if [ "$TAG_PREFIX" = "auto" ] && [ -f config/version_cache.json ]; then
+            git add config/version_cache.json
+          fi
           if [ "$TAG_PREFIX" = "custom" ]; then
             COMMIT_MSG="docs: update custom bundle registry for ${RELEASE_TAG} [skip ci]"
           else

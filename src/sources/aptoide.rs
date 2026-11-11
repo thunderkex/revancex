@@ -64,7 +64,7 @@ const APTOIDE_API_BASE: &str = "https://ws75.aptoide.com/api/7/";
 
 fn aptoide_cpu_query_suffix(arch: &str) -> String {
     use crate::config::apps::Arch;
-    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
     let raw = match Arch::parse(arch) {
         Arch::Arm64V8a => "myCPU=arm64-v8a,armeabi-v7a,armeabi&leanback=0",
         Arch::ArmeabiV7a => "myCPU=armeabi-v7a,armeabi&leanback=0",
@@ -72,7 +72,7 @@ fn aptoide_cpu_query_suffix(arch: &str) -> String {
         Arch::X86 => "myCPU=x86&leanback=0",
         _ => return String::new(),
     };
-    format!("&q={}", STANDARD.encode(raw))
+    format!("&q={}", URL_SAFE_NO_PAD.encode(raw))
 }
 
 async fn try_aptoide_website_version(
@@ -176,8 +176,9 @@ async fn resolve_aptoide_api_download_path(
         .json()
         .await
         .context("aptoide: failed to parse listAppVersions JSON")?;
-    let list = resp["datalist"]["list"]
+    let list = resp["list"]
         .as_array()
+        .or_else(|| resp["datalist"]["list"].as_array())
         .ok_or_else(|| anyhow::anyhow!("aptoide: no version list for {package}"))?;
     let vercode = list
         .iter()

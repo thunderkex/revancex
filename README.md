@@ -363,7 +363,7 @@ Copy `.env.example` to `.env` and configure credentials. Never commit `.env`.
 | `REVANCEX_STATIC_TEST` | (Optional) Force static manifest/DEX testing without ADB device | `1` |
 | `REVANCEX_CB_THRESHOLD` | (Optional) Circuit breaker consecutive failure threshold (`REVANCEX_UTD_CB_THRESHOLD` fallback) | `3` |
 | `REVANCEX_CB_COOLDOWN_SECS` | (Optional) Circuit breaker cooldown period in seconds | `60` |
-| `REVANCEX_APP_TIMEOUT_SECS` | (Optional) Default per-app build timeout budget in seconds | `120` |
+| `REVANCEX_APP_TIMEOUT_SECS` | (Optional) Default per-app build timeout budget in seconds | `600` |
 | `REVANCEX_APKEEP_ACKNOWLEDGE_DANGERS` | (Optional) Acknowledge `apkeep` danger prompt (`true`/`1`) | `false` |
 | `REVANCEX_CONFIG_DIR` | (Optional) Override path to config directory | `./config` |
 | `REVANCEX_TEMP_DIR` | (Optional) Override path to temporary directory | `./tmp` |

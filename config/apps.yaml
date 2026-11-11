@@ -229,7 +229,7 @@ apps:
     - aptoide
     - archive
     patches:
-    - Unlock Premium
+    - Unlock subscription features
     keystore:
       file: keys/strava.jks
 
@@ -334,13 +334,14 @@ apps:
   pinterest:
     name: "Pinterest"
     package: com.pinterest
-    version: 14.43.0
+    version: 14.23.0
     patch_source: browzomje
     cli_source: MorpheApp/morphe-cli
     excluded_patches:
     - Keep Home feed
     - Choose startup tab
     - Hide save for later tooltip
+    - Repair Firebase registration
     apkmirror_url: https://www.apkmirror.com/apk/pinterest/pinterest-one-destination-for-a-world-of-inspiration
     uptodown_url: https://pinterest.en.uptodown.com/android
     apkpure_url: https://apkpure.com/pinterest/com.pinterest
@@ -469,17 +470,19 @@ apps:
     keystore:
       file: keys/serverauditor.jks
 
-  hungry_shark_world:
-    name: "Hungry Shark World"
-    package: com.ubisoft.hungrysharkworld
+  hungry_shark_evolution:
+    name: "Hungry Shark Evolution"
+    package: com.fgol.HungrySharkEvolution
     patch_source: legendsciber
     cli_source: MorpheApp/morphe-cli
-    uptodown_url: https://ubisoft-entertainment-hungry-shark.en.uptodown.com/android
-    apkmirror_url: https://www.apkmirror.com/apk/ubisoft-entertainment/hungry-shark-world/
+    uptodown_url: https://hungry-shark-evolution.en.uptodown.com/android
+    apkmirror_url: https://www.apkmirror.com/apk/future-games-of-london/hungry-shark-evolution/
+    apkpure_url: https://apkpure.com/hungry-shark-evolution/com.fgol.HungrySharkEvolution
+    aptoide_url: com.fgol.HungrySharkEvolution
     architectures:
     - arm64-v8a
     keystore:
-      file: keys/hungry_shark_world.jks
+      file: keys/hungry_shark_evolution.jks
 
   youtube_music:
     name: "YouTube Music"

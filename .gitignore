@@ -18,5 +18,4 @@ EXECUTION*
 logs*
 PHASE*
 BUILD_REPORT.json
-config/version_cache.json
 !keys/revanced.jks

@@ -16,6 +16,7 @@ build:
 
   download_retries: 3
   download_timeout_secs: 120
+  app_timeout_secs: 600
   version_fallback_attempts: 3
 
   version_cache: ./config/version_cache.json

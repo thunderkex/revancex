@@ -90,7 +90,8 @@ pub fn make_browser_client(cfg: &Config) -> Result<Client> {
         .cookie_store(true)
         .default_headers(headers)
         .redirect(reqwest::redirect::Policy::limited(10))
-        .connect_timeout(std::time::Duration::from_secs(5))
+        .connect_timeout(std::time::Duration::from_secs(10))
+        .read_timeout(timeout)
         .timeout(timeout)
         .build()
         .map_err(Into::into)
@@ -271,6 +272,7 @@ async fn stream_http_download(
     let send_request = |ref_hdr: Option<&str>| {
         let mut req = client
             .get(url)
+            .timeout(std::time::Duration::from_secs(600))
             .header(reqwest::header::USER_AGENT, ua)
             .header(
                 reqwest::header::ACCEPT,

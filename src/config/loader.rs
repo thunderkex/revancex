@@ -74,7 +74,7 @@ fn default_app_timeout_secs() -> u64 {
     std::env::var("REVANCEX_APP_TIMEOUT_SECS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(120)
+        .unwrap_or(600)
 }
 
 fn default_tools_check_interval_hours() -> u64 {

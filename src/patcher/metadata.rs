@@ -8,6 +8,7 @@ use tokio::sync::OnceCell;
 #[derive(Debug, Clone)]
 pub struct PatchMeta {
     pub name: String,
+    pub enabled_by_default: bool,
     pub compatible_packages: Vec<PackageCompat>,
 }
 
@@ -62,6 +63,7 @@ pub async fn load(cfg: &Config, mpp_path: &str) -> Result<Arc<Vec<PatchMeta>>> {
 pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
     let mut patches = Vec::new();
     let mut current_name = String::new();
+    let mut current_enabled = true;
     let mut current_packages: Vec<PackageCompat> = Vec::new();
     let mut current_pkg_name = String::new();
     let mut current_pkg_versions: Vec<String> = Vec::new();
@@ -79,6 +81,7 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
     };
 
     let flush_patch = |name: &mut String,
+                       enabled: &mut bool,
                        pkg_name: &mut String,
                        pkg_versions: &mut Vec<String>,
                        packages: &mut Vec<PackageCompat>,
@@ -87,6 +90,7 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
         if !name.is_empty() {
             patches.push(PatchMeta {
                 name: std::mem::take(name),
+                enabled_by_default: std::mem::replace(enabled, true),
                 compatible_packages: std::mem::take(packages),
             });
         }
@@ -97,12 +101,17 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
         if let Some(name) = trimmed.strip_prefix("Name:") {
             flush_patch(
                 &mut current_name,
+                &mut current_enabled,
                 &mut current_pkg_name,
                 &mut current_pkg_versions,
                 &mut current_packages,
                 &mut patches,
             );
             current_name = name.trim().to_string();
+            current_enabled = true;
+            in_compatible = false;
+        } else if let Some(val) = trimmed.strip_prefix("Enabled:") {
+            current_enabled = !val.trim().eq_ignore_ascii_case("false");
             in_compatible = false;
         } else if let Some(pkg) = trimmed.strip_prefix("Package name:") {
             flush_pkg(
@@ -130,6 +139,7 @@ pub fn parse_list_patches_output(text: &str) -> Vec<PatchMeta> {
 
     flush_patch(
         &mut current_name,
+        &mut current_enabled,
         &mut current_pkg_name,
         &mut current_pkg_versions,
         &mut current_packages,
@@ -183,7 +193,7 @@ fn select_active_patches<'a>(
                 return false;
             }
             if enabled_patches.is_empty() {
-                true
+                patch.enabled_by_default
             } else {
                 enabled_patches.iter().any(|e| {
                     e.eq_ignore_ascii_case(&patch.name)
@@ -346,6 +356,9 @@ pub fn check_app_version_compatibility(
     };
 
     for patch in patches {
+        if enabled.is_empty() && !patch.enabled_by_default {
+            continue;
+        }
         if !enabled.is_empty() && !enabled.iter().any(|p| p.eq_ignore_ascii_case(&patch.name)) {
             continue;
         }
@@ -482,6 +495,7 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "PatchA".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.0.0".to_string(), "2.0.0".to_string()],
@@ -489,6 +503,7 @@ mod tests {
             },
             PatchMeta {
                 name: "PatchB".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string(), "3.0.0".to_string()],
@@ -507,6 +522,7 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "PatchA".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.0.0".to_string()],
@@ -514,6 +530,7 @@ mod tests {
             },
             PatchMeta {
                 name: "PatchB".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string()],
@@ -536,6 +553,7 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "PatchA".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.0.0".to_string()],
@@ -543,6 +561,7 @@ mod tests {
             },
             PatchMeta {
                 name: "PatchB".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string()],
@@ -561,6 +580,7 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "Universal".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec![],
@@ -568,6 +588,7 @@ mod tests {
             },
             PatchMeta {
                 name: "Constrained".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string(), "2.1.0".to_string()],
@@ -586,6 +607,7 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "Irrelevant".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.other".to_string(),
                     versions: vec!["9.9.9".to_string()],
@@ -593,6 +615,7 @@ mod tests {
             },
             PatchMeta {
                 name: "Relevant".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.2.3".to_string()],
@@ -611,6 +634,7 @@ mod tests {
         let patches = vec![
             PatchMeta {
                 name: "P1".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["1.0.0".to_string(), "2.0.0".to_string()],
@@ -618,6 +642,7 @@ mod tests {
             },
             PatchMeta {
                 name: "P2".to_string(),
+                enabled_by_default: true,
                 compatible_packages: vec![PackageCompat {
                     name: "com.test".to_string(),
                     versions: vec!["2.0.0".to_string(), "3.0.0".to_string()],
@@ -635,6 +660,47 @@ mod tests {
         assert_eq!(
             res_explicit,
             CompatibleVersions::Intersection(vec!["1.0.0".to_string(), "2.0.0".to_string()])
+        );
+    }
+
+    #[test]
+    fn test_disabled_by_default_patch_ignored_unless_explicitly_enabled() {
+        let raw = "\
+Name: DefaultOn
+Enabled: true
+Compatible packages:
+\tPackage name: com.pinterest
+\tCompatible versions:
+\t\t14.23.0
+\t\t14.43.0
+
+Name: OptionalOff
+Enabled: false
+Compatible packages:
+\tPackage name: com.pinterest
+\tCompatible versions:
+\t\t14.43.0
+";
+        let parsed = parse_list_patches_output(raw);
+        assert_eq!(parsed.len(), 2);
+        assert!(parsed[0].enabled_by_default);
+        assert!(!parsed[1].enabled_by_default);
+
+        let res_default = resolve_compatible_versions(&parsed, "com.pinterest", &[], &[]);
+        assert_eq!(
+            res_default,
+            CompatibleVersions::Intersection(vec!["14.23.0".to_string(), "14.43.0".to_string()])
+        );
+
+        let res_explicit = resolve_compatible_versions(
+            &parsed,
+            "com.pinterest",
+            &["DefaultOn".to_string(), "OptionalOff".to_string()],
+            &[],
+        );
+        assert_eq!(
+            res_explicit,
+            CompatibleVersions::Intersection(vec!["14.43.0".to_string()])
         );
     }
 }

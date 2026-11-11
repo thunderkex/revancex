@@ -229,7 +229,7 @@ build:
   # Download resilience, timeouts, and fallback
   download_retries: 3
   download_timeout_secs: 120         # Code default if omitted: 180
-  app_timeout_secs: 120              # Per-app budget (also REVANCEX_APP_TIMEOUT_SECS)
+  app_timeout_secs: 600              # Per-app budget (also REVANCEX_APP_TIMEOUT_SECS)
   version_fallback_attempts: 3
   tools_check_interval_hours: 6
 

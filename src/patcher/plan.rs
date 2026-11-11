@@ -187,11 +187,19 @@ fn auto_disable_incompatible(
     plan: &mut PatchPlan,
 ) {
     for patch in patches {
+        let is_excluded = plan.excluded.iter().any(|e| {
+            e.eq_ignore_ascii_case(&patch.name)
+                || crate::patcher::name::normalize(e)
+                    == crate::patcher::name::normalize(&patch.name)
+        });
+        if is_excluded {
+            continue;
+        }
         let is_included = plan
             .included
             .iter()
             .any(|i| i.eq_ignore_ascii_case(&patch.name));
-        if !is_included && !plan.included.is_empty() {
+        if !is_included && (!plan.included.is_empty() || !patch.enabled_by_default) {
             continue;
         }
         for compat in &patch.compatible_packages {

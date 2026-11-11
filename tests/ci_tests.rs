@@ -2721,6 +2721,36 @@ fn test_parse_applied_patches_individual_and_empty() {
     let stdout_none = "Initializing...\nApplied 0 patches\nDone.\n";
     let patches3 = revancex::patcher::parse_applied_patches(stdout_none);
     assert!(patches3.is_empty());
+
+    let stdout_morphe_v2 = "INFO: Filtering patches for com.community.oneroom v4.0.03.1020.03...\n\
+        INFO: Applying 4 patches...\n\
+        INFO: Applied: All-In-One\n\
+        INFO: Applied: Hide BuzzBox\n\
+        INFO: Applied: Hide Midnight tab\n\
+        INFO: Applied: Hide permanent notification\n";
+    assert_eq!(
+        revancex::patcher::parse_applied_patch_count(stdout_morphe_v2),
+        Some(4)
+    );
+    assert_eq!(
+        revancex::patcher::parse_applied_patches(stdout_morphe_v2),
+        vec![
+            "All-In-One",
+            "Hide BuzzBox",
+            "Hide Midnight tab",
+            "Hide permanent notification"
+        ]
+    );
+
+    let stderr_morphe_fail = "ERROR: Failed: All-In-One\nERROR: Failed: Hide BuzzBox\n";
+    let failed = revancex::patcher::parse_failed_patches(stderr_morphe_fail, "");
+    assert_eq!(
+        failed,
+        vec![
+            ("All-In-One".to_string(), String::new()),
+            ("Hide BuzzBox".to_string(), String::new()),
+        ]
+    );
 }
 
 #[test]

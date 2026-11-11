@@ -10,9 +10,19 @@ use anyhow::{Context, Result};
 use std::path::Path;
 use tracing::info;
 
+fn strip_cli_log_prefix(line: &str) -> &str {
+    let trimmed = line.trim();
+    for prefix in ["INFO:", "WARN:", "WARNING:", "ERROR:", "SEVERE:", "DEBUG:", "FINE:"] {
+        if let Some(rest) = trimmed.strip_prefix(prefix) {
+            return rest.trim_start();
+        }
+    }
+    trimmed
+}
+
 pub fn parse_applied_patch_count(stdout: &str) -> Option<usize> {
     for line in stdout.lines() {
-        let trimmed = line.trim();
+        let trimmed = strip_cli_log_prefix(line);
         if let Some(rest) = trimmed.strip_prefix("Applied ") {
             if let Some(num_str) = rest.split_whitespace().next() {
                 if let Ok(n) = num_str.parse::<usize>() {
@@ -26,10 +36,11 @@ pub fn parse_applied_patch_count(stdout: &str) -> Option<usize> {
     let mut count = 0;
     let mut found_individual = false;
     for line in stdout.lines() {
-        let trimmed = line.trim();
-        if (trimmed.starts_with("Applied ") || trimmed.starts_with("Applying "))
-            && !trimmed.contains(" patches")
-            && !trimmed.contains(" patch")
+        let trimmed = strip_cli_log_prefix(line);
+        if trimmed.starts_with("Applied: ")
+            || ((trimmed.starts_with("Applied ") || trimmed.starts_with("Applying "))
+                && !trimmed.contains(" patches")
+                && !trimmed.contains(" patch"))
         {
             count += 1;
             found_individual = true;
@@ -44,24 +55,62 @@ pub fn parse_applied_patch_count(stdout: &str) -> Option<usize> {
 pub fn parse_applied_patches(stdout: &str) -> Vec<String> {
     let mut patches = Vec::new();
     for line in stdout.lines() {
-        let trimmed = line.trim();
-        if (trimmed.starts_with("Applied ") || trimmed.starts_with("Applying "))
+        let trimmed = strip_cli_log_prefix(line);
+        let name = if let Some(rest) = trimmed.strip_prefix("Applied: ") {
+            rest.trim()
+        } else if (trimmed.starts_with("Applied ") || trimmed.starts_with("Applying "))
             && !trimmed.contains(" patches")
             && !trimmed.contains(" patch")
         {
-            let name = if let Some(rest) = trimmed.strip_prefix("Applied ") {
+            if let Some(rest) = trimmed.strip_prefix("Applied ") {
                 rest.trim()
             } else if let Some(rest) = trimmed.strip_prefix("Applying ") {
                 rest.trim().trim_end_matches("...")
             } else {
                 ""
-            };
-            if !name.is_empty() && !patches.iter().any(|p: &String| p == name) {
-                patches.push(name.to_string());
             }
+        } else {
+            ""
+        };
+        if !name.is_empty() && !patches.iter().any(|p: &String| p == name) {
+            patches.push(name.to_string());
         }
     }
     patches
+}
+
+pub fn parse_failed_patches(stderr: &str, stdout: &str) -> Vec<(String, String)> {
+    let mut failed = Vec::new();
+    for line in stderr.lines().chain(stdout.lines()) {
+        let trimmed = strip_cli_log_prefix(line);
+        let name = if let Some(rest) = trimmed.strip_prefix("Failed: ") {
+            rest.trim()
+        } else if let Some(rest) = trimmed.strip_prefix("Failed to apply patch ") {
+            rest.trim()
+        } else {
+            ""
+        };
+        if !name.is_empty() && !failed.iter().any(|(n, _): &(String, String)| n == name) {
+            failed.push((name.to_string(), String::new()));
+        }
+    }
+    failed
+}
+
+#[derive(serde::Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct MorphePatchResult {
+    #[serde(default)]
+    applied_patches: Vec<String>,
+    #[serde(default)]
+    failed_patches: Vec<MorpheFailedPatch>,
+}
+
+#[derive(serde::Deserialize)]
+struct MorpheFailedPatch {
+    name: String,
+    #[serde(default)]
+    error: String,
 }
 
 pub fn parse_filtered_version(stdout: &str, package: &str) -> Option<String> {
@@ -95,6 +144,18 @@ pub async fn patch(
     apk_path: &str,
     output_dir: &str,
     is_root: bool,
+) -> Result<(String, plan::PatchPlan)> {
+    patch_with_arch(cfg, id, app, apk_path, output_dir, is_root, None).await
+}
+
+pub async fn patch_with_arch(
+    cfg: &Config,
+    id: &str,
+    app: &AppConfig,
+    apk_path: &str,
+    output_dir: &str,
+    is_root: bool,
+    strip_arch: Option<&str>,
 ) -> Result<(String, plan::PatchPlan)> {
     let ks = crate::utils::keystore::resolve(cfg, app).await?;
     if ks.generated {
@@ -167,13 +228,28 @@ pub async fn patch(
         &plan,
     );
 
+    let result_json = format!("{staging_apk}.result.json");
+    let _ = std::fs::remove_file(&result_json);
+
     let mut cmd = tokio::process::Command::new("java");
     cmd.args(["-jar", &args.cli_jar, "patch"])
         .arg(format!("--patches={}", args.patches_arg))
         .arg("-f")
         .arg("--continue-on-error")
+        .arg("-r")
+        .arg(&result_json)
         .arg("-o")
         .arg(&args.output_apk);
+
+    if let Some(arch) = strip_arch {
+        if !args
+            .raw_args
+            .iter()
+            .any(|a| a == "--striplibs" || a.starts_with("--striplibs="))
+        {
+            cmd.arg(format!("--striplibs={arch}"));
+        }
+    }
 
     if !args.included.is_empty() {
         cmd.arg("--exclusive");
@@ -208,13 +284,17 @@ pub async fn patch(
     if let Some((_, _, pass)) = &args.keystore {
         ui::mask(pass);
     }
+    let striplibs_note = strip_arch
+        .map(|a| format!(" --striplibs={a}"))
+        .unwrap_or_default();
     ui::tool_log(
         id,
         "morphe-cli command",
         &format!(
-            "java -jar {} patch --patches={} -o {} {} (+{} include, {} exclude; keystore options omitted)",
+            "java -jar {} patch --patches={}{} -o {} {} (+{} include, {} exclude; keystore options omitted)",
             args.cli_jar,
             args.patches_arg,
+            striplibs_note,
             args.output_apk,
             args.input_apk,
             args.included.len(),
@@ -226,6 +306,11 @@ pub async fn patch(
         .output()
         .await
         .context("java not found — install JDK 21+")?;
+
+    let cli_result: Option<MorphePatchResult> = std::fs::read_to_string(&result_json)
+        .ok()
+        .and_then(|raw| serde_json::from_str(&raw).ok());
+    let _ = std::fs::remove_file(&result_json);
 
     // Raw tool output goes to build/logs/<id>.log, not the console.
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -247,6 +332,23 @@ pub async fn patch(
         anyhow::bail!("{id}: morphe-cli exited with {}", output.status);
     }
 
+    let parsed_applied = cli_result
+        .as_ref()
+        .filter(|r| !r.applied_patches.is_empty() || !r.failed_patches.is_empty())
+        .map(|r| r.applied_patches.clone())
+        .unwrap_or_else(|| parse_applied_patches(&stdout));
+
+    let failed_patches: Vec<(String, String)> = cli_result
+        .as_ref()
+        .filter(|r| !r.failed_patches.is_empty() || !r.applied_patches.is_empty())
+        .map(|r| {
+            r.failed_patches
+                .iter()
+                .map(|f| (f.name.clone(), f.error.clone()))
+                .collect()
+        })
+        .unwrap_or_else(|| parse_failed_patches(&stderr, &stdout));
+
     let dex_changed = match (
         crate::utils::apk::dex_entries_crc(apk_path),
         crate::utils::apk::dex_entries_crc(&staging_apk),
@@ -255,7 +357,11 @@ pub async fn patch(
         _ => true,
     };
 
-    let zero_applied = if let Some(count) = parse_applied_patch_count(&stdout) {
+    let zero_applied = if !parsed_applied.is_empty() {
+        false
+    } else if !failed_patches.is_empty() {
+        true
+    } else if let Some(count) = parse_applied_patch_count(&stdout) {
         count == 0
     } else {
         !dex_changed
@@ -264,12 +370,49 @@ pub async fn patch(
     if zero_applied {
         let _ = std::fs::remove_file(&staging_apk);
         let _ = std::fs::remove_file(&output_apk);
+        if !failed_patches.is_empty() {
+            let failed_names: Vec<&str> = failed_patches.iter().map(|(n, _)| n.as_str()).collect();
+            let detail = failed_patches
+                .iter()
+                .find(|(_, e)| !e.is_empty())
+                .map(|(_, e)| format!(" ({})", e.lines().next().unwrap_or(e)))
+                .unwrap_or_default();
+            anyhow::bail!(
+                "{id}: 0 patches applied; failed: [{}]{detail}",
+                failed_names.join(", ")
+            );
+        }
         let ver_info = apk_version
             .as_deref()
             .map(|v| format!(" — version {v} not covered by any enabled patch"))
             .unwrap_or_default();
         let plan_count = plan.included.len();
         anyhow::bail!("{id}: 0/{plan_count} patches applied{ver_info}");
+    }
+
+    let mut plan = plan;
+    if !failed_patches.is_empty() {
+        let failed_names: Vec<String> = failed_patches.iter().map(|(n, _)| n.clone()).collect();
+        let critical_failed: Vec<String> = failed_names
+            .iter()
+            .filter(|n| plan::is_critical_patch(n) || n.eq_ignore_ascii_case("All-In-One"))
+            .cloned()
+            .collect();
+        if !critical_failed.is_empty() {
+            let _ = std::fs::remove_file(&staging_apk);
+            let _ = std::fs::remove_file(&output_apk);
+            anyhow::bail!(
+                "{id}: critical patch(es) failed: [{}]",
+                critical_failed.join(", ")
+            );
+        }
+        let warn_msg = format!(
+            "{id}: {} patch(es) failed and were skipped: [{}]",
+            failed_names.len(),
+            failed_names.join(", ")
+        );
+        tracing::warn!("{warn_msg}");
+        plan.warnings.push(warn_msg);
     }
 
     if let (Some(actual), Some(reported)) = (
@@ -415,10 +558,9 @@ pub async fn patch(
     }
 
     let mut final_plan = plan;
-    let parsed_patches = parse_applied_patches(&stdout);
-    if !parsed_patches.is_empty() {
-        final_plan.included = parsed_patches;
-    } else if final_plan.included.is_empty() {
+    if !parsed_applied.is_empty() {
+        final_plan.included = parsed_applied;
+    } else if final_plan.included.is_empty() && failed_patches.is_empty() {
         if let Some(ref patches) = meta {
             let active: Vec<String> = patches
                 .iter()

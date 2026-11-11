@@ -895,63 +895,45 @@ async fn build_single(
         );
     }
 
-    let (apk_path, arch_mode) = if arch != "all" && arch != "universal" {
-        let work_apk = format!("{}/{id}-{arch}-work.apk", cfg.build.temp_dir);
+    // Keep the input APK signed and intact during patching so patches that inspect
+    // the stock signing certificate (e.g. Ijiami / signature-spoof patches) succeed,
+    // delegating native-lib stripping to morphe-cli --striplibs.
+    let (apk_path, arch_mode, strip_arch) = if arch != "all" && arch != "universal" {
         let has_target_arch = builder::arch::apk_has_arch(&raw_apk, arch).unwrap_or(false);
         if !has_target_arch {
             info!(
                 "{id}: input APK has no native libs for '{arch}', falling back to unstripped universal APK"
             );
-            (raw_apk, "universal".to_string())
-        } else if let Err(e) = builder::arch::strip_unsupported_archs_to(&raw_apk, &work_apk, arch)
-        {
-            warn!("{id}: arch stripping note: {e}");
-            (raw_apk, "universal".to_string())
-        } else if let Err(e) = builder::arch::verify_arch_native_libs(&raw_apk, &work_apk, arch) {
-            let err_msg = format!("{id}: arch verification failed: {e}");
-            info!("{err_msg}");
-            return (
-                None,
-                AppBuildReport {
-                    status: "failed".to_string(),
-                    requested_version: requested_version.clone(),
-                    version_candidates_tried: candidates_tried.clone(),
-                    version_downgraded: is_downgraded,
-                    target_version: effective_target_ver,
-                    target_version_reason: target_version_reason.clone(),
-                    patch_supported_versions: patch_supported_list,
-                    fetched_version: fetched_version.clone(),
-                    resolved_version: resolved_ver,
-                    resolved_source,
-                    resolution_strategy: Some(strategy_str),
-                    version_conflict,
-                    warnings: fetch_warnings.clone(),
-                    error: Some(err_msg),
-                    failure_category: Some(FailureCategory::ArchUnsupported),
-                    attempted_sources: fetch_attempts,
-                    arch_mode: Some(arch.to_string()),
-                    ..Default::default()
-                },
-            );
+            (raw_apk.clone(), "universal".to_string(), None)
         } else {
-            (work_apk, arch.to_string())
+            (raw_apk.clone(), arch.to_string(), Some(arch))
         }
     } else {
-        (raw_apk, "universal".to_string())
+        (raw_apk.clone(), "universal".to_string(), None)
     };
 
     let needs_module_root =
         app.module.as_ref().is_some_and(|m| m.single || m.bundle) || effective_mode == "both";
 
     let (patch_res, root_payload_path) = if effective_mode == "both" || needs_module_root {
-        match patcher::patch(cfg, id, app, &apk_path, output_dir, false).await {
+        match patcher::patch_with_arch(cfg, id, app, &apk_path, output_dir, false, strip_arch).await
+        {
             Ok((non_root, plan)) => {
                 if effective_mode == "lite" {
                     if let Err(e) = builder::lite::optimize_apk(&non_root) {
                         warn!("{id}: lite optimization note: {e}");
                     }
                 }
-                let root_res = patcher::patch(cfg, id, app, &apk_path, output_dir, true).await;
+                let root_res = patcher::patch_with_arch(
+                    cfg,
+                    id,
+                    app,
+                    &apk_path,
+                    output_dir,
+                    true,
+                    strip_arch,
+                )
+                .await;
                 let root_payload = match root_res {
                     Ok((r_path, _)) => Some(r_path),
                     Err(e) => {
@@ -965,7 +947,9 @@ async fn build_single(
         }
     } else {
         let is_root = effective_mode == "module" || effective_mode == "root";
-        let res = patcher::patch(cfg, id, app, &apk_path, output_dir, is_root).await;
+        let res =
+            patcher::patch_with_arch(cfg, id, app, &apk_path, output_dir, is_root, strip_arch)
+                .await;
         match res {
             Ok((patched, plan)) => {
                 if effective_mode == "lite" {
@@ -985,6 +969,36 @@ async fn build_single(
 
     match patch_res {
         Ok((out_path, plan)) => {
+            if let Some(target_arch) = strip_arch {
+                if let Err(e) = builder::arch::verify_arch_native_libs(&raw_apk, &out_path, target_arch)
+                {
+                    let err_msg = format!("{id}: arch verification failed: {e}");
+                    info!("{err_msg}");
+                    return (
+                        None,
+                        AppBuildReport {
+                            status: "failed".to_string(),
+                            requested_version: requested_version.clone(),
+                            version_candidates_tried: candidates_tried.clone(),
+                            version_downgraded: is_downgraded,
+                            target_version: effective_target_ver,
+                            target_version_reason: target_version_reason.clone(),
+                            patch_supported_versions: patch_supported_list,
+                            fetched_version: fetched_version.clone(),
+                            resolved_version: resolved_ver,
+                            resolved_source,
+                            resolution_strategy: Some(strategy_str),
+                            version_conflict,
+                            warnings: fetch_warnings.clone(),
+                            error: Some(err_msg),
+                            failure_category: Some(FailureCategory::ArchUnsupported),
+                            attempted_sources: fetch_attempts,
+                            arch_mode: Some(arch.to_string()),
+                            ..Default::default()
+                        },
+                    );
+                }
+            }
             let mut warnings = plan.warnings;
             warnings.extend(fetch_warnings.clone());
 

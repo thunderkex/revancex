@@ -1,6 +1,7 @@
 #!/system/bin/sh
 MODDIR="$(dirname "$(readlink -f "$0")")"
 export MODDIR
+# shellcheck source=/dev/null
 . "$MODDIR/utils.sh"
 
 run() {

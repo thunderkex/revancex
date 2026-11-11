@@ -1,7 +1,8 @@
 #!/system/bin/sh
 # ReVanceX Module Installer
+# shellcheck disable=SC2034
 SKIPUNZIP=1
-MODDIR="$MODPATH"
+export MODDIR="$MODPATH"
 
 ui_print "****************************************"
 ui_print "*           ReVanceX Bundle            *"
@@ -16,6 +17,7 @@ if ! unzip -o "$ZIPFILE" -x 'META-INF/*' -d "$MODPATH" >/dev/null 2>&1; then
 fi
 
 if [ -f "$MODPATH/utils.sh" ]; then
+    # shellcheck source=/dev/null
     . "$MODPATH/utils.sh"
 fi
 
@@ -103,8 +105,8 @@ while IFS=: read -r APP_ID PKG_NAME APP_MODE PATCHED_VER; do
         fi
 
         if [ -n "$BASEPATH" ] && [ -f "$BASEPATH" ]; then
-            mount_app_apk "$APP_ID" "$PKG_NAME" "$APK_SRC" "$PATCHED_VER"
-            _rc=$?
+            _rc=0
+            mount_app_apk "$APP_ID" "$PKG_NAME" "$APK_SRC" "$PATCHED_VER" || _rc=$?
             if [ "$_rc" -eq 0 ]; then
                 ui_print "  - Replaced & mounted seamlessly over stock app"
             elif [ "$_rc" -eq 2 ]; then

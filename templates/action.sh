@@ -1,6 +1,7 @@
 #!/system/bin/sh
 MODDIR="$(dirname "$(readlink -f "$0")")"
 export MODDIR
+# shellcheck source=/dev/null
 . "$MODDIR/utils.sh"
 
 echo ""
@@ -19,7 +20,7 @@ if [ -f "$DFILE" ]; then
 else
     touch "$DFILE"
     if [ -f "$MODDIR/apps.list" ]; then
-        while IFS=: read -r APP_ID PKG_NAME _ _; do
+        while IFS=: read -r _ PKG_NAME _ _; do
             [ -z "$PKG_NAME" ] && continue
             umount_app "$PKG_NAME"
         done < "$MODDIR/apps.list"

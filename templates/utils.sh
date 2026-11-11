@@ -54,7 +54,9 @@ get_basepath() {
 umount_app() {
     _um_pkg="$1"
     su -M -c "grep -F '$_um_pkg' /proc/mounts" 2>/dev/null | while read -r _ _um_mp _; do
-        [ -n "$_um_mp" ] && su -M -c "umount -l '$_um_mp'" 2>/dev/null || :
+        if [ -n "$_um_mp" ]; then
+            su -M -c "umount -l '$_um_mp'" 2>/dev/null || :
+        fi
     done
     am force-stop "$_um_pkg" 2>/dev/null || :
 }

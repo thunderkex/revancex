@@ -24,7 +24,6 @@ if [ -n "$NO_COLOR" ] || [ -n "$REVANCEX_ASCII" ]; then
   SYM_START="[..]"
   SYM_OK="[OK]"
   SYM_FAIL="[FAIL]"
-  SYM_WARN="[WARN]"
   SYM_SKIP="[SKIP]"
   COLOR_START=""
   COLOR_OK=""
@@ -34,7 +33,6 @@ else
   SYM_START="●"
   SYM_OK="✔"
   SYM_FAIL="✖"
-  SYM_WARN="⚠"
   SYM_SKIP="↷"
   if [ -t 1 ] || [ -n "$GITHUB_ACTIONS" ]; then
     COLOR_START="\033[36m"

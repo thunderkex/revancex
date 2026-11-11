@@ -158,6 +158,8 @@ pub struct AppConfig {
     pub apk_url: Option<String>,
     #[serde(alias = "arch", default = "default_arch")]
     pub architectures: Vec<String>,
+    #[serde(alias = "preserve-all-archs", default)]
+    pub preserve_all_archs: bool,
     #[serde(alias = "build-mode", default = "default_mode")]
     pub mode: String,
     #[serde(alias = "included-patches", default)]

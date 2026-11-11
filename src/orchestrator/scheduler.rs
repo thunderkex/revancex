@@ -895,10 +895,14 @@ async fn build_single(
         );
     }
 
-    // Keep the input APK signed and intact during patching so patches that inspect
-    // the stock signing certificate (e.g. Ijiami / signature-spoof patches) succeed,
-    // delegating native-lib stripping to morphe-cli --striplibs.
-    let (apk_path, arch_mode, strip_arch) = if arch != "all" && arch != "universal" {
+    let (apk_path, arch_mode, strip_arch) = if app.preserve_all_archs {
+        if arch != "all" && arch != "universal" {
+            info!(
+                "{id}: preserve_all_archs is enabled; keeping all native architectures instead of stripping to '{arch}'"
+            );
+        }
+        (raw_apk.clone(), "universal".to_string(), None)
+    } else if arch != "all" && arch != "universal" {
         let has_target_arch = builder::arch::apk_has_arch(&raw_apk, arch).unwrap_or(false);
         if !has_target_arch {
             info!(
@@ -924,16 +928,9 @@ async fn build_single(
                         warn!("{id}: lite optimization note: {e}");
                     }
                 }
-                let root_res = patcher::patch_with_arch(
-                    cfg,
-                    id,
-                    app,
-                    &apk_path,
-                    output_dir,
-                    true,
-                    strip_arch,
-                )
-                .await;
+                let root_res =
+                    patcher::patch_with_arch(cfg, id, app, &apk_path, output_dir, true, strip_arch)
+                        .await;
                 let root_payload = match root_res {
                     Ok((r_path, _)) => Some(r_path),
                     Err(e) => {
@@ -970,7 +967,8 @@ async fn build_single(
     match patch_res {
         Ok((out_path, plan)) => {
             if let Some(target_arch) = strip_arch {
-                if let Err(e) = builder::arch::verify_arch_native_libs(&raw_apk, &out_path, target_arch)
+                if let Err(e) =
+                    builder::arch::verify_arch_native_libs(&raw_apk, &out_path, target_arch)
                 {
                     let err_msg = format!("{id}: arch verification failed: {e}");
                     info!("{err_msg}");

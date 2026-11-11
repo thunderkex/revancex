@@ -234,6 +234,7 @@ apps:
     aptoide_url: com.community.oneroom
     architectures:
     - arm64-v8a
+    preserve_all_archs: true
     mode: patch
     keystore:
       alias: revanced

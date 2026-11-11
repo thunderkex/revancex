@@ -12,7 +12,9 @@ use tracing::info;
 
 fn strip_cli_log_prefix(line: &str) -> &str {
     let trimmed = line.trim();
-    for prefix in ["INFO:", "WARN:", "WARNING:", "ERROR:", "SEVERE:", "DEBUG:", "FINE:"] {
+    for prefix in [
+        "INFO:", "WARN:", "WARNING:", "ERROR:", "SEVERE:", "DEBUG:", "FINE:",
+    ] {
         if let Some(rest) = trimmed.strip_prefix(prefix) {
             return rest.trim_start();
         }

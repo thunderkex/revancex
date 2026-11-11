@@ -1281,7 +1281,6 @@ dependencies = [
  "reqwest",
  "ring",
  "scraper",
- "semver",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -1289,7 +1288,6 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "ua_generator",
  "zip",
 ]
 
@@ -1751,7 +1749,6 @@ dependencies = [
  "bytes",
  "libc",
  "mio",
- "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
@@ -1910,15 +1907,6 @@ name = "typed-path"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ce898823d8cd0f028662d2f349694b1af0a5cc9be83f1d213a00d3147445e1e"
-
-[[package]]
-name = "ua_generator"
-version = "0.5.87"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10f316ef2979a087fc1d2242cc8062f224b7575c896b113d5999e734bd6ca8c1"
-dependencies = [
- "fastrand",
-]
 
 [[package]]
 name = "unicode-ident"

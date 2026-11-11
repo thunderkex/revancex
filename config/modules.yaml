@@ -1,53 +1,19 @@
 modules:
-  all:
-    apps:
-    - adguard
-    - camscanner
-    - duolingo
-    - facebook
-    - flightradar24
-    - gboard
-    - instagram
-    - lightroom
-    - moviebox
-    - pixiv
-    - proton_vpn
-    - reddit
-    - strava
-    - threads
-    - tiktok
-    - wps_office
-    - x_piko
-    - youtube
-    - youtube_music
-    - hungry_shark_world
-    name: null
-    module_id: null
-    zip_name: null
   core:
     apps:
     - youtube
     - youtube_music
     - reddit
     - x_piko
-    name: null
-    module_id: null
-    zip_name: null
   multimedia:
     apps:
     - youtube
     - youtube_music
-    name: null
-    module_id: null
-    zip_name: null
   productivity:
     apps:
     - camscanner
     - lightroom
     - wps_office
-    name: null
-    module_id: null
-    zip_name: null
   social:
     apps:
     - reddit
@@ -57,16 +23,7 @@ modules:
     - threads
     - x_piko
     - pixiv
-    name: null
-    module_id: null
-    zip_name: null
   tools:
     apps:
     - adguard
     - proton_vpn
-    name: null
-    module_id: null
-    zip_name: null
-single_modules:
-- youtube
-- youtube_music

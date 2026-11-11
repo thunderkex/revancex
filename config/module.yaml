@@ -1,7 +1,6 @@
 module:
   id: revancex
   name: "ReVanceX"
-  version: "1.0"
   author: "Thunderkex"
   description: "Patched apps bundle"
   updateJson: ""

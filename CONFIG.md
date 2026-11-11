@@ -254,11 +254,6 @@ build:
           - contains: "change app icon"
           - contains: "gmscore"
           - contains: "microg"
-          - equals: "GmsCore support"
-          - equals: "Change package name"
-          - equals: "MicroG support"
-          - contains: "gmscore support"
-          - contains: "microg support"
       nonroot:
         exclude:
           - contains: "custom branding"
@@ -285,38 +280,12 @@ build:
 
 ## 4. Root Module Bundles (`config/modules.yaml`)
 
-Specifies the grouping of applications into categorized, flashable Magisk, KernelSU, and APatch module zip files, as well as the list of standalone single modules. Running `revancex module` or `revancex validate` automatically syncs `modules.yaml` against `config/apps.yaml` (moving disabled or `module.bundle: false` apps to `disabled_apps`, and refreshing `single_modules`).
+Specifies the grouping of applications into named category Magisk, KernelSU, and APatch module zip files (`core`, `multimedia`, `productivity`, `social`, `tools`). `config/apps.yaml` is the single source of truth for per-app module eligibility (`enabled`, `module.bundle`, and `module.single`): the `all` bundle and single-app modules are derived directly from `config/apps.yaml`, and `revancex validate` is strictly read-only.
 
-Each bundle entry supports optional overrides: `name`, `module_id`, `zip_name` (defaults to `revancex-bundle-<category>.zip`), and `disabled_apps`.
+Each category bundle entry supports optional overrides: `name`, `module_id`, and `zip_name` (defaults to `revancex-bundle-<category>.zip`).
 
 ```yaml
 modules:
-  all:
-    apps:
-      - adguard
-      - camscanner
-      - duolingo
-      - facebook
-      - flightradar24
-      - gboard
-      - instagram
-      - lightroom
-      - moviebox
-      - pixiv
-      - proton_vpn
-      - reddit
-      - strava
-      - threads
-      - tiktok
-      - wps_office
-      - x_piko
-      - youtube
-      - youtube_music
-      - hungry_shark_world
-    name: null
-    module_id: null
-    zip_name: null
-
   core:
     apps:
       - youtube
@@ -349,11 +318,6 @@ modules:
     apps:
       - adguard
       - proton_vpn
-
-# Apps packaged as standalone single-app modules
-single_modules:
-  - youtube
-  - youtube_music
 ```
 
 ---
@@ -366,7 +330,6 @@ Emitted into `module.prop` inside generated Magisk, KernelSU, and APatch module 
 module:
   id: revancex
   name: "ReVanceX"
-  version: "1.0"
   author: "Thunderkex"
   description: "Patched apps bundle"
   updateJson: ""

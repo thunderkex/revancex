@@ -1,7 +1,6 @@
 apps:
   adguard:
     name: "AdGuard"
-    enabled: true
     package: com.adguard.android
     patch_source: rushiranpise
     apk_url: https://static.adguard.com/android/release/adguard.apk
@@ -11,18 +10,11 @@ apps:
     aptoide_url: com.adguard.android
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/adguard.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   camscanner:
     name: "CamScanner"
-    enabled: true
     package: com.intsig.camscanner
     patch_source: rushiranpise
     apkmirror_url: https://www.apkmirror.com/apk/intsig-pte/camscanner-phone-pdf-creator/
@@ -32,18 +24,11 @@ apps:
     aptoide_url: com.intsig.camscanner
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/camscanner.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   duolingo:
     name: "Duolingo"
-    enabled: true  
     package: com.duolingo
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
@@ -54,18 +39,11 @@ apps:
     aptoide_url: com.duolingo
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/duolingo.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   facebook:
     name: "Facebook"
-    enabled: true  
     package: com.facebook.katana
     patch_source: hushfacebook
     cli_source: MorpheApp/morphe-cli
@@ -76,18 +54,11 @@ apps:
     aptoide_url: com.facebook.katana
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/facebook.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   flightradar24:
     name: "Flightradar24"
-    enabled: true  
     package: com.flightradar24free
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -97,18 +68,11 @@ apps:
     aptoide_url: com.flightradar24free
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/flightradar24.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   gboard:
     name: "Gboard"
-    enabled: true
     package: com.google.android.inputmethod.latin
     patch_source: jasonwu
     cli_source: MorpheApp/morphe-cli
@@ -122,20 +86,13 @@ apps:
         enabled: true
     architectures:
     - arm64-v8a
-    mode: patch
     excluded_patches:
     - Change package name
     keystore:
-      alias: revanced
       file: keys/gboard.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   google_maps:
     name: "Google Maps"
-    enabled: true  
     package: com.google.android.apps.maps
     patch_source: bearinmindcat
     cli_source: MorpheApp/morphe-cli
@@ -146,18 +103,11 @@ apps:
     aptoide_url: com.google.android.apps.maps
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/google_maps.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   instagram:
     name: "Instagram"
-    enabled: true  
     package: com.instagram.android
     patch_source: piko_ig_lite
     cli_source: MorpheApp/morphe-cli
@@ -168,21 +118,14 @@ apps:
     aptoide_url: com.instagram.android
     architectures:
     - arm64-v8a
-    mode: patch
     excluded_patches:
     - Change app icon
     - Change package name
     keystore:
-      alias: revanced
       file: keys/instagram.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   lightroom:
     name: "Lightroom"
-    enabled: true  
     package: com.adobe.lrmobile
     patch_source: hoodles
     cli_source: MorpheApp/morphe-cli
@@ -193,18 +136,11 @@ apps:
     aptoide_url: com.adobe.lrmobile
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/lightroom.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   microg:
     name: "MicroG"
-    enabled: true
     package: app.revanced.android.gms
     patch_source: none
     apk_source: github
@@ -216,16 +152,12 @@ apps:
     - x86_64
     mode: install
     keystore:
-      alias: revanced
       file: keys/microg.jks
     module:
-      single: false
       bundle: false
-    dependencies: []
 
   moviebox:
     name: "Moviebox"
-    enabled: true  
     package: com.community.oneroom
     patch_source: hxreborn
     cli_source: MorpheApp/morphe-cli
@@ -235,18 +167,11 @@ apps:
     architectures:
     - arm64-v8a
     preserve_all_archs: true
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/moviebox.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   pixiv:
     name: "Pixiv"
-    enabled: true  
     package: jp.pxv.android
     patch_source: frip
     cli_source: MorpheApp/morphe-cli
@@ -257,18 +182,11 @@ apps:
     aptoide_url: jp.pxv.android
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/pixiv.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   proton_vpn:
     name: "Proton VPN"
-    enabled: true  
     package: ch.protonvpn.android
     patch_source: hxreborn
     uptodown_url: https://protonvpn.en.uptodown.com/android
@@ -278,18 +196,11 @@ apps:
     aptoide_url: ch.protonvpn.android
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/proton_vpn.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   reddit:
     name: "Reddit"
-    enabled: true
     package: com.reddit.frontpage
     patch_source: jkennethcarino
     cli_source: MorpheApp/morphe-cli
@@ -298,18 +209,11 @@ apps:
     archive_url: https://archive.org/download/geologically/apks/com.reddit.frontpage
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/reddit.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   strava:
     name: "Strava"
-    enabled: true  
     package: com.strava
     patch_source: de_revanced
     cli_source: MorpheApp/morphe-cli
@@ -318,7 +222,6 @@ apps:
     apkpure_url: https://apkpure.com/strava-track-running-cycling-swimming/com.strava
     aptoide_url: com.strava
     archive_url: https://archive.org/download/geologically/apks/com.strava
-    mode: patch
     source_priority:
     - apkmirror
     - uptodown
@@ -328,16 +231,10 @@ apps:
     patches:
     - Unlock Premium
     keystore:
-      alias: revanced
       file: keys/strava.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   threads:
     name: "Threads"
-    enabled: true  
     package: com.instagram.barcelona
     patch_source: hushthreads
     cli_source: MorpheApp/morphe-cli
@@ -348,19 +245,11 @@ apps:
     aptoide_url: com.instagram.barcelona
     architectures:
     - arm64-v8a
-    mode: patch
-    patches: []
     keystore:
-      alias: revanced
       file: keys/threads.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   tiktok:
     name: "TikTok"
-    enabled: true  
     package: com.zhiliaoapp.musically
     patch_source: hushfeed
     cli_source: MorpheApp/morphe-cli
@@ -370,31 +259,17 @@ apps:
     aptoide_url: com.zhiliaoapp.musically
     architectures:
     - arm64-v8a
-    mode: patch
-    patches: []
     keystore:
-      alias: revanced
       file: keys/tiktok.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   wps_office:
     name: "WPS Office"
-    enabled: true
     package: cn.wps.moffice_eng
     patch_source: hoodles
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/wps_office.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
     uptodown_url: https://wps-office.en.uptodown.com/android
     apkmirror_url: https://www.apkmirror.com/apk/wps-software-pte-ltd/wps-office-pdf/
     archive_url: https://archive.org/download/geologically/apks/cn.wps.moffice_eng
@@ -406,7 +281,6 @@ apps:
 
   x_piko:
     name: "X Piko"
-    enabled: true  
     package: com.twitter.android
     apk_url: https://d.apkpure.com/b/XAPK/com.twitter.android?versionCode=312191000&nc=arm64-v8a
     patch_source: piko_newx
@@ -418,21 +292,14 @@ apps:
     aptoide_url: com.twitter.android
     architectures:
     - arm64-v8a
-    mode: patch
     excluded_patches:
     - Change app icon
     - Custom branding
     keystore:
-      alias: revanced
       file: keys/x_piko.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   youtube:
     name: "YouTube"
-    enabled: true
     package: com.google.android.youtube
     patch_source: anddea
     patch_branch: dev
@@ -450,18 +317,15 @@ apps:
     - x86_64
     mode: both
     expected_min_patches: 2
-    included_patches: []
     excluded_patches:
     - Custom branding icon for YouTube
     - Custom branding name for YouTube
     - Custom branding
     - Certificate spoof
     keystore:
-      alias: revanced
       file: keys/youtube.jks
     module:
       single: true
-      bundle: true
     dependencies:
       non_root:
       - microg
@@ -469,7 +333,6 @@ apps:
 
   pinterest:
     name: "Pinterest"
-    enabled: true  
     package: com.pinterest
     version: 14.43.0
     patch_source: browzomje
@@ -485,18 +348,11 @@ apps:
     archive_url: https://archive.org/download/geologically/apks/com.pinterest
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/pinterest.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   mx_player:
     name: "MX Player"
-    enabled: true  
     package: com.mxtech.videoplayer.ad
     patch_source: blazeftl
     cli_source: MorpheApp/morphe-cli
@@ -506,20 +362,13 @@ apps:
     aptoide_url: com.mxtech.videoplayer.ad
     architectures:
     - arm64-v8a
-    mode: patch
     patches:
     - Spoof App Signature
     keystore:
-      alias: revanced
       file: keys/mx_player.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   capcut:
     name: "CapCut"
-    enabled: true  
     package: com.lemon.lvoverseas
     patch_source: kveld9
     cli_source: MorpheApp/morphe-cli
@@ -529,18 +378,11 @@ apps:
     aptoide_url: com.lemon.lvoverseas
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/capcut.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   pvz_free:
     name: "Plants vs Zombies"
-    enabled: true  
     package: com.ea.game.pvzfree_row
     patch_source: byehi98
     cli_source: MorpheApp/morphe-cli
@@ -550,18 +392,11 @@ apps:
     aptoide_url: com.ea.game.pvzfree_row
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/pvz_free.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   cloudflare_warp:
     name: "Cloudflare WARP"
-    enabled: true  
     package: com.cloudflare.onedotonedotonedotone
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -572,18 +407,11 @@ apps:
     archive_url: https://archive.org/download/geologically/apks/com.cloudflare.onedotonedotonedotone
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/cloudflare_warp.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   sticker_maker:
     name: "Sticker Maker"
-    enabled: true  
     package: com.marsvard.stickermakerforwhatsapp
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -593,18 +421,11 @@ apps:
     aptoide_url: com.marsvard.stickermakerforwhatsapp
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/sticker_maker.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   drama_box:
     name: "DramaBox"
-    enabled: true  
     package: com.storymatrix.drama
     patch_source: rushiranpise
     cli_source: MorpheApp/morphe-cli
@@ -614,18 +435,11 @@ apps:
     aptoide_url: com.storymatrix.drama
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/drama_box.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   stellarium:
     name: "Stellarium"
-    enabled: true  
     package: com.noctuasoftware.stellarium_free
     patch_source: bholey
     cli_source: MorpheApp/morphe-cli
@@ -635,18 +449,11 @@ apps:
     aptoide_url: com.noctuasoftware.stellarium_free
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/stellarium.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   serverauditor:
     name: "Termius"
-    enabled: true  
     package: com.server.auditor.ssh.client
     version: 7.11.2
     patch_source: rushiranpise
@@ -657,20 +464,13 @@ apps:
     aptoide_url: com.server.auditor.ssh.client
     architectures:
     - arm64-v8a
-    mode: patch
     patches:
     - Server Auditor Premium
     keystore:
-      alias: revanced
       file: keys/serverauditor.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   hungry_shark_world:
     name: "Hungry Shark World"
-    enabled: true
     package: com.ubisoft.hungrysharkworld
     patch_source: legendsciber
     cli_source: MorpheApp/morphe-cli
@@ -678,18 +478,11 @@ apps:
     apkmirror_url: https://www.apkmirror.com/apk/ubisoft-entertainment/hungry-shark-world/
     architectures:
     - arm64-v8a
-    mode: patch
     keystore:
-      alias: revanced
       file: keys/hungry_shark_world.jks
-    module:
-      single: false
-      bundle: true
-    dependencies: []
 
   youtube_music:
     name: "YouTube Music"
-    enabled: true
     package: com.google.android.apps.youtube.music
     patch_source: anddea
     patch_branch: dev
@@ -707,18 +500,15 @@ apps:
     - x86_64
     mode: both
     expected_min_patches: 2
-    included_patches: []
     excluded_patches:
     - Custom branding icon for YouTube Music
     - Custom branding name for YouTube Music
     - Custom branding
     - Certificate spoof
     keystore:
-      alias: revanced
       file: keys/youtube_music.jks
     module:
       single: true
-      bundle: true
     dependencies:
       non_root:
       - microg

@@ -1,303 +1,231 @@
 {
-  "stock_apps": {
-    "drama_box": {
-      "filename": "drama_box-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.28-b84",
-      "updated_at": "2026-09-28 08:40:43 UTC"
-    },
-    "flightradar24": {
-      "filename": "Flightradar24-11.12.0.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Flightradar24-11.12.0.apk",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
-    },
-    "youtube_music": {
-      "filename": "YouTube-Music-9.15.51.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-Music-9.15.51.apk",
-      "tag": "auto-v1.0.5-2026.11.07-b154",
-      "updated_at": "2026-11-07 02:46:02 UTC"
-    },
-    "soundcloud": {
-      "filename": "soundcloud-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/soundcloud-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.05-b110",
-      "updated_at": "2026-10-05 01:57:41 UTC"
-    },
-    "google_photos": {
-      "filename": "google_photos-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/google_photos-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
-    },
-    "x_piko": {
-      "filename": "X-Piko-12.41.0-prod.01.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/X-Piko-12.41.0-prod.01.apk",
-      "tag": "auto-v1.1.0-2026.11.10-b158",
-      "updated_at": "2026-11-10 02:00:07 UTC"
-    },
-    "google_news": {
-      "filename": "google_news-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b86/google_news-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.28-b86",
-      "updated_at": "2026-09-28 19:13:02 UTC"
-    },
-    "myfitnesspal": {
-      "filename": "myfitnesspal-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/myfitnesspal-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
-    },
-    "proton_vpn": {
-      "filename": "Proton-VPN-5.21.9.0.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Proton-VPN-5.21.9.0.apk",
-      "tag": "auto-v1.1.0-2026.11.10-b158",
-      "updated_at": "2026-11-10 02:00:07 UTC"
-    },
-    "threads": {
-      "filename": "Threads-454.0.0.54.79.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Threads-454.0.0.54.79.apk",
-      "tag": "auto-v1.0.5-2026.11.06-b153",
-      "updated_at": "2026-11-06 03:29:53 UTC"
-    },
-    "pixiv": {
-      "filename": "pixiv-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/pixiv-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
-    },
-    "stellarium": {
-      "filename": "Stellarium-1.16.3.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Stellarium-1.16.3.apk",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
-    },
-    "adguard": {
-      "filename": "AdGuard-4.14.68.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/AdGuard-4.14.68.apk",
-      "tag": "auto-v1.0.5-2026.10.29-b145",
-      "updated_at": "2026-10-29 02:23:27 UTC"
-    },
-    "gboard": {
-      "filename": "Gboard-18.5.4.993608717-release-arm64-v8a.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk",
-      "tag": "auto-v1.0.5-2026.10.27-b143",
-      "updated_at": "2026-10-27 02:05:34 UTC"
-    },
-    "telegram": {
-      "filename": "telegram-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/telegram-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
-    },
-    "mx_player": {
-      "filename": "MX-Player-3.4.1.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/MX-Player-3.4.1.apk",
-      "tag": "auto-v1.0.5-2026.10.26-b142",
-      "updated_at": "2026-10-26 01:12:11 UTC"
-    },
-    "wps_office": {
-      "filename": "wps_office-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/wps_office-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
-    },
-    "duolingo": {
-      "filename": "duolingo-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
-    },
-    "reddit": {
-      "filename": "Reddit-2026.42.0.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/Reddit-2026.42.0.apk",
-      "tag": "auto-v1.0.5-2026.10.26-b142",
-      "updated_at": "2026-10-26 01:12:11 UTC"
-    },
-    "capcut": {
-      "filename": "CapCut-19.9.0.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk",
-      "tag": "auto-v1.0.5-2026.10.27-b143",
-      "updated_at": "2026-10-27 02:05:34 UTC"
-    },
-    "youtube": {
-      "filename": "YouTube-20.05.46.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46.apk",
-      "tag": "auto-v1.0.5-2026.11.07-b154",
-      "updated_at": "2026-11-07 02:46:02 UTC"
-    },
-    "serverauditor": {
-      "filename": "Termius-7.11.2.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Termius-7.11.2.apk",
-      "tag": "auto-v1.0.5-2026.10.29-b145",
-      "updated_at": "2026-10-29 02:23:27 UTC"
-    },
-    "prime_video": {
-      "filename": "prime_video-patched.apk",
-      "url": "#prime_video-patched.apk",
-      "tag": "auto-0",
-      "updated_at": "2026-10-22 02:06:32 UTC"
-    },
-    "strava": {
-      "filename": "strava-patched.apk",
-      "url": "#strava-patched.apk",
-      "tag": "auto-0",
-      "updated_at": "2026-10-22 02:06:32 UTC"
-    },
-    "facebook": {
-      "filename": "Facebook-585.0.0.47.54.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Facebook-585.0.0.47.54.apk",
-      "tag": "auto-v1.0.5-2026.11.06-b153",
-      "updated_at": "2026-11-06 03:29:53 UTC"
-    },
-    "nova_launcher": {
-      "filename": "nova_launcher-patched.apk",
-      "url": "#nova_launcher-patched.apk",
-      "tag": "auto-0",
-      "updated_at": "2026-10-22 02:06:32 UTC"
-    },
-    "sticker_maker": {
-      "filename": "Sticker-Maker-1.0.12-7.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Sticker-Maker-1.0.12-7.apk",
-      "tag": "auto-v1.0.5-2026.10.29-b145",
-      "updated_at": "2026-10-29 02:23:27 UTC"
-    },
-    "pvz_free": {
-      "filename": "Plants-vs-Zombies-3.18.0.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Plants-vs-Zombies-3.18.0.apk",
-      "tag": "auto-v1.1.0-2026.11.10-b158",
-      "updated_at": "2026-11-10 02:00:07 UTC"
-    },
-    "spotify": {
-      "filename": "spotify-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.05-b110/spotify-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.05-b110",
-      "updated_at": "2026-10-05 01:57:41 UTC"
-    },
-    "lightroom": {
-      "filename": "Lightroom-11.5.31.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Lightroom-11.5.31.apk",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
-    },
-    "tiktok": {
-      "filename": "TikTok-47.7.2.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/TikTok-47.7.2.apk",
-      "tag": "auto-v1.0.5-2026.11.06-b153",
-      "updated_at": "2026-11-06 03:29:53 UTC"
-    },
-    "camscanner": {
-      "filename": "CamScanner-7.24.5.2608200000.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/CamScanner-7.24.5.2608200000.apk",
-      "tag": "auto-v1.0.5-2026.10.29-b145",
-      "updated_at": "2026-10-29 02:23:27 UTC"
-    },
-    "instagram": {
-      "filename": "Instagram-452.1.0.53.64.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk",
-      "tag": "auto-v1.0.5-2026.10.27-b143",
-      "updated_at": "2026-10-27 02:05:34 UTC"
-    },
-    "solid_explorer": {
-      "filename": "solid_explorer-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.27-b28/solid_explorer-patched.apk",
-      "tag": "auto-v1.0.5-2026.09.27-b28",
-      "updated_at": "2026-09-27 09:56:46 UTC"
-    },
-    "microg": {
-      "filename": "microg.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/microg.apk",
-      "tag": "auto-v1.0.5-2026.11.07-b154",
-      "updated_at": "2026-11-07 02:46:02 UTC"
-    },
-    "hungry_shark_world": {
-      "filename": "hungry_shark_world-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
-    },
-    "google_maps": {
-      "filename": "google_maps-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.12-b117",
-      "updated_at": "2026-10-12 02:29:17 UTC"
-    },
-    "google_phone": {
-      "filename": "google_phone-patched.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_phone-patched.apk",
-      "tag": "auto-v1.0.5-2026.10.12-b117",
-      "updated_at": "2026-10-12 02:29:17 UTC"
-    },
-    "subway_surfers": {
-      "filename": "subway_surfers-patched.apk",
-      "url": "#subway_surfers-patched.apk",
-      "tag": "auto-0",
-      "updated_at": "2026-10-22 02:06:32 UTC"
-    },
-    "cloudflare_warp": {
-      "filename": "Cloudflare-WARP-6.38.9.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Cloudflare-WARP-6.38.9.apk",
-      "tag": "auto-v1.0.5-2026.10.23-b139",
-      "updated_at": "2026-10-23 02:26:08 UTC"
-    },
-    "pinterest": {
-      "filename": "Pinterest-14.23.0.apk",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Pinterest-14.23.0.apk",
-      "tag": "auto-v1.0.5-2026.11.06-b153",
-      "updated_at": "2026-11-06 03:29:53 UTC"
-    }
-  },
-  "single_modules": {
-    "youtube_music": {
-      "filename": "revancex-module-youtube_music.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-module-youtube_music.zip",
-      "tag": "auto-v1.0.5-2026.10.19-b130",
-      "updated_at": "2026-10-19 09:51:05 UTC"
-    },
-    "youtube": {
-      "filename": "YouTube-20.05.46-module.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46-module.zip",
-      "tag": "auto-v1.0.5-2026.11.07-b154",
-      "updated_at": "2026-11-07 02:46:02 UTC"
-    }
-  },
   "bundles": {
+    "revancex-bundle-all.zip": {
+      "filename": "revancex-bundle-all.zip",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10 02:00:07 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-all.zip"
+    },
     "revancex-bundle-core.zip": {
       "filename": "revancex-bundle-core.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-core.zip",
       "tag": "auto-v1.1.0-2026.11.10-b158",
-      "updated_at": "2026-11-10 02:00:07 UTC"
-    },
-    "revancex-bundle-tools.zip": {
-      "filename": "revancex-bundle-tools.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-tools.zip",
-      "tag": "auto-v1.1.0-2026.11.10-b158",
-      "updated_at": "2026-11-10 02:00:07 UTC"
+      "updated_at": "2026-11-10 02:00:07 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-core.zip"
     },
     "revancex-bundle-multimedia.zip": {
       "filename": "revancex-bundle-multimedia.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/revancex-bundle-multimedia.zip",
       "tag": "auto-v1.0.5-2026.11.07-b154",
-      "updated_at": "2026-11-07 02:46:02 UTC"
+      "updated_at": "2026-11-07 02:46:02 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/revancex-bundle-multimedia.zip"
     },
     "revancex-bundle-productivity.zip": {
       "filename": "revancex-bundle-productivity.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/revancex-bundle-productivity.zip",
       "tag": "auto-v1.0.5-2026.10.29-b145",
-      "updated_at": "2026-10-29 02:23:27 UTC"
+      "updated_at": "2026-10-29 02:23:27 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/revancex-bundle-productivity.zip"
     },
     "revancex-bundle-social.zip": {
       "filename": "revancex-bundle-social.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-social.zip",
       "tag": "auto-v1.1.0-2026.11.10-b158",
-      "updated_at": "2026-11-10 02:00:07 UTC"
+      "updated_at": "2026-11-10 02:00:07 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-social.zip"
     },
-    "revancex-bundle-all.zip": {
-      "filename": "revancex-bundle-all.zip",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-all.zip",
+    "revancex-bundle-tools.zip": {
+      "filename": "revancex-bundle-tools.zip",
       "tag": "auto-v1.1.0-2026.11.10-b158",
-      "updated_at": "2026-11-10 02:00:07 UTC"
+      "updated_at": "2026-11-10 02:00:07 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-tools.zip"
     }
   },
-  "custom_bundles": {}
+  "custom_bundles": {},
+  "single_modules": {
+    "youtube": {
+      "filename": "YouTube-20.05.46-module.zip",
+      "tag": "auto-v1.0.5-2026.11.07-b154",
+      "updated_at": "2026-11-07 02:46:02 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46-module.zip"
+    },
+    "youtube_music": {
+      "filename": "revancex-module-youtube_music.zip",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19 09:51:05 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/revancex-module-youtube_music.zip"
+    }
+  },
+  "stock_apps": {
+    "adguard": {
+      "filename": "AdGuard-4.14.68.apk",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29 02:23:27 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/AdGuard-4.14.68.apk"
+    },
+    "camscanner": {
+      "filename": "CamScanner-7.24.5.2608200000.apk",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29 02:23:27 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/CamScanner-7.24.5.2608200000.apk"
+    },
+    "capcut": {
+      "filename": "CapCut-19.9.0.apk",
+      "tag": "auto-v1.0.5-2026.10.27-b143",
+      "updated_at": "2026-10-27 02:05:34 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/CapCut-19.9.0.apk"
+    },
+    "cloudflare_warp": {
+      "filename": "Cloudflare-WARP-6.38.9.apk",
+      "tag": "auto-v1.0.5-2026.10.23-b139",
+      "updated_at": "2026-10-23 02:26:08 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Cloudflare-WARP-6.38.9.apk"
+    },
+    "drama_box": {
+      "filename": "drama_box-patched.apk",
+      "tag": "auto-v1.0.5-2026.09.28-b84",
+      "updated_at": "2026-09-28 08:40:43 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.09.28-b84/drama_box-patched.apk"
+    },
+    "duolingo": {
+      "filename": "duolingo-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19 09:51:05 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/duolingo-patched.apk"
+    },
+    "facebook": {
+      "filename": "Facebook-585.0.0.47.54.apk",
+      "tag": "auto-v1.0.5-2026.11.06-b153",
+      "updated_at": "2026-11-06 03:29:53 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Facebook-585.0.0.47.54.apk"
+    },
+    "flightradar24": {
+      "filename": "Flightradar24-11.12.0.apk",
+      "tag": "auto-v1.0.5-2026.10.23-b139",
+      "updated_at": "2026-10-23 02:26:08 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Flightradar24-11.12.0.apk"
+    },
+    "gboard": {
+      "filename": "Gboard-18.5.4.993608717-release-arm64-v8a.apk",
+      "tag": "auto-v1.0.5-2026.10.27-b143",
+      "updated_at": "2026-10-27 02:05:34 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Gboard-18.5.4.993608717-release-arm64-v8a.apk"
+    },
+    "google_maps": {
+      "filename": "google_maps-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.12-b117",
+      "updated_at": "2026-10-12 02:29:17 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.12-b117/google_maps-patched.apk"
+    },
+    "hungry_shark_world": {
+      "filename": "hungry_shark_world-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19 09:51:05 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/hungry_shark_world-patched.apk"
+    },
+    "instagram": {
+      "filename": "Instagram-452.1.0.53.64.apk",
+      "tag": "auto-v1.0.5-2026.10.27-b143",
+      "updated_at": "2026-10-27 02:05:34 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.27-b143/Instagram-452.1.0.53.64.apk"
+    },
+    "lightroom": {
+      "filename": "Lightroom-11.5.31.apk",
+      "tag": "auto-v1.0.5-2026.10.23-b139",
+      "updated_at": "2026-10-23 02:26:08 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Lightroom-11.5.31.apk"
+    },
+    "microg": {
+      "filename": "microg.apk",
+      "tag": "auto-v1.0.5-2026.11.07-b154",
+      "updated_at": "2026-11-07 02:46:02 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/microg.apk"
+    },
+    "mx_player": {
+      "filename": "MX-Player-3.4.1.apk",
+      "tag": "auto-v1.0.5-2026.10.26-b142",
+      "updated_at": "2026-10-26 01:12:11 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/MX-Player-3.4.1.apk"
+    },
+    "pinterest": {
+      "filename": "Pinterest-14.23.0.apk",
+      "tag": "auto-v1.0.5-2026.11.06-b153",
+      "updated_at": "2026-11-06 03:29:53 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Pinterest-14.23.0.apk"
+    },
+    "pixiv": {
+      "filename": "pixiv-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19 09:51:05 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/pixiv-patched.apk"
+    },
+    "proton_vpn": {
+      "filename": "Proton-VPN-5.21.9.0.apk",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10 02:00:07 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Proton-VPN-5.21.9.0.apk"
+    },
+    "pvz_free": {
+      "filename": "Plants-vs-Zombies-3.18.0.apk",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10 02:00:07 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/Plants-vs-Zombies-3.18.0.apk"
+    },
+    "reddit": {
+      "filename": "Reddit-2026.42.0.apk",
+      "tag": "auto-v1.0.5-2026.10.26-b142",
+      "updated_at": "2026-10-26 01:12:11 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.26-b142/Reddit-2026.42.0.apk"
+    },
+    "serverauditor": {
+      "filename": "Termius-7.11.2.apk",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29 02:23:27 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Termius-7.11.2.apk"
+    },
+    "stellarium": {
+      "filename": "Stellarium-1.16.3.apk",
+      "tag": "auto-v1.0.5-2026.10.23-b139",
+      "updated_at": "2026-10-23 02:26:08 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.23-b139/Stellarium-1.16.3.apk"
+    },
+    "sticker_maker": {
+      "filename": "Sticker-Maker-1.0.12-7.apk",
+      "tag": "auto-v1.0.5-2026.10.29-b145",
+      "updated_at": "2026-10-29 02:23:27 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.29-b145/Sticker-Maker-1.0.12-7.apk"
+    },
+    "threads": {
+      "filename": "Threads-454.0.0.54.79.apk",
+      "tag": "auto-v1.0.5-2026.11.06-b153",
+      "updated_at": "2026-11-06 03:29:53 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/Threads-454.0.0.54.79.apk"
+    },
+    "tiktok": {
+      "filename": "TikTok-47.7.2.apk",
+      "tag": "auto-v1.0.5-2026.11.06-b153",
+      "updated_at": "2026-11-06 03:29:53 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.06-b153/TikTok-47.7.2.apk"
+    },
+    "wps_office": {
+      "filename": "wps_office-patched.apk",
+      "tag": "auto-v1.0.5-2026.10.19-b130",
+      "updated_at": "2026-10-19 09:51:05 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.10.19-b130/wps_office-patched.apk"
+    },
+    "x_piko": {
+      "filename": "X-Piko-12.41.0-prod.01.apk",
+      "tag": "auto-v1.1.0-2026.11.10-b158",
+      "updated_at": "2026-11-10 02:00:07 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/X-Piko-12.41.0-prod.01.apk"
+    },
+    "youtube": {
+      "filename": "YouTube-20.05.46.apk",
+      "tag": "auto-v1.0.5-2026.11.07-b154",
+      "updated_at": "2026-11-07 02:46:02 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-20.05.46.apk"
+    },
+    "youtube_music": {
+      "filename": "YouTube-Music-9.15.51.apk",
+      "tag": "auto-v1.0.5-2026.11.07-b154",
+      "updated_at": "2026-11-07 02:46:02 UTC",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.0.5-2026.11.07-b154/YouTube-Music-9.15.51.apk"
+    }
+  }
 }

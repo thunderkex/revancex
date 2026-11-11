@@ -18,7 +18,6 @@ use tracing::{debug, info, warn};
 #[derive(Debug)]
 pub enum FetchError {
     Blocked { host: String, kind: BlockKind },
-    ChallengeFailed { host: String, reason: String },
     Http { status: StatusCode, url: String },
     Network(anyhow::Error),
 }
@@ -31,30 +30,10 @@ impl fmt::Display for FetchError {
             Self::Blocked { host, kind } => {
                 write!(f, "Host {host} is blocked by Cloudflare ({kind})")
             }
-            Self::ChallengeFailed { host, reason } => {
-                write!(f, "Challenge bypass failed for {host}: {reason}")
-            }
             Self::Http { status, url } => {
                 write!(f, "HTTP error ({status}): {url}")
             }
             Self::Network(e) => write!(f, "{e}"),
-        }
-    }
-}
-
-impl FetchError {
-    pub fn kind(&self) -> BlockKind {
-        match self {
-            Self::Blocked { kind, .. } => *kind,
-            Self::Http { status, .. } if *status == StatusCode::FORBIDDEN => {
-                BlockKind::IpReputationBlock
-            }
-            Self::Http { status, .. } if *status == StatusCode::TOO_MANY_REQUESTS => {
-                BlockKind::RateLimited
-            }
-            Self::Http { status, .. } if *status == StatusCode::NOT_FOUND => BlockKind::NotFound,
-            Self::ChallengeFailed { .. } => BlockKind::TurnstileChallenge,
-            _ => BlockKind::Other,
         }
     }
 }
@@ -131,6 +110,7 @@ pub struct Fetcher {
     flaresolverr_available: AtomicBool,
     trawl_available: AtomicBool,
     probed: AtomicBool,
+    probe_lock: tokio::sync::Mutex<()>,
     host_state: Arc<Mutex<HashMap<String, HostState>>>,
 }
 
@@ -162,12 +142,9 @@ impl Fetcher {
             flaresolverr_available: AtomicBool::new(fs_enabled),
             trawl_available: AtomicBool::new(trawl_enabled),
             probed: AtomicBool::new(false),
+            probe_lock: tokio::sync::Mutex::new(()),
             host_state: Arc::new(Mutex::new(HashMap::new())),
         }
-    }
-
-    pub fn client(&self) -> &Client {
-        &self.client
     }
 
     pub fn is_flaresolverr_unavailable(&self) -> bool {
@@ -178,7 +155,11 @@ impl Fetcher {
     }
 
     pub async fn ensure_probed(&self) -> Result<()> {
-        if self.probed.swap(true, Ordering::SeqCst) {
+        if self.probed.load(Ordering::SeqCst) {
+            return Ok(());
+        }
+        let _guard = self.probe_lock.lock().await;
+        if self.probed.load(Ordering::SeqCst) {
             return Ok(());
         }
 
@@ -237,6 +218,7 @@ impl Fetcher {
         } else {
             self.trawl_available.store(false, Ordering::SeqCst);
         }
+        self.probed.store(true, Ordering::SeqCst);
         Ok(())
     }
 
@@ -274,47 +256,18 @@ impl Fetcher {
         false
     }
 
-    pub fn get_host_credentials(&self, host: &str) -> (Option<String>, HashMap<String, String>) {
-        let lock = self.host_state.lock().unwrap();
-        if let Some(st) = lock.get(host) {
-            (st.user_agent.clone(), st.cookies.clone())
-        } else {
-            (None, HashMap::new())
-        }
+    fn is_host_blocked(&self, host: &str) -> bool {
+        let lock = crate::utils::lock_unpoisoned(&self.host_state);
+        lock.get(host).is_some_and(|st| st.blocked)
     }
 
-    pub async fn get(&self, url: &str) -> Result<String, FetchError> {
-        let parsed = reqwest::Url::parse(url)
-            .map_err(|e| FetchError::Network(anyhow::anyhow!("Invalid URL {url}: {e}")))?;
-        let host = parsed.host_str().unwrap_or("").to_string();
-
-        {
-            let lock = self.host_state.lock().unwrap();
-            if let Some(st) = lock.get(&host) {
-                if st.blocked {
-                    return Err(FetchError::Blocked {
-                        host,
-                        kind: BlockKind::TurnstileChallenge,
-                    });
-                }
-            }
-        }
-
-        let _ = self.ensure_probed().await;
-
-        if let Some(&delay_ms) = self.config.per_host_delay_ms.get(&host) {
-            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
-        }
-
-        let (_sticky, saved_ua, saved_cookies) = {
-            let lock = self.host_state.lock().unwrap();
-            if let Some(st) = lock.get(&host) {
-                (st.sticky_browser, st.user_agent.clone(), st.cookies.clone())
-            } else {
-                (false, None, HashMap::new())
-            }
+    fn build_direct_request(&self, url: &str, host: &str) -> reqwest::RequestBuilder {
+        let (saved_ua, saved_cookies) = {
+            let lock = crate::utils::lock_unpoisoned(&self.host_state);
+            lock.get(host)
+                .map(|st| (st.user_agent.clone(), st.cookies.clone()))
+                .unwrap_or_default()
         };
-
         let mut req = self.client.get(url).timeout(Duration::from_secs(20));
         if let Some(ua) = &saved_ua {
             req = req.header(USER_AGENT, ua);
@@ -327,81 +280,80 @@ impl Fetcher {
                 .join("; ");
             req = req.header("Cookie", cookie_header);
         }
+        req
+    }
 
-        let direct_res = req.send().await;
-        match direct_res {
-            Ok(resp) => {
-                let status = resp.status();
-                let headers = resp.headers().clone();
-                let body = resp
-                    .text()
-                    .await
-                    .map_err(|e| FetchError::Network(e.into()))?;
-
-                if self.is_challenge(status, &headers, &body) {
-                    let server = headers
-                        .get("server")
-                        .and_then(|v| v.to_str().ok())
-                        .unwrap_or("-");
-                    let cf_ray = headers
-                        .get("cf-ray")
-                        .and_then(|v| v.to_str().ok())
-                        .unwrap_or("-");
-                    let cf_mitigated = headers
-                        .get("cf-mitigated")
-                        .and_then(|v| v.to_str().ok())
-                        .unwrap_or("-");
-                    let body_snippet: String = body.chars().take(200).collect();
-                    info!(
-                        "challenge detected on {url} (host={host}, status={status}, server={server}, cf-ray={cf_ray}, cf-mitigated={cf_mitigated})"
-                    );
-                    info!("challenge body snippet: {body_snippet}");
-                    if status == StatusCode::FORBIDDEN {
-                        info!(
-                            "403 details — status={status}, server={server}, cf-ray={cf_ray}, cf-mitigated={cf_mitigated}, body[:200]={body_snippet}"
-                        );
-                    }
-                    // Proceed to browser bypass stages below
-                } else if status.is_success() {
-                    return Ok(body);
-                } else {
-                    let kind = if status == StatusCode::FORBIDDEN
-                        || body.contains("1020")
-                        || body.contains("error code: 1020")
-                    {
-                        BlockKind::IpReputationBlock
-                    } else if status == StatusCode::TOO_MANY_REQUESTS {
-                        BlockKind::RateLimited
-                    } else if status == StatusCode::NOT_FOUND {
-                        BlockKind::NotFound
-                    } else {
-                        BlockKind::Other
-                    };
-                    if kind != BlockKind::Other {
-                        return Err(FetchError::Blocked { host, kind });
-                    }
-                    return Err(FetchError::Http {
-                        status,
-                        url: url.to_string(),
-                    });
-                }
-            }
+    async fn try_direct_get(&self, url: &str, host: &str) -> Result<Option<String>, FetchError> {
+        let resp = match self.build_direct_request(url, host).send().await {
+            Ok(r) => r,
             Err(e) => {
                 debug!("Direct request failed for {url}: {e}");
+                return Ok(None);
             }
+        };
+        let status = resp.status();
+        let headers = resp.headers().clone();
+        let body = resp
+            .text()
+            .await
+            .map_err(|e| FetchError::Network(e.into()))?;
+
+        if self.is_challenge(status, &headers, &body) {
+            let header_or = |k: &str| headers.get(k).and_then(|v| v.to_str().ok()).unwrap_or("-");
+            let (server, cf_ray, cf_mitigated) = (
+                header_or("server"),
+                header_or("cf-ray"),
+                header_or("cf-mitigated"),
+            );
+            let body_snippet: String = body.chars().take(200).collect();
+            info!(
+                "challenge detected on {url} (host={host}, status={status}, server={server}, cf-ray={cf_ray}, cf-mitigated={cf_mitigated})"
+            );
+            info!("challenge body snippet: {body_snippet}");
+            if status == StatusCode::FORBIDDEN {
+                info!(
+                    "403 details — status={status}, server={server}, cf-ray={cf_ray}, cf-mitigated={cf_mitigated}, body[:200]={body_snippet}"
+                );
+            }
+            return Ok(None);
+        }
+        if status.is_success() {
+            return Ok(Some(body));
         }
 
+        let kind = if status == StatusCode::FORBIDDEN
+            || body.contains("1020")
+            || body.contains("error code: 1020")
+        {
+            BlockKind::IpReputationBlock
+        } else if status == StatusCode::TOO_MANY_REQUESTS {
+            BlockKind::RateLimited
+        } else if status == StatusCode::NOT_FOUND {
+            BlockKind::NotFound
+        } else {
+            return Err(FetchError::Http {
+                status,
+                url: url.to_string(),
+            });
+        };
+        Err(FetchError::Blocked {
+            host: host.to_string(),
+            kind,
+        })
+    }
+
+    async fn try_browser_bypass(&self, url: &str, host: &str) -> Option<String> {
         if self.flaresolverr_available.load(Ordering::SeqCst) {
             let stage_start = std::time::Instant::now();
             info!("bypass stage starting: host={host}, stage=flaresolverr");
-            match self.solve_with_flaresolverr(url, &host).await {
+            match self.solve_with_flaresolverr(url, host).await {
                 Ok(sol) => {
                     info!(
                         "bypass stage completed: host={host}, stage=flaresolverr, ms={} — ok",
                         stage_start.elapsed().as_millis()
                     );
-                    self.record_solved_host(&host, &sol);
-                    return Ok(sol.html);
+                    self.record_solved_host(host, &sol);
+                    return Some(sol.html);
                 }
                 Err(e) => {
                     info!(
@@ -412,18 +364,17 @@ impl Fetcher {
                 }
             }
         }
-
         if self.trawl_available.load(Ordering::SeqCst) {
             let stage_start = std::time::Instant::now();
             info!("bypass stage starting: host={host}, stage=trawl");
-            match self.solve_with_trawl(url, &host).await {
+            match self.solve_with_trawl(url, host).await {
                 Ok(sol) => {
                     info!(
                         "bypass stage completed: host={host}, stage=trawl, ms={} — ok",
                         stage_start.elapsed().as_millis()
                     );
-                    self.record_solved_host(&host, &sol);
-                    return Ok(sol.html);
+                    self.record_solved_host(host, &sol);
+                    return Some(sol.html);
                 }
                 Err(e) => {
                     info!(
@@ -434,9 +385,35 @@ impl Fetcher {
                 }
             }
         }
+        None
+    }
+
+    pub async fn get(&self, url: &str) -> Result<String, FetchError> {
+        let parsed = reqwest::Url::parse(url)
+            .map_err(|e| FetchError::Network(anyhow::anyhow!("Invalid URL {url}: {e}")))?;
+        let host = parsed.host_str().unwrap_or("").to_string();
+
+        if self.is_host_blocked(&host) {
+            return Err(FetchError::Blocked {
+                host,
+                kind: BlockKind::TurnstileChallenge,
+            });
+        }
+
+        let _ = self.ensure_probed().await;
+        if let Some(&delay_ms) = self.config.per_host_delay_ms.get(&host) {
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+        }
+
+        if let Some(body) = self.try_direct_get(url, &host).await? {
+            return Ok(body);
+        }
+        if let Some(html) = self.try_browser_bypass(url, &host).await {
+            return Ok(html);
+        }
 
         {
-            let mut lock = self.host_state.lock().unwrap();
+            let mut lock = crate::utils::lock_unpoisoned(&self.host_state);
             let entry = lock.entry(host.clone()).or_default();
             entry.blocked = true;
         }
@@ -448,7 +425,7 @@ impl Fetcher {
     }
 
     fn record_solved_host(&self, host: &str, sol: &SolvedSolution) {
-        let mut lock = self.host_state.lock().unwrap();
+        let mut lock = crate::utils::lock_unpoisoned(&self.host_state);
         let entry = lock.entry(host.to_string()).or_default();
         entry.sticky_browser = true;
         entry.user_agent = Some(sol.user_agent.clone());

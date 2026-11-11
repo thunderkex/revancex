@@ -49,7 +49,11 @@ impl ApkSource for ApkcomboSource {
                     Err(_) => return Ok(None),
                 };
 
-                let re_ver = regex::Regex::new(r"phone-(.*?)-(apk|xapk|apks)").unwrap();
+                static RE_VER: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+                let re_ver = RE_VER.get_or_init(|| {
+                    regex::Regex::new(r"phone-(.*?)-(apk|xapk|apks)")
+                        .expect("valid apkcombo version regex")
+                });
 
                 for element in doc.select(&link_sel) {
                     if let Some(href) = element.value().attr("href") {

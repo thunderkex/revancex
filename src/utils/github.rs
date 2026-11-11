@@ -1,4 +1,6 @@
-use anyhow::{Context, Result};
+#[cfg(test)]
+use anyhow::Context;
+use anyhow::Result;
 use reqwest::Client;
 use serde::Deserialize;
 
@@ -9,6 +11,7 @@ pub struct GhRelease {
     pub target_commitish: String,
     #[serde(default)]
     pub prerelease: bool,
+    #[serde(default)]
     pub assets: Vec<GhAsset>,
 }
 
@@ -29,16 +32,26 @@ pub enum ReleaseCheck {
 
 #[derive(Debug)]
 pub enum FetchReleaseError {
-    RateLimited,
-    NotFound,
+    RateLimited { repo: String },
+    NotFound { repo: String },
+    Unauthorized { repo: String },
     Other(anyhow::Error),
 }
 
 impl std::fmt::Display for FetchReleaseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FetchReleaseError::RateLimited => write!(f, "GitHub API rate limit exceeded"),
-            FetchReleaseError::NotFound => write!(f, "GitHub release or repo not found (404)"),
+            FetchReleaseError::RateLimited { repo } => write!(
+                f,
+                "GitHub API rate limit exceeded for {repo}. Set GITHUB_TOKEN to increase the limit."
+            ),
+            FetchReleaseError::NotFound { repo } => {
+                write!(f, "GitHub repository or releases not found: {repo} (404)")
+            }
+            FetchReleaseError::Unauthorized { repo } => write!(
+                f,
+                "GitHub authentication failed for {repo} — if external private repo, provide PAT"
+            ),
             FetchReleaseError::Other(e) => write!(f, "{e}"),
         }
     }
@@ -46,45 +59,69 @@ impl std::fmt::Display for FetchReleaseError {
 
 impl std::error::Error for FetchReleaseError {}
 
-pub async fn get_latest_release_conditional(
-    client: &Client,
-    repo: &str,
-    branch: Option<&str>,
-    if_none_match: Option<&str>,
-) -> std::result::Result<ReleaseCheck, FetchReleaseError> {
-    let token = std::env::var("GITHUB_TOKEN").unwrap_or_default();
-    let url = format!("https://api.github.com/repos/{repo}/releases?per_page=50");
+fn github_token() -> Option<String> {
+    std::env::var("GITHUB_TOKEN")
+        .ok()
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty())
+}
 
+fn github_api_get(
+    client: &Client,
+    url: &str,
+    if_none_match: Option<&str>,
+) -> reqwest::RequestBuilder {
     let mut req = client
-        .get(&url)
+        .get(url)
         .header("Accept", "application/vnd.github+json");
-    if !token.is_empty() {
-        req = req.bearer_auth(&token);
+    if let Some(token) = github_token() {
+        req = req.bearer_auth(token);
     }
     if let Some(etag) = if_none_match {
         req = req.header("If-None-Match", etag);
     }
+    req
+}
 
-    let resp = req
+async fn send_github_json<T: serde::de::DeserializeOwned>(
+    client: &Client,
+    url: &str,
+    repo: &str,
+    if_none_match: Option<&str>,
+) -> std::result::Result<Option<(T, Option<String>)>, FetchReleaseError> {
+    let resp = github_api_get(client, url, if_none_match)
         .send()
         .await
         .map_err(|e| FetchReleaseError::Other(anyhow::anyhow!("GET {url}: {e}")))?;
 
     let status = resp.status();
     if status == reqwest::StatusCode::NOT_MODIFIED {
-        return Ok(ReleaseCheck::NotModified);
+        return Ok(None);
     }
     if status == reqwest::StatusCode::NOT_FOUND {
-        return Err(FetchReleaseError::NotFound);
+        return Err(FetchReleaseError::NotFound {
+            repo: repo.to_string(),
+        });
+    }
+    if status == reqwest::StatusCode::UNAUTHORIZED {
+        return Err(FetchReleaseError::Unauthorized {
+            repo: repo.to_string(),
+        });
+    }
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(FetchReleaseError::RateLimited {
+            repo: repo.to_string(),
+        });
     }
     if status == reqwest::StatusCode::FORBIDDEN {
         let remaining = resp
             .headers()
             .get("X-RateLimit-Remaining")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("?");
-        if remaining == "0" {
-            return Err(FetchReleaseError::RateLimited);
+            .and_then(|v| v.to_str().ok());
+        if remaining == Some("0") {
+            return Err(FetchReleaseError::RateLimited {
+                repo: repo.to_string(),
+            });
         }
     }
 
@@ -94,14 +131,30 @@ pub async fn get_latest_release_conditional(
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
 
-    let releases: Vec<GhRelease> = resp
+    let parsed = resp
         .error_for_status()
         .map_err(|e| FetchReleaseError::Other(anyhow::anyhow!("GitHub API error for {repo}: {e}")))?
-        .json()
+        .json::<T>()
         .await
         .map_err(|e| {
             FetchReleaseError::Other(anyhow::anyhow!("Parsing releases JSON for {repo}: {e}"))
         })?;
+
+    Ok(Some((parsed, new_etag)))
+}
+
+pub async fn get_latest_release_conditional(
+    client: &Client,
+    repo: &str,
+    branch: Option<&str>,
+    if_none_match: Option<&str>,
+) -> std::result::Result<ReleaseCheck, FetchReleaseError> {
+    let url = format!("https://api.github.com/repos/{repo}/releases?per_page=50");
+    let Some((releases, new_etag)) =
+        send_github_json::<Vec<GhRelease>>(client, &url, repo, if_none_match).await?
+    else {
+        return Ok(ReleaseCheck::NotModified);
+    };
 
     if let Some(target_b) = branch {
         let tb_lower = target_b.to_lowercase();
@@ -136,21 +189,13 @@ pub async fn get_latest_release_conditional(
             format!("v{target_b}")
         };
         let tag_url = format!("https://api.github.com/repos/{repo}/releases/tags/{tag_name}");
-        let mut req_tag = client
-            .get(&tag_url)
-            .header("Accept", "application/vnd.github+json");
-        if !token.is_empty() {
-            req_tag = req_tag.bearer_auth(&token);
-        }
-        if let Ok(resp) = req_tag.send().await {
-            if resp.status().is_success() {
-                if let Ok(rel) = resp.json::<GhRelease>().await {
-                    return Ok(ReleaseCheck::Modified {
-                        release: rel,
-                        etag: new_etag,
-                    });
-                }
-            }
+        if let Ok(Some((rel, _))) =
+            send_github_json::<GhRelease>(client, &tag_url, repo, None).await
+        {
+            return Ok(ReleaseCheck::Modified {
+                release: rel,
+                etag: new_etag,
+            });
         }
     } else {
         if let Some(stable) = releases.iter().find(|r| !r.prerelease) {
@@ -168,27 +213,33 @@ pub async fn get_latest_release_conditional(
     }
 
     let url_latest = format!("https://api.github.com/repos/{repo}/releases/latest");
-    let mut req_latest = client
-        .get(&url_latest)
-        .header("Accept", "application/vnd.github+json");
-    if !token.is_empty() {
-        req_latest = req_latest.bearer_auth(&token);
-    }
-    let rel = req_latest
-        .send()
-        .await
-        .map_err(|e| FetchReleaseError::Other(e.into()))?
-        .error_for_status()
-        .map_err(|e| {
-            FetchReleaseError::Other(anyhow::anyhow!("GitHub /releases/latest for {repo}: {e}"))
-        })?
-        .json()
-        .await
-        .map_err(|e| FetchReleaseError::Other(e.into()))?;
+    let (rel, _) = send_github_json::<GhRelease>(client, &url_latest, repo, None)
+        .await?
+        .ok_or_else(|| {
+            FetchReleaseError::Other(anyhow::anyhow!(
+                "Unexpected 304 without If-None-Match for {repo}"
+            ))
+        })?;
     Ok(ReleaseCheck::Modified {
         release: rel,
         etag: new_etag,
     })
+}
+
+pub async fn get_release_by_tag(
+    client: &Client,
+    repo: &str,
+    tag: &str,
+) -> std::result::Result<GhRelease, FetchReleaseError> {
+    let url = format!("https://api.github.com/repos/{repo}/releases/tags/{tag}");
+    let (rel, _) = send_github_json::<GhRelease>(client, &url, repo, None)
+        .await?
+        .ok_or_else(|| {
+            FetchReleaseError::Other(anyhow::anyhow!(
+                "Unexpected 304 without If-None-Match for {repo}"
+            ))
+        })?;
+    Ok(rel)
 }
 
 pub async fn get_latest_release(
@@ -201,11 +252,7 @@ pub async fn get_latest_release(
         Ok(ReleaseCheck::NotModified) => {
             anyhow::bail!("Unexpected 304 without If-None-Match for {repo}")
         }
-        Err(FetchReleaseError::RateLimited) => anyhow::bail!(
-            "GitHub API rate limit exceeded for {repo}. Set GITHUB_TOKEN to increase the limit."
-        ),
-        Err(FetchReleaseError::NotFound) => anyhow::bail!("GitHub repo {repo} not found (404)"),
-        Err(FetchReleaseError::Other(e)) => Err(e),
+        Err(e) => Err(anyhow::Error::new(e)),
     }
 }
 
@@ -219,7 +266,8 @@ pub fn pick_asset<'a>(release: &'a GhRelease, pattern: &str) -> Option<&'a GhAss
         .find(|a| a.name.starts_with(prefix) && a.name.ends_with(suffix))
 }
 
-pub async fn resolve_asset_url(
+#[cfg(test)]
+pub(crate) async fn resolve_asset_url(
     client: &Client,
     repo: &str,
     pattern: &str,

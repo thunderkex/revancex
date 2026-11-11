@@ -7,6 +7,7 @@ pub mod aptoide;
 pub mod archive;
 pub mod breaker;
 pub mod codeberg;
+pub mod common;
 pub mod github;
 pub mod gitlab;
 pub mod uptodown;
@@ -14,97 +15,47 @@ pub mod uptodown;
 use crate::config::{AppConfig, Config};
 use anyhow::Result;
 use reqwest::Client;
-use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct SourceCtx<'a> {
     pub client: &'a Client,
+    pub no_redirect_client: Option<&'a Client>,
     pub cfg: &'a Config,
-    pub breakers: Arc<HashMap<String, Arc<AtomicU32>>>,
-    pub cb_threshold: u32,
     pub fetcher: Option<&'a crate::net::Fetcher>,
-    pub breaker_registry: Option<Arc<breaker::BreakerRegistry>>,
+    pub breaker_registry: Arc<breaker::BreakerRegistry>,
     pub app_id: Option<String>,
 }
 
 impl<'a> SourceCtx<'a> {
-    pub fn new(client: &'a Client, cfg: &'a Config, cb_threshold: u32) -> Self {
+    pub fn new(client: &'a Client, cfg: &'a Config) -> Self {
         Self {
             client,
+            no_redirect_client: None,
             cfg,
-            breakers: Arc::new(HashMap::new()),
-            cb_threshold,
             fetcher: None,
-            breaker_registry: None,
+            breaker_registry: Arc::new(breaker::BreakerRegistry::new(&cfg.circuit_breakers)),
             app_id: None,
         }
-    }
-
-    pub fn with_fetcher(
-        client: &'a Client,
-        cfg: &'a Config,
-        cb_threshold: u32,
-        fetcher: &'a crate::net::Fetcher,
-    ) -> Self {
-        Self {
-            client,
-            cfg,
-            breakers: Arc::new(HashMap::new()),
-            cb_threshold,
-            fetcher: Some(fetcher),
-            breaker_registry: None,
-            app_id: None,
-        }
-    }
-
-    pub fn breaker(&self, name: &str) -> Arc<AtomicU32> {
-        self.breakers
-            .get(name)
-            .cloned()
-            .unwrap_or_else(|| Arc::new(AtomicU32::new(0)))
     }
 
     pub fn can_try(
         &self,
         source_name: &str,
     ) -> Result<breaker::BreakerState, (breaker::BreakerState, String)> {
-        if let Some(reg) = &self.breaker_registry {
-            let app = self.app_id.as_deref().unwrap_or("unknown");
-            reg.can_try(source_name, app)
-        } else {
-            let cb = self.breaker(source_name);
-            let count = cb.load(std::sync::atomic::Ordering::SeqCst);
-            if count >= self.cb_threshold {
-                Err((
-                    breaker::BreakerState::Open,
-                    format!("circuit-breaker open ({count}/{})", self.cb_threshold),
-                ))
-            } else {
-                Ok(breaker::BreakerState::Closed)
-            }
-        }
+        let app = self.app_id.as_deref().unwrap_or("unknown");
+        self.breaker_registry.can_try(source_name, app)
     }
 
     pub fn record_success(&self, source_name: &str) {
-        if let Some(reg) = &self.breaker_registry {
-            reg.record_success(source_name);
-        } else {
-            self.breaker(source_name)
-                .store(0, std::sync::atomic::Ordering::SeqCst);
-        }
+        self.breaker_registry.record_success(source_name);
     }
 
     pub fn record_failure(&self, source_name: &str, block_kind: &breaker::BlockKind) {
-        if let Some(reg) = &self.breaker_registry {
-            let app = self.app_id.as_deref().unwrap_or("unknown");
-            reg.record_failure(source_name, app, block_kind);
-        } else {
-            self.breaker(source_name)
-                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        }
+        let app = self.app_id.as_deref().unwrap_or("unknown");
+        self.breaker_registry
+            .record_failure(source_name, app, block_kind);
     }
 
     pub async fn get_html(&self, url: &str) -> (String, reqwest::header::HeaderMap) {
@@ -179,7 +130,6 @@ pub struct Resolved {
     pub file_kind: FileKind,
     pub version_found: Option<String>,
     pub arch: String,
-    pub extra_headers: Vec<(String, String)>,
     pub trace: Vec<String>,
 }
 
@@ -194,7 +144,6 @@ impl Resolved {
             file_kind: FileKind::Apk,
             version_found: version_found.into(),
             arch: arch.into(),
-            extra_headers: Vec::new(),
             trace: Vec::new(),
         }
     }
@@ -218,47 +167,13 @@ pub trait ApkSource: Send + Sync {
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<PathBuf>> + Send + 'a>>;
 }
 
-#[derive(Debug, Clone)]
-pub enum Outcome {
-    Hit { version: String, url: String },
-    Miss { reason: String },
-    Blocked { reason: String },
-    SkippedBreaker,
-    Skipped { reason: String },
-    Error { reason: String },
-}
-
-impl Outcome {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Outcome::Hit { .. } => "hit",
-            Outcome::Miss { .. } => "miss",
-            Outcome::Blocked { .. } => "blocked",
-            Outcome::SkippedBreaker => "skipped-breaker",
-            Outcome::Skipped { .. } => "skipped",
-            Outcome::Error { .. } => "error",
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SourceAttempt {
-    pub source: String,
-    pub outcome: Outcome,
-    pub trace: Vec<String>,
-}
-
 pub async fn default_fetch(
     ctx: &SourceCtx<'_>,
     resolved: &Resolved,
     dest: &str,
 ) -> Result<PathBuf> {
-    use crate::builder::{download_and_extract_if_bundle, is_turnstile_blocked};
+    use crate::sources::common::{download_and_extract_if_bundle, is_turnstile_blocked};
 
-    let mut req = ctx.client.get(&resolved.url);
-    for (k, v) in &resolved.extra_headers {
-        req = req.header(k.as_str(), v.as_str());
-    }
     let referer = resolved
         .trace
         .last()
@@ -267,13 +182,13 @@ pub async fn default_fetch(
 
     download_and_extract_if_bundle(ctx.client, &resolved.url, dest, referer).await?;
 
-    if let Ok(meta) = std::fs::metadata(dest) {
+    if let Ok(meta) = tokio::fs::metadata(dest).await {
         if meta.len() < 1_000_000 {
-            if let Ok(snippet) = std::fs::read_to_string(dest) {
+            if let Ok(snippet) = tokio::fs::read_to_string(dest).await {
                 let status = 200u16;
                 let empty = reqwest::header::HeaderMap::new();
                 if is_turnstile_blocked(status, &empty, &snippet) {
-                    let _ = std::fs::remove_file(dest);
+                    let _ = tokio::fs::remove_file(dest).await;
                     anyhow::bail!("Cloudflare challenge page saved as APK file — bypass needed");
                 }
             }

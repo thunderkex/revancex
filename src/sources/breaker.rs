@@ -57,7 +57,6 @@ struct BreakerInner {
 
 #[derive(Debug)]
 pub struct SourceCircuitBreaker {
-    pub name: String,
     pub threshold: u32,
     pub cooldown: Duration,
     pub cooldown_apps: usize,
@@ -65,9 +64,8 @@ pub struct SourceCircuitBreaker {
 }
 
 impl SourceCircuitBreaker {
-    pub fn new(name: &str, threshold: u32, cooldown_secs: u64, cooldown_apps: usize) -> Self {
+    pub fn new(_name: &str, threshold: u32, cooldown_secs: u64, cooldown_apps: usize) -> Self {
         Self {
-            name: name.to_string(),
             threshold,
             cooldown: Duration::from_secs(cooldown_secs),
             cooldown_apps,
@@ -85,7 +83,7 @@ impl SourceCircuitBreaker {
     }
 
     pub fn can_try(&self, app_id: &str) -> Result<BreakerState, (BreakerState, String)> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = crate::utils::lock_unpoisoned(&self.inner);
         match inner.state {
             BreakerState::Closed => Ok(BreakerState::Closed),
             BreakerState::Open => {
@@ -140,7 +138,7 @@ impl SourceCircuitBreaker {
     }
 
     pub fn record_success(&self) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = crate::utils::lock_unpoisoned(&self.inner);
         inner.state = BreakerState::Closed;
         inner.consecutive_transport_failures = 0;
         inner.probe_in_flight = false;
@@ -151,7 +149,7 @@ impl SourceCircuitBreaker {
     }
 
     pub fn record_failure(&self, app_id: &str, block_kind: &BlockKind) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = crate::utils::lock_unpoisoned(&self.inner);
         match block_kind {
             BlockKind::NotFound => {
                 // Not a transport-level failure; do NOT count as breaker failure
@@ -195,7 +193,7 @@ impl SourceCircuitBreaker {
     }
 
     pub fn record_app_completed(&self) {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = crate::utils::lock_unpoisoned(&self.inner);
         if inner.state == BreakerState::Open {
             inner.apps_since_opened += 1;
         } else if inner.state == BreakerState::HalfOpen {
@@ -206,11 +204,12 @@ impl SourceCircuitBreaker {
     }
 
     pub fn state(&self) -> BreakerState {
-        self.inner.lock().unwrap().state
+        crate::utils::lock_unpoisoned(&self.inner).state
     }
 
+    #[cfg(test)]
     pub fn ever_opened(&self) -> bool {
-        self.inner.lock().unwrap().ever_opened
+        crate::utils::lock_unpoisoned(&self.inner).ever_opened
     }
 }
 
@@ -256,7 +255,7 @@ impl BreakerRegistry {
     }
 
     pub fn get(&self, source_name: &str) -> Arc<SourceCircuitBreaker> {
-        let mut lock = self.breakers.lock().unwrap();
+        let mut lock = crate::utils::lock_unpoisoned(&self.breakers);
         if let Some(cb) = lock.get(source_name) {
             cb.clone()
         } else {
@@ -294,14 +293,14 @@ impl BreakerRegistry {
     }
 
     pub fn record_app_completed(&self) {
-        let lock = self.breakers.lock().unwrap();
+        let lock = crate::utils::lock_unpoisoned(&self.breakers);
         for cb in lock.values() {
             cb.record_app_completed();
         }
     }
 
     pub fn open_breakers(&self) -> Vec<String> {
-        let lock = self.breakers.lock().unwrap();
+        let lock = crate::utils::lock_unpoisoned(&self.breakers);
         let mut open = Vec::new();
         for (name, cb) in lock.iter() {
             if cb.state() == BreakerState::Open {

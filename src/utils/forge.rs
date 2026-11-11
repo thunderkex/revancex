@@ -18,9 +18,6 @@ pub enum Forge {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ReleaseSelector {
     Latest,
-    MostRecent,
-    Dev,
-    Prerelease,
     Exact(String),
 }
 
@@ -33,24 +30,7 @@ pub struct Asset {
 #[derive(Debug, Clone)]
 pub struct Release {
     pub tag: String,
-    pub published_at: Option<String>,
     pub assets: Vec<Asset>,
-}
-
-#[derive(Deserialize)]
-struct GhAsset {
-    name: String,
-    browser_download_url: String,
-}
-
-#[derive(Deserialize)]
-struct GhRelease {
-    tag_name: String,
-    prerelease: bool,
-    created_at: Option<String>,
-    published_at: Option<String>,
-    #[serde(default)]
-    assets: Vec<GhAsset>,
 }
 
 #[derive(Deserialize)]
@@ -70,7 +50,6 @@ struct GlReleaseAssets {
 #[derive(Deserialize)]
 struct GlRelease {
     tag_name: String,
-    released_at: Option<String>,
     #[serde(default)]
     assets: GlReleaseAssets,
 }
@@ -85,7 +64,6 @@ struct CbAsset {
 struct CbRelease {
     tag_name: String,
     prerelease: bool,
-    created_at: Option<String>,
     #[serde(default)]
     assets: Vec<CbAsset>,
 }
@@ -110,60 +88,23 @@ async fn fetch_github_release(
     repo: &str,
     selector: &ReleaseSelector,
 ) -> Result<Release> {
-    let token = std::env::var("GITHUB_TOKEN").unwrap_or_default();
-    let base_url = format!("https://api.github.com/repos/{repo}/releases");
-
-    let mut req = client.get(&base_url);
-    if !token.is_empty() {
-        req = req.bearer_auth(&token);
-    }
-
-    let resp = req
-        .send()
-        .await
-        .with_context(|| format!("GitHub API request failed for {repo}"))?;
-
-    let status = resp.status();
-    if status == reqwest::StatusCode::FORBIDDEN || status == reqwest::StatusCode::TOO_MANY_REQUESTS
-    {
-        bail!("GitHub API rate limited for {repo} — set GITHUB_TOKEN to increase limits");
-    }
-    if status == reqwest::StatusCode::NOT_FOUND {
-        bail!("GitHub repository or releases not found: {repo}");
-    }
-    if status == reqwest::StatusCode::UNAUTHORIZED {
-        bail!("GitHub authentication failed for {repo} — if external private repo, provide PAT");
-    }
-    if !status.is_success() {
-        bail!("GitHub API returned {status} for {repo}");
-    }
-
-    let releases: Vec<GhRelease> = resp.json().await?;
-    if releases.is_empty() {
-        bail!("No releases found for GitHub repo {repo}");
-    }
-
-    let chosen = match selector {
-        ReleaseSelector::Latest => releases.iter().find(|r| !r.prerelease),
-        ReleaseSelector::MostRecent => releases.first(),
-        ReleaseSelector::Dev => releases.iter().find(|r| r.tag_name.contains("dev")),
-        ReleaseSelector::Prerelease => releases.iter().find(|r| r.prerelease),
-        ReleaseSelector::Exact(tag) => releases.iter().find(|r| &r.tag_name == tag),
+    let gh = match selector {
+        ReleaseSelector::Latest => {
+            crate::utils::github::get_latest_release(client, repo, None).await?
+        }
+        ReleaseSelector::Exact(tag) => {
+            crate::utils::github::get_release_by_tag(client, repo, tag).await?
+        }
     };
 
-    let r = chosen.ok_or_else(|| {
-        anyhow::anyhow!("No matching release found for {repo} with selector {selector:?}")
-    })?;
-
     Ok(Release {
-        tag: r.tag_name.clone(),
-        published_at: r.published_at.clone().or_else(|| r.created_at.clone()),
-        assets: r
+        tag: gh.tag_name,
+        assets: gh
             .assets
-            .iter()
+            .into_iter()
             .map(|a| Asset {
-                name: a.name.clone(),
-                url: a.browser_download_url.clone(),
+                name: a.name,
+                url: a.browser_download_url,
             })
             .collect(),
     })
@@ -211,9 +152,7 @@ async fn fetch_gitlab_release(
     }
 
     let chosen = match selector {
-        ReleaseSelector::Latest | ReleaseSelector::MostRecent => releases.first(),
-        ReleaseSelector::Dev => releases.iter().find(|r| r.tag_name.contains("dev")),
-        ReleaseSelector::Prerelease => releases.iter().find(|r| r.tag_name.contains("pre")),
+        ReleaseSelector::Latest => releases.first(),
         ReleaseSelector::Exact(tag) => releases.iter().find(|r| &r.tag_name == tag),
     };
 
@@ -223,7 +162,6 @@ async fn fetch_gitlab_release(
 
     Ok(Release {
         tag: r.tag_name.clone(),
-        published_at: r.released_at.clone(),
         assets: r
             .assets
             .links
@@ -262,9 +200,6 @@ async fn fetch_codeberg_release(
 
     let chosen = match selector {
         ReleaseSelector::Latest => releases.iter().find(|r| !r.prerelease),
-        ReleaseSelector::MostRecent => releases.first(),
-        ReleaseSelector::Dev => releases.iter().find(|r| r.tag_name.contains("dev")),
-        ReleaseSelector::Prerelease => releases.iter().find(|r| r.prerelease),
         ReleaseSelector::Exact(tag) => releases.iter().find(|r| &r.tag_name == tag),
     };
 
@@ -274,7 +209,6 @@ async fn fetch_codeberg_release(
 
     Ok(Release {
         tag: r.tag_name.clone(),
-        published_at: r.created_at.clone(),
         assets: r
             .assets
             .iter()

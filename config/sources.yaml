@@ -108,6 +108,10 @@ patch_sources:
     repo: Fripe070/PixivPatches
     asset_pattern: "*.mpp"
 
+  madush:
+    repo: madushas/morphe-patches-custom
+    asset_pattern: "*.mpp"
+
     
 apk_sources:
   uptodown:

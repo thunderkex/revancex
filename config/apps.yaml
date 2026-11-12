@@ -215,7 +215,7 @@ apps:
   strava:
     name: "Strava"
     package: com.strava
-    patch_source: de_revanced
+    patch_source: madush
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/strava/strava/
     uptodown_url: https://strava.en.uptodown.com/android
@@ -228,8 +228,6 @@ apps:
     - apkpure
     - aptoide
     - archive
-    patches:
-    - Unlock subscription features
     keystore:
       file: keys/strava.jks
 

@@ -1,9 +1,9 @@
 # ReVanceX — YouTube (`revancex-youtube`)
 
-- **Release Tag**: `auto-v1.1.0-2026.11.11-b174`
-- **Version Code**: `2026111102`
-- **Updated**: 2026-11-11T09:29:12Z
-- **Download**: [YouTube-21.13.164-module.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.11-b174/YouTube-21.13.164-module.zip)
+- **Release Tag**: `auto-v1.1.0-2026.11.13-b178`
+- **Version Code**: `2026111302`
+- **Updated**: 2026-11-13T08:23:36Z
+- **Download**: [YouTube-21.13.164-module.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/YouTube-21.13.164-module.zip)
 
 ## Included App & Upstream Patch Source
 

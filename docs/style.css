@@ -93,15 +93,19 @@ body {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  background: var(--primary);
-  color: #ffffff;
+  background: transparent;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 1rem;
-  letter-spacing: 0.5px;
   flex-shrink: 0;
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .brand h1 {

@@ -47,6 +47,14 @@ version_gt() {
 
 get_basepath() {
     BASEPATH=$(pm path "$1" 2>/dev/null | head -n 1 | sed 's/^package://' | tr -d '\r')
+    if [ -z "$BASEPATH" ] || [ ! -f "$BASEPATH" ]; then
+        for _gb_p in /data/app/*/"$1"-*/base.apk /data/app/"$1"-*/base.apk; do
+            if [ -f "$_gb_p" ]; then
+                BASEPATH="$_gb_p"
+                break
+            fi
+        done
+    fi
     echo "$BASEPATH"
     [ -n "$BASEPATH" ] && [ -f "$BASEPATH" ]
 }

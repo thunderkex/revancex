@@ -1313,27 +1313,9 @@
         selinuxEl.style.color = selinux.toLowerCase() === 'enforcing' ? 'var(--success-text)' : 'var(--warning-text)';
       }
 
-      let [pkgsRes, mountsRes] = await Promise.all([
-        ksuExec('pm list packages -f 2>/dev/null'),
-        ksuExec('cat /proc/mounts 2>/dev/null'),
-      ]);
-
       const installedMap = new Map();
-      if (pkgsRes.ok && pkgsRes.stdout) {
-        for (const line of pkgsRes.stdout.split('\n')) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('package:')) {
-            const eqIdx = trimmed.lastIndexOf('=');
-            if (eqIdx !== -1) {
-              installedMap.set(trimmed.substring(eqIdx + 1), trimmed.substring(8, eqIdx));
-            } else {
-              installedMap.set(trimmed.substring(8), '');
-            }
-          }
-        }
-      }
 
-      if (!installedMap.size && typeof ksu !== 'undefined' && ksu && typeof ksu.listPackages === 'function') {
+      if (typeof ksu !== 'undefined' && ksu && typeof ksu.listPackages === 'function') {
         try {
           const raw = ksu.listPackages('all');
           const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
@@ -1347,25 +1329,29 @@
         }
       }
 
-      if (!installedMap.size && state.apps.length) {
-        const checks = await Promise.all(
-          state.apps
-            .filter((a) => a.package && isValidPkg(a.package))
-            .map(async (a) => {
-              const lsRes = await ksuExec(`ls -d /data/app/*/${a.package}-* /data/user/0/${a.package} 2>/dev/null`);
-              let foundPath = lsRes.stdout && lsRes.stdout.trim()
-                ? lsRes.stdout.trim().split('\n')[0].trim()
-                : '';
-              if (!foundPath) {
-                const r = await ksuExec(`pm path ${shellQuote(a.package)} 2>/dev/null`);
-                if (r.ok && r.stdout) foundPath = r.stdout.trim();
-              }
-              return { pkg: a.package, path: foundPath };
-            })
-        );
-        for (const c of checks) {
-          if (c.path) installedMap.set(c.pkg, c.path);
-        }
+      const [mountsRes, fsChecks] = await Promise.all([
+        ksuExec('cat /proc/mounts 2>/dev/null'),
+        (!installedMap.size && state.apps.length)
+          ? Promise.all(
+              state.apps
+                .filter((a) => a.package && isValidPkg(a.package))
+                .map(async (a) => {
+                  const lsRes = await ksuExec(`ls -d /data/app/*/${a.package}-* /data/user/0/${a.package} 2>/dev/null`);
+                  let foundPath = lsRes.stdout && lsRes.stdout.trim()
+                    ? lsRes.stdout.trim().split('\n')[0].trim()
+                    : '';
+                  if (!foundPath) {
+                    const r = await ksuExec(`pm path ${shellQuote(a.package)} 2>/dev/null`);
+                    if (r.ok && r.stdout) foundPath = r.stdout.trim();
+                  }
+                  return { pkg: a.package, path: foundPath };
+                })
+            )
+          : Promise.resolve([]),
+      ]);
+
+      for (const c of fsChecks) {
+        if (c.path) installedMap.set(c.pkg, c.path);
       }
 
       state.installedMap = installedMap;

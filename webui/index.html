@@ -1234,7 +1234,7 @@
       }
 
       if (!state.apps.length) {
-        const listRes = await ksuExec('for f in /data/adb/modules/revancex*/apps.list /data/adb/modules_update/revancex*/apps.list /data/adb/modules/revanced-extended/apps.list ./apps.list; do [ -f "$f" ] && cat "$f" && break; done');
+        const listRes = await ksuExec('for f in /data/adb/modules/revancex*/apps.list /data/adb/modules_update/revancex*/apps.list ./apps.list; do [ -f "$f" ] && cat "$f" && break; done');
         if (listRes.ok && listRes.stdout) {
           const lines = listRes.stdout.split('\n').map((l) => l.trim()).filter(Boolean);
           for (const line of lines) {
@@ -1256,29 +1256,27 @@
     }
 
     async function loadRealSystemAndApps() {
-      const sysRes = await ksuExec('MOD=""; for d in /data/adb/modules/revancex* /data/adb/modules/revanced-extended; do [ -d "$d" ] && MOD="$d" && break; done; echo "ROOT:$(id -u)"; echo "MODEL:$(getprop ro.product.model)"; echo "OS:$(getprop ro.build.version.release)"; echo "SELINUX:$(getenforce)"; echo "KERNEL:$(uname -r)"; echo "ABI:$(getprop ro.product.cpu.abi)"; echo "MODDIR:$MOD"; [ -n "$MOD" ] && [ -f "$MOD/disabled_by_action" ] && echo "PAUSED:1" || echo "PAUSED:0"');
+      const [uidRes, modelRes, osRes, selinuxRes, kernelRes, abiRes, modRes] = await Promise.all([
+        ksuExec('id -u'),
+        ksuExec('getprop ro.product.model'),
+        ksuExec('getprop ro.build.version.release'),
+        ksuExec('getenforce'),
+        ksuExec('uname -r'),
+        ksuExec('getprop ro.product.cpu.abi'),
+        ksuExec('ls -d /data/adb/modules/revancex* 2>/dev/null'),
+      ]);
 
-      let rootUid = '';
-      let model = '';
-      let osVer = '';
-      let selinux = '';
-      let kernel = '';
-      let abi = '';
-      let modDir = '';
+      const rootUid = uidRes.ok ? uidRes.stdout.trim() : '';
+      const model = modelRes.ok ? modelRes.stdout.trim() : '';
+      const osVer = osRes.ok ? osRes.stdout.trim() : '';
+      const selinux = selinuxRes.ok ? selinuxRes.stdout.trim() : '';
+      const kernel = kernelRes.ok ? kernelRes.stdout.trim() : '';
+      const abi = abiRes.ok ? abiRes.stdout.trim() : '';
+      const modDir = modRes.ok && modRes.stdout ? modRes.stdout.trim().split('\n')[0].trim() : '';
       let paused = false;
-
-      if (sysRes.ok && sysRes.stdout) {
-        for (const line of sysRes.stdout.split('\n')) {
-          const t = line.trim();
-          if (t.startsWith('ROOT:')) rootUid = t.substring(5);
-          else if (t.startsWith('MODEL:')) model = t.substring(6);
-          else if (t.startsWith('OS:')) osVer = t.substring(3);
-          else if (t.startsWith('SELINUX:')) selinux = t.substring(8);
-          else if (t.startsWith('KERNEL:')) kernel = t.substring(7);
-          else if (t.startsWith('ABI:')) abi = t.substring(4);
-          else if (t.startsWith('MODDIR:')) modDir = t.substring(7);
-          else if (t.startsWith('PAUSED:')) paused = t.substring(7) === '1';
-        }
+      if (modDir) {
+        const pausedRes = await ksuExec(`ls ${shellQuote(modDir + '/disabled_by_action')} 2>/dev/null`);
+        paused = Boolean(pausedRes.ok && pausedRes.stdout && pausedRes.stdout.trim());
       }
 
       state.isRoot = rootUid === '0';
@@ -1315,7 +1313,7 @@
         selinuxEl.style.color = selinux.toLowerCase() === 'enforcing' ? 'var(--success-text)' : 'var(--warning-text)';
       }
 
-      const [pkgsRes, mountsRes] = await Promise.all([
+      let [pkgsRes, mountsRes] = await Promise.all([
         ksuExec('pm list packages -f 2>/dev/null'),
         ksuExec('cat /proc/mounts 2>/dev/null'),
       ]);
@@ -1328,13 +1326,53 @@
             const eqIdx = trimmed.lastIndexOf('=');
             if (eqIdx !== -1) {
               installedMap.set(trimmed.substring(eqIdx + 1), trimmed.substring(8, eqIdx));
+            } else {
+              installedMap.set(trimmed.substring(8), '');
             }
           }
         }
       }
 
+      if (!installedMap.size && typeof ksu !== 'undefined' && ksu && typeof ksu.listPackages === 'function') {
+        try {
+          const raw = ksu.listPackages('all');
+          const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+          if (Array.isArray(parsed)) {
+            for (const p of parsed) {
+              if (typeof p === 'string' && p) installedMap.set(p, '');
+            }
+          }
+        } catch {
+          // Ignore and fall back to fast filesystem checks below
+        }
+      }
+
+      if (!installedMap.size && state.apps.length) {
+        const checks = await Promise.all(
+          state.apps
+            .filter((a) => a.package && isValidPkg(a.package))
+            .map(async (a) => {
+              const lsRes = await ksuExec(`ls -d /data/app/*/${a.package}-* /data/user/0/${a.package} 2>/dev/null`);
+              let foundPath = lsRes.stdout && lsRes.stdout.trim()
+                ? lsRes.stdout.trim().split('\n')[0].trim()
+                : '';
+              if (!foundPath) {
+                const r = await ksuExec(`pm path ${shellQuote(a.package)} 2>/dev/null`);
+                if (r.ok && r.stdout) foundPath = r.stdout.trim();
+              }
+              return { pkg: a.package, path: foundPath };
+            })
+        );
+        for (const c of checks) {
+          if (c.path) installedMap.set(c.pkg, c.path);
+        }
+      }
+
       state.installedMap = installedMap;
       state.mountedSet = parseMounts(mountsRes.ok ? mountsRes.stdout : '', state.apps);
+      for (const pkg of state.mountedSet) {
+        if (!state.installedMap.has(pkg)) state.installedMap.set(pkg, '');
+      }
 
       document.getElementById('statInstalledCount').textContent = state.apps.filter((a) => installedMap.has(a.package)).length;
       document.getElementById('statMountedCount').textContent = state.mountedSet.size;
@@ -1393,8 +1431,8 @@
       const qId = shellQuote(appId);
       const qPkg = shellQuote(pkg);
       const script = shouldMount
-        ? `MOD=""; for d in /data/adb/modules/revancex* /data/adb/modules/revanced-extended; do [ -f "$d/utils.sh" ] && MOD="$d" && break; done; [ -n "$MOD" ] || exit 1; . "$MOD/utils.sh"; APK="$MOD/apks/"${qId}".apk"; [ -f "$APK" ] || APK="/data/adb/rvex/"${qId}".apk"; [ -f "$APK" ] || exit 2; mount_app_apk ${qId} ${qPkg} "$APK"`
-        : `MOD=""; for d in /data/adb/modules/revancex* /data/adb/modules/revanced-extended; do [ -f "$d/utils.sh" ] && MOD="$d" && break; done; [ -n "$MOD" ] || exit 1; . "$MOD/utils.sh"; umount_app ${qPkg}`;
+        ? `MOD=""; for d in /data/adb/modules/revancex*; do [ -f "$d/utils.sh" ] && MOD="$d" && break; done; [ -n "$MOD" ] || exit 1; . "$MOD/utils.sh"; APK="$MOD/apks/"${qId}".apk"; [ -f "$APK" ] || APK="/data/adb/rvex/"${qId}".apk"; [ -f "$APK" ] || exit 2; mount_app_apk ${qId} ${qPkg} "$APK"`
+        : `MOD=""; for d in /data/adb/modules/revancex*; do [ -f "$d/utils.sh" ] && MOD="$d" && break; done; [ -n "$MOD" ] || exit 1; . "$MOD/utils.sh"; umount_app ${qPkg}`;
       const res = await ksuExec(script);
       if (res.ok) {
         showToast(`${shouldMount ? 'Mounted' : 'Unmounted'} ${pkg}`);
@@ -1406,7 +1444,7 @@
 
     async function toggleGlobalMount() {
       if (!state.isRoot) return;
-      const res = await ksuExec('for f in /data/adb/modules/revancex*/action.sh /data/adb/modules/revanced-extended/action.sh; do [ -f "$f" ] && sh "$f" && exit 0; done; exit 1');
+      const res = await ksuExec('for f in /data/adb/modules/revancex*/action.sh; do [ -f "$f" ] && sh "$f" && exit 0; done; exit 1');
       closeModal();
       if (res.ok) {
         await loadRealSystemAndApps();
@@ -1418,7 +1456,7 @@
 
     async function remountAll() {
       if (!state.isRoot) return;
-      const res = await ksuExec('for f in /data/adb/modules/revancex*/service.sh /data/adb/modules/revanced-extended/service.sh; do [ -f "$f" ] && sh "$f" && exit 0; done; exit 1');
+      const res = await ksuExec('for f in /data/adb/modules/revancex*/service.sh; do [ -f "$f" ] && sh "$f" && exit 0; done; exit 1');
       closeModal();
       if (res.ok) {
         setTimeout(loadRealSystemAndApps, 600);

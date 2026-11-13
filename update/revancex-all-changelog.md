@@ -4,7 +4,7 @@
 - **Version Code**: `2026111001`
 - **Updated**: 2026-11-10T02:00:07Z
 - **Download**: [revancex-bundle-all.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.10-b158/revancex-bundle-all.zip)
-- **Upstream Patch Sources**: `BholeyKaBhakt/android-patches-xtra`, `BlazeFTL/FTL-Patches`, `Fripe070/PixivPatches`, `RookieEnough/De-Vanced`, `SysAdminDoc/HushFeed`, `SysAdminDoc/HushThreads`, `SysAdminDoc/Hushfacebook`, `anddea/revanced-patches`, `bearinmindcat/morphe-patches`, `browzomje/browzomje-patches`, `byehi98/okish-morphe-patches`, `crimera/piko-ig-lite`, `crimera/piko-newx`, `hoo-dles/morphe-patches`, `hxreborn/morphe-patches`, `jasonwu1994/Gboard-patches`, `jkennethcarino/adobo`, `kveld9/kveld-extra-morphe-patches`, `legendsciber/morphe-patches`, `rushiranpise/morphe-patches`
+- **Upstream Patch Sources**: `BholeyKaBhakt/android-patches-xtra`, `BlazeFTL/FTL-Patches`, `Fripe070/PixivPatches`, `SysAdminDoc/HushFeed`, `SysAdminDoc/HushThreads`, `SysAdminDoc/Hushfacebook`, `anddea/revanced-patches`, `bearinmindcat/morphe-patches`, `browzomje/browzomje-patches`, `byehi98/okish-morphe-patches`, `crimera/piko-ig-lite`, `crimera/piko-newx`, `hoo-dles/morphe-patches`, `hxreborn/morphe-patches`, `jasonwu1994/Gboard-patches`, `jkennethcarino/adobo`, `kveld9/kveld-extra-morphe-patches`, `legendsciber/morphe-patches`, `madushas/morphe-patches-custom`, `rushiranpise/morphe-patches`
 
 ## Payload APKs & App Versions
 
@@ -33,7 +33,7 @@
 | Termius | `com.server.auditor.ssh.client` | 7.11.2 | `apks/serverauditor.apk` | rushiranpise/morphe-patches |
 | Stellarium | `com.noctuasoftware.stellarium_free` | 1.16.3 | `apks/stellarium.apk` | BholeyKaBhakt/android-patches-xtra |
 | Sticker Maker | `com.marsvard.stickermakerforwhatsapp` | 1.0.12-7 | `apks/sticker_maker.apk` | rushiranpise/morphe-patches |
-| Strava | `com.strava` | 477.14 | `apks/strava.apk` | RookieEnough/De-Vanced |
+| Strava | `com.strava` | 477.14 | `apks/strava.apk` | madushas/morphe-patches-custom |
 | Threads | `com.instagram.barcelona` | 454.0.0.54.79 | `apks/threads.apk` | SysAdminDoc/HushThreads |
 | TikTok | `com.zhiliaoapp.musically` | 47.7.2 | `apks/tiktok.apk` | SysAdminDoc/HushFeed |
 | WPS Office | `cn.wps.moffice_eng` | 18.24 | `apks/wps_office.apk` | hoo-dles/morphe-patches |

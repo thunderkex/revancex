@@ -9,7 +9,6 @@
       "BholeyKaBhakt/android-patches-xtra",
       "BlazeFTL/FTL-Patches",
       "Fripe070/PixivPatches",
-      "RookieEnough/De-Vanced",
       "SysAdminDoc/HushFeed",
       "SysAdminDoc/HushThreads",
       "SysAdminDoc/Hushfacebook",
@@ -25,6 +24,7 @@
       "jkennethcarino/adobo",
       "kveld9/kveld-extra-morphe-patches",
       "legendsciber/morphe-patches",
+      "madushas/morphe-patches-custom",
       "rushiranpise/morphe-patches"
     ]
   },
@@ -1332,8 +1332,8 @@
       "name": "Strava",
       "enabled": true,
       "package": "com.strava",
-      "patch_source": "de_revanced",
-      "source_repo": "RookieEnough/De-Vanced",
+      "patch_source": "madush",
+      "source_repo": "madushas/morphe-patches-custom",
       "asset_pattern": "*.mpp",
       "categories": [],
       "architectures": [
@@ -1344,9 +1344,7 @@
       ],
       "mode": "patch",
       "optimization_mode": "full",
-      "patches": [
-        "Unlock subscription features"
-      ],
+      "patches": [],
       "dependencies": [],
       "module": {
         "single": false,
@@ -1368,7 +1366,7 @@
           "tag": "auto-v1.1.0-2026.11.11-b174",
           "release_tag": "auto-v1.1.0-2026.11.11-b174",
           "updated_at": "2026-11-11T09:29:12Z",
-          "source_repo": "RookieEnough/De-Vanced",
+          "source_repo": "madushas/morphe-patches-custom",
           "asset_pattern": "*.mpp",
           "version": "477.14",
           "sha256": "f9b81b165f3d7098f5968661637452ae5a8c830e532ee498e99776032c2b00a1",
@@ -1771,7 +1769,6 @@
         "BholeyKaBhakt/android-patches-xtra",
         "BlazeFTL/FTL-Patches",
         "Fripe070/PixivPatches",
-        "RookieEnough/De-Vanced",
         "SysAdminDoc/HushFeed",
         "SysAdminDoc/HushThreads",
         "SysAdminDoc/Hushfacebook",
@@ -1787,6 +1784,7 @@
         "jkennethcarino/adobo",
         "kveld9/kveld-extra-morphe-patches",
         "legendsciber/morphe-patches",
+        "madushas/morphe-patches-custom",
         "rushiranpise/morphe-patches"
       ],
       "sha256": null,

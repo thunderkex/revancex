@@ -505,6 +505,7 @@ jobs:
           VERSION_CODE: ${{ steps.meta.outputs.version_code }}
           OUTPUT_DIR: output
           TG_CHAT: ${{ secrets.TG_CHAT }}
+          TG_CHANNEL: ${{ secrets.TG_CHANNEL }}
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_TOPIC: ${{ secrets.TG_TOPIC }}
 

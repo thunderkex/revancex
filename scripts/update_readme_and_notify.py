@@ -202,6 +202,7 @@ def main():
     output_dir = os.environ.get("OUTPUT_DIR", "output")
     telegram_token = os.environ.get("TG_TOKEN", "")
     telegram_chat_id = os.environ.get("TG_CHAT", "")
+    telegram_channel_id = os.environ.get("TG_CHANNEL", "")
     telegram_topic_id = os.environ.get("TG_TOPIC", "")
 
     os.makedirs("tmp", exist_ok=True)
@@ -619,7 +620,17 @@ def main():
             f"<b>Built Assets:</b>\n{built_list_str}\n\n"
             f"🔗 <a href='https://github.com/{repo_slug}/releases/tag/{tag_name}'>View GitHub Release</a>"
         )
-        send_telegram_message(telegram_token, telegram_chat_id, tg_text, topic_id=telegram_topic_id)
+        targets = []
+        if telegram_chat_id:
+            targets.append((telegram_chat_id, telegram_topic_id))
+        if telegram_channel_id and telegram_channel_id != telegram_chat_id:
+            targets.append((telegram_channel_id, None))
+
+        if not targets or not telegram_token:
+            ulog.skip("Telegram: Bot token or chat/channel ID missing. Skipping notification.")
+        else:
+            for target_chat_id, target_topic_id in targets:
+                send_telegram_message(telegram_token, target_chat_id, tg_text, topic_id=target_topic_id)
 
 
 if __name__ == "__main__":

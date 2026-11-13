@@ -93,6 +93,16 @@ mount_app_apk() {
                 log -t ReVanceX "$_ma_msg"
             fi
             return 2
+        elif version_gt "$_ma_patched_ver" "$_ma_stock_ver"; then
+            _ma_msg="Skipping $_ma_app_id ($_ma_pkg_name): installed stock version ($_ma_stock_ver) is older than module APK ($_ma_patched_ver)"
+            echo "! $_ma_msg" >&2
+            if command -v ui_print >/dev/null 2>&1; then
+                ui_print "  ! $_ma_msg"
+            fi
+            if command -v log >/dev/null 2>&1; then
+                log -t ReVanceX "$_ma_msg"
+            fi
+            return 3
         fi
     fi
 

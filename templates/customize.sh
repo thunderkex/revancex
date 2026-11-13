@@ -89,10 +89,18 @@ while IFS=: read -r APP_ID PKG_NAME APP_MODE PATCHED_VER; do
     BASEPATH=$(get_basepath "$PKG_NAME" || :)
 
     if [ "$APP_MODE" != "install" ]; then
+        STOCK_APK="$MODPATH/stock/${APP_ID}.apk"
         if [ -z "$BASEPATH" ] || [ ! -f "$BASEPATH" ]; then
-            STOCK_APK="$MODPATH/stock/${APP_ID}.apk"
             if [ -f "$STOCK_APK" ]; then
                 ui_print "  - Stock app not detected in system, installing official stock base..."
+                install_base_apk "$PKG_NAME" "$STOCK_APK" || :
+                BASEPATH=$(get_basepath "$PKG_NAME" || :)
+            fi
+        elif [ -n "$PATCHED_VER" ] && [ -f "$STOCK_APK" ]; then
+            STOCK_VER=$(get_app_version "$PKG_NAME")
+            if [ -n "$STOCK_VER" ] && version_gt "$PATCHED_VER" "$STOCK_VER"; then
+                ui_print "  - Installed stock ($STOCK_VER) is older than module ($PATCHED_VER); updating stock base..."
+                umount_app "$PKG_NAME"
                 install_base_apk "$PKG_NAME" "$STOCK_APK" || :
                 BASEPATH=$(get_basepath "$PKG_NAME" || :)
             fi
@@ -111,6 +119,8 @@ while IFS=: read -r APP_ID PKG_NAME APP_MODE PATCHED_VER; do
                 ui_print "  - Replaced & mounted seamlessly over stock app"
             elif [ "$_rc" -eq 2 ]; then
                 ui_print "  - Kept Play-Store-updated stock app (skipped older module overlay)"
+            elif [ "$_rc" -eq 3 ]; then
+                ui_print "  ! Skipped overlay: installed stock app is older than module APK (update stock base first)"
             else
                 ui_print "  ! Bind-mount failed for $APP_ID"
             fi

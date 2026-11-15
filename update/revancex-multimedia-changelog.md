@@ -1,9 +1,9 @@
 # ReVanceX Multimedia Bundle (`revancex-multimedia`)
 
-- **Release Tag**: `auto-v1.1.0-2026.11.13-b178`
-- **Version Code**: `2026111302`
-- **Updated**: 2026-11-13T08:23:36Z
-- **Download**: [revancex-bundle-multimedia.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/revancex-bundle-multimedia.zip)
+- **Release Tag**: `auto-v1.1.0-2026.11.15-b180`
+- **Version Code**: `2026111501`
+- **Updated**: 2026-11-15T02:21:44Z
+- **Download**: [revancex-bundle-multimedia.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.15-b180/revancex-bundle-multimedia.zip)
 - **Upstream Patch Sources**: `anddea/revanced-patches`
 
 ## Payload APKs & App Versions

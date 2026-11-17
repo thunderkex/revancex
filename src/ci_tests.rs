@@ -3631,3 +3631,36 @@ fn test_static_smoke_test_ignores_root_payload_and_stage_in_tmp() {
     let item = crate::testing::verify_static_apk_item("reddit", &out_apk, None, tmp_dir.path());
     assert_eq!(item.status, crate::testing::TestStatus::Passed);
 }
+
+#[test]
+fn test_apps_affected_by_files_only_relevant() {
+    use crate::orchestrator::discovery::apps_affected_by_files;
+    let all = vec![
+        (
+            "youtube".to_string(),
+            "com.google.android.youtube".to_string(),
+        ),
+        ("reddit".to_string(), "com.reddit.frontpage".to_string()),
+    ];
+    let f = |v: &[&str]| v.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+    assert_eq!(
+        apps_affected_by_files(&all, &all, &f(&["patches/src/youtube/ads/Ads.kt"])),
+        vec!["youtube".to_string()]
+    );
+    assert!(apps_affected_by_files(&all, &all, &f(&["README.md", ".github/x.yml"])).is_empty());
+    assert_eq!(
+        apps_affected_by_files(&all, &all, &f(&["extensions/shared/Utils.java"])).len(),
+        2
+    );
+    let rush = vec![
+        ("adguard".to_string(), "com.adguard.android".to_string()),
+        (
+            "serverauditor".to_string(),
+            "com.server.auditor.ssh.client".to_string(),
+        ),
+    ];
+    assert_eq!(
+        apps_affected_by_files(&rush, &rush, &f(&["patches/shared/HttpClient.kt"])).len(),
+        2
+    );
+}

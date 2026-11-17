@@ -79,6 +79,148 @@ pub fn detect_changed_apps_from_tags(
     (changed_sources, changed_apps, updated_cache)
 }
 
+fn normalize_key(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .map(|c| c.to_ascii_lowercase())
+        .collect()
+}
+
+fn app_path_keys(app_name: &str, package: &str) -> Vec<String> {
+    const GENERIC: &[&str] = &[
+        "com", "org", "net", "io", "app", "android", "google", "apps", "www", "mobile",
+    ];
+    let mut keys = vec![normalize_key(app_name), normalize_key(package)];
+    let segs: Vec<&str> = package
+        .split('.')
+        .filter(|s| !s.is_empty() && !GENERIC.contains(s))
+        .collect();
+    if !segs.is_empty() {
+        keys.push(normalize_key(&segs.join("")));
+    }
+    keys.retain(|k| k.len() >= 3);
+    keys.sort();
+    keys.dedup();
+    keys
+}
+
+fn is_ignorable_file(path: &str) -> bool {
+    let p = path.to_ascii_lowercase();
+    p.starts_with(".github/")
+        || p.starts_with("docs/")
+        || p.starts_with("doc/")
+        || p.ends_with(".md")
+        || p.ends_with(".txt")
+        || p.ends_with(".png")
+        || p.ends_with(".jpg")
+        || p.ends_with(".svg")
+        || p.ends_with(".gitignore")
+        || p.ends_with(".gitattributes")
+        || p.contains("license")
+        || p.contains("changelog")
+        || p.contains("/translations/")
+        || p.contains("/res/values-")
+}
+
+pub fn apps_affected_by_files(
+    apps: &[(String, String)],
+    all_apps: &[(String, String)],
+    files: &[String],
+) -> Vec<String> {
+    let all_keys: Vec<Vec<String>> = all_apps.iter().map(|(n, p)| app_path_keys(n, p)).collect();
+    let mut affected: Vec<String> = Vec::new();
+    for file in files {
+        if is_ignorable_file(file) {
+            continue;
+        }
+        let norm = normalize_key(file);
+        let mut matched = false;
+        for (i, keys) in all_keys.iter().enumerate() {
+            if keys.iter().any(|k| norm.contains(k.as_str())) {
+                matched = true;
+                let name = &all_apps[i].0;
+                if apps.iter().any(|(n, _)| n == name) && !affected.contains(name) {
+                    affected.push(name.clone());
+                }
+            }
+        }
+        if !matched {
+            return apps.iter().map(|(n, _)| n.clone()).collect();
+        }
+    }
+    affected.sort();
+    affected
+}
+
+async fn filter_apps_by_relevant_changes(
+    cfg: &Config,
+    client: &reqwest::Client,
+    pairs: &HashMap<(String, String, Option<String>), Vec<String>>,
+    cached_tags: &HashMap<String, String>,
+    latest_tags: &HashMap<(String, Option<String>), String>,
+    detected_apps: Vec<String>,
+) -> Vec<String> {
+    let mut result: Vec<String> = Vec::new();
+
+    for ((source_name, repo, branch), apps) in pairs {
+        let cache_key = match branch {
+            Some(b) => format!("{source_name}@{b}"),
+            None => source_name.clone(),
+        };
+        let Some(latest) = latest_tags.get(&(source_name.clone(), branch.clone())) else {
+            continue;
+        };
+        let prev = cached_tags
+            .get(&cache_key)
+            .or_else(|| cached_tags.get(source_name))
+            .cloned()
+            .unwrap_or_default();
+        if &prev == latest {
+            continue;
+        }
+        let app_pairs: Vec<(String, String)> = apps
+            .iter()
+            .map(|n| {
+                (
+                    n.clone(),
+                    cfg.apps
+                        .get(n)
+                        .map(|a| a.package.clone())
+                        .unwrap_or_default(),
+                )
+            })
+            .collect();
+
+        let selected = if prev.is_empty() {
+            apps.clone()
+        } else {
+            match crate::utils::github::get_changed_files(client, repo, &prev, latest).await {
+                Ok(Some(files)) => {
+                    let sel = apps_affected_by_files(&app_pairs, &app_pairs, &files);
+                    info!(
+                        "{source_name}: {prev} → {latest}: {} changed files, affected apps: {sel:?}",
+                        files.len()
+                    );
+                    sel
+                }
+                Ok(None) | Err(_) => {
+                    tracing::warn!(
+                        "{source_name}: cannot determine changed files {prev}...{latest}; rebuilding all its apps"
+                    );
+                    apps.clone()
+                }
+            }
+        };
+        for a in selected {
+            if detected_apps.contains(&a) && !result.contains(&a) {
+                result.push(a);
+            }
+        }
+    }
+    result.sort();
+    result
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum SkipReason {
     NoMppFile(String),
@@ -235,8 +377,18 @@ pub async fn check_updates(cfg: &Config, json_output: bool) -> Result<()> {
         }
     }
 
-    let (changed_sources, mut changed_apps, new_cache_tags) =
+    let (changed_sources, detected_apps, new_cache_tags) =
         detect_changed_apps_from_tags(&pairs, &cache.patch_source_tags, &latest_tags);
+
+    let mut changed_apps = filter_apps_by_relevant_changes(
+        cfg,
+        &client,
+        &pairs,
+        &cache.patch_source_tags,
+        &latest_tags,
+        detected_apps,
+    )
+    .await;
 
     cache.patch_source_tags = new_cache_tags;
 

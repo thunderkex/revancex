@@ -256,6 +256,41 @@ pub async fn get_latest_release(
     }
 }
 
+#[derive(Deserialize)]
+struct GhCompare {
+    #[serde(default)]
+    files: Vec<GhCompareFile>,
+}
+
+#[derive(Deserialize)]
+struct GhCompareFile {
+    filename: String,
+    #[serde(default)]
+    previous_filename: Option<String>,
+}
+
+pub async fn get_changed_files(
+    client: &Client,
+    repo: &str,
+    base: &str,
+    head: &str,
+) -> std::result::Result<Option<Vec<String>>, FetchReleaseError> {
+    let url = format!("https://api.github.com/repos/{repo}/compare/{base}...{head}?per_page=100");
+    let Some((cmp, _)) = send_github_json::<GhCompare>(client, &url, repo, None).await? else {
+        return Ok(None);
+    };
+    if cmp.files.len() >= 100 {
+        return Ok(None);
+    }
+    let mut out = Vec::new();
+    for f in cmp.files {
+        out.push(f.filename);
+        if let Some(p) = f.previous_filename {
+            out.push(p);
+        }
+    }
+    Ok(Some(out))
+}
 pub fn pick_asset<'a>(release: &'a GhRelease, pattern: &str) -> Option<&'a GhAsset> {
     let prefix = pattern.split('*').next().unwrap_or("");
     let suffix = pattern.rsplit('*').next().unwrap_or("");

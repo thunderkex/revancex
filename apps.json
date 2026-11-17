@@ -1,9 +1,9 @@
 {
   "schema_version": "2.0.0",
   "build_health": {
-    "release_tag": "auto-v1.1.0-2026.11.16-b181",
+    "release_tag": "auto-v1.1.0-2026.11.17-b182",
     "cli_version": "1.1.0",
-    "built_at": "2026-11-16T02:30:34Z",
+    "built_at": "2026-11-17T04:56:22Z",
     "pass_rate": 1.0,
     "active_sources": [
       "BholeyKaBhakt/android-patches-xtra",
@@ -162,27 +162,27 @@
         "single": false,
         "bundle": true
       },
-      "version": "19.9.0",
-      "sha256": "a1269f26d8c0f7990bbf263af9271f851b50e15f49e904e7d18536b011c3d2e5",
-      "size_bytes": 224870388,
+      "version": "20.1.0",
+      "sha256": "538344130f5d748e0aab7ba141750b0247dd88a8d25505d6c7e07c350b1ab0f9",
+      "size_bytes": 212016691,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/CapCut-19.9.0.apk",
-      "tag": "auto-v1.1.0-2026.11.13-b178",
-      "release_tag": "auto-v1.1.0-2026.11.13-b178",
-      "updated_at": "2026-11-13T08:23:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/CapCut-20.1.0.apk",
+      "tag": "auto-v1.1.0-2026.11.17-b182",
+      "release_tag": "auto-v1.1.0-2026.11.17-b182",
+      "updated_at": "2026-11-17T04:56:22Z",
       "releases": {
         "stock": {
-          "filename": "CapCut-19.9.0.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/CapCut-19.9.0.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/CapCut-19.9.0.apk",
-          "tag": "auto-v1.1.0-2026.11.13-b178",
-          "release_tag": "auto-v1.1.0-2026.11.13-b178",
-          "updated_at": "2026-11-13T08:23:36Z",
+          "filename": "CapCut-20.1.0.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/CapCut-20.1.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/CapCut-20.1.0.apk",
+          "tag": "auto-v1.1.0-2026.11.17-b182",
+          "release_tag": "auto-v1.1.0-2026.11.17-b182",
+          "updated_at": "2026-11-17T04:56:22Z",
           "source_repo": "kveld9/kveld-extra-morphe-patches",
           "asset_pattern": "*.mpp",
-          "version": "19.9.0",
-          "sha256": "a1269f26d8c0f7990bbf263af9271f851b50e15f49e904e7d18536b011c3d2e5",
-          "size_bytes": 224870388,
+          "version": "20.1.0",
+          "sha256": "538344130f5d748e0aab7ba141750b0247dd88a8d25505d6c7e07c350b1ab0f9",
+          "size_bytes": 212016691,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -536,26 +536,26 @@
         "bundle": true
       },
       "version": "26.44.06.1006895251",
-      "sha256": "715a61272be2428d566b70f11a481d55e38a5a86a7e940c89f162ef4b72129a1",
-      "size_bytes": 140759318,
+      "sha256": "eccaf1b417bf842441cceb7aad9ac6cd5e9572c38012d97de6eba0cf105913b5",
+      "size_bytes": 140775702,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Google-Maps-26.44.06.1006895251.apk",
-      "tag": "auto-v1.1.0-2026.11.16-b181",
-      "release_tag": "auto-v1.1.0-2026.11.16-b181",
-      "updated_at": "2026-11-16T02:30:34Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Google-Maps-26.44.06.1006895251.apk",
+      "tag": "auto-v1.1.0-2026.11.17-b182",
+      "release_tag": "auto-v1.1.0-2026.11.17-b182",
+      "updated_at": "2026-11-17T04:56:22Z",
       "releases": {
         "stock": {
           "filename": "Google-Maps-26.44.06.1006895251.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Google-Maps-26.44.06.1006895251.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Google-Maps-26.44.06.1006895251.apk",
-          "tag": "auto-v1.1.0-2026.11.16-b181",
-          "release_tag": "auto-v1.1.0-2026.11.16-b181",
-          "updated_at": "2026-11-16T02:30:34Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Google-Maps-26.44.06.1006895251.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Google-Maps-26.44.06.1006895251.apk",
+          "tag": "auto-v1.1.0-2026.11.17-b182",
+          "release_tag": "auto-v1.1.0-2026.11.17-b182",
+          "updated_at": "2026-11-17T04:56:22Z",
           "source_repo": "bearinmindcat/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "26.44.06.1006895251",
-          "sha256": "715a61272be2428d566b70f11a481d55e38a5a86a7e940c89f162ef4b72129a1",
-          "size_bytes": 140759318,
+          "sha256": "eccaf1b417bf842441cceb7aad9ac6cd5e9572c38012d97de6eba0cf105913b5",
+          "size_bytes": 140775702,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -812,18 +812,18 @@
       "sha256": "381cecada2e6306f1468fe2e9799d13787f91a8cc7e4b85ed9050b375560e96b",
       "size_bytes": 70146566,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Moviebox-4.0.03.1020.03.apk",
-      "tag": "auto-v1.1.0-2026.11.16-b181",
-      "release_tag": "auto-v1.1.0-2026.11.16-b181",
-      "updated_at": "2026-11-16T02:30:34Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Moviebox-4.0.03.1020.03.apk",
+      "tag": "auto-v1.1.0-2026.11.17-b182",
+      "release_tag": "auto-v1.1.0-2026.11.17-b182",
+      "updated_at": "2026-11-17T04:56:22Z",
       "releases": {
         "stock": {
           "filename": "Moviebox-4.0.03.1020.03.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Moviebox-4.0.03.1020.03.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Moviebox-4.0.03.1020.03.apk",
-          "tag": "auto-v1.1.0-2026.11.16-b181",
-          "release_tag": "auto-v1.1.0-2026.11.16-b181",
-          "updated_at": "2026-11-16T02:30:34Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Moviebox-4.0.03.1020.03.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Moviebox-4.0.03.1020.03.apk",
+          "tag": "auto-v1.1.0-2026.11.17-b182",
+          "release_tag": "auto-v1.1.0-2026.11.17-b182",
+          "updated_at": "2026-11-17T04:56:22Z",
           "source_repo": "hxreborn/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "4.0.03.1020.03",
@@ -1028,26 +1028,26 @@
         "bundle": true
       },
       "version": "5.21.9.0",
-      "sha256": "456c2c5ee6d6d1c3acdaf3d4420c47b3a10668ae150d014a4a3baceb11d67c71",
-      "size_bytes": 31362369,
+      "sha256": "447509dcbb5ee38a1d61e2b7ef0f08bb761b51d21b98b07e8bad9177808a1c71",
+      "size_bytes": 31366465,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Proton-VPN-5.21.9.0.apk",
-      "tag": "auto-v1.1.0-2026.11.16-b181",
-      "release_tag": "auto-v1.1.0-2026.11.16-b181",
-      "updated_at": "2026-11-16T02:30:34Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Proton-VPN-5.21.9.0.apk",
+      "tag": "auto-v1.1.0-2026.11.17-b182",
+      "release_tag": "auto-v1.1.0-2026.11.17-b182",
+      "updated_at": "2026-11-17T04:56:22Z",
       "releases": {
         "stock": {
           "filename": "Proton-VPN-5.21.9.0.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Proton-VPN-5.21.9.0.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/Proton-VPN-5.21.9.0.apk",
-          "tag": "auto-v1.1.0-2026.11.16-b181",
-          "release_tag": "auto-v1.1.0-2026.11.16-b181",
-          "updated_at": "2026-11-16T02:30:34Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Proton-VPN-5.21.9.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Proton-VPN-5.21.9.0.apk",
+          "tag": "auto-v1.1.0-2026.11.17-b182",
+          "release_tag": "auto-v1.1.0-2026.11.17-b182",
+          "updated_at": "2026-11-17T04:56:22Z",
           "source_repo": "hxreborn/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "5.21.9.0",
-          "sha256": "456c2c5ee6d6d1c3acdaf3d4420c47b3a10668ae150d014a4a3baceb11d67c71",
-          "size_bytes": 31362369,
+          "sha256": "447509dcbb5ee38a1d61e2b7ef0f08bb761b51d21b98b07e8bad9177808a1c71",
+          "size_bytes": 31366465,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -1084,18 +1084,18 @@
       "sha256": "17829988f3060367551ce1ca9269a2e166dcacc0e3daa603f68f7e1fab8098a2",
       "size_bytes": 119258563,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.15-b180/Plants-vs-Zombies-3.18.0.apk",
-      "tag": "auto-v1.1.0-2026.11.15-b180",
-      "release_tag": "auto-v1.1.0-2026.11.15-b180",
-      "updated_at": "2026-11-15T02:21:44Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Plants-vs-Zombies-3.18.0.apk",
+      "tag": "auto-v1.1.0-2026.11.17-b182",
+      "release_tag": "auto-v1.1.0-2026.11.17-b182",
+      "updated_at": "2026-11-17T04:56:22Z",
       "releases": {
         "stock": {
           "filename": "Plants-vs-Zombies-3.18.0.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.15-b180/Plants-vs-Zombies-3.18.0.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.15-b180/Plants-vs-Zombies-3.18.0.apk",
-          "tag": "auto-v1.1.0-2026.11.15-b180",
-          "release_tag": "auto-v1.1.0-2026.11.15-b180",
-          "updated_at": "2026-11-15T02:21:44Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Plants-vs-Zombies-3.18.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Plants-vs-Zombies-3.18.0.apk",
+          "tag": "auto-v1.1.0-2026.11.17-b182",
+          "release_tag": "auto-v1.1.0-2026.11.17-b182",
+          "updated_at": "2026-11-17T04:56:22Z",
           "source_repo": "byehi98/okish-morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "3.18.0",
@@ -1767,33 +1767,34 @@
       "asset_pattern": null,
       "sources": [
         "bearinmindcat/morphe-patches",
+        "byehi98/okish-morphe-patches",
         "hxreborn/morphe-patches",
-        "legendsciber/morphe-patches"
+        "kveld9/kveld-extra-morphe-patches"
       ],
-      "sha256": "27c6fb3d661fad33eafc63c1508fe1271e86728368b8b412cd5534e78b924fa3",
-      "size_bytes": 779822239,
-      "release_tag": "auto-v1.1.0-2026.11.16-b181",
-      "tag": "auto-v1.1.0-2026.11.16-b181",
-      "updated_at": "2026-11-16T02:30:34Z",
+      "sha256": "808cebc96aad6ff72b44be0a353d85df351f23806efdf051ddef91ec46af2531",
+      "size_bytes": 1031326944,
+      "release_tag": "auto-v1.1.0-2026.11.17-b182",
+      "tag": "auto-v1.1.0-2026.11.17-b182",
+      "updated_at": "2026-11-17T04:56:22Z",
       "supported_archs": [
         "arm64-v8a",
         "armeabi-v7a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/revancex-bundle-all.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/revancex-bundle-all.zip",
       "validation_status": "warning",
       "payload": [
+        {
+          "app": "capcut",
+          "package": "com.lemon.lvoverseas",
+          "version": "20.1.0",
+          "path": "apks/capcut.apk"
+        },
         {
           "app": "google_maps",
           "package": "com.google.android.apps.maps",
           "version": "26.44.06.1006895251",
           "path": "apks/google_maps.apk"
-        },
-        {
-          "app": "hungry_shark_evolution",
-          "package": "com.fgol.HungrySharkEvolution",
-          "version": "14.5.0",
-          "path": "apks/hungry_shark_evolution.apk"
         },
         {
           "app": "moviebox",
@@ -1806,6 +1807,12 @@
           "package": "ch.protonvpn.android",
           "version": "5.21.9.0",
           "path": "apks/proton_vpn.apk"
+        },
+        {
+          "app": "pvz_free",
+          "package": "com.ea.game.pvzfree_row",
+          "version": "3.18.0",
+          "path": "apks/pvz_free.apk"
         }
       ]
     },
@@ -1969,16 +1976,16 @@
       "sources": [
         "hxreborn/morphe-patches"
       ],
-      "sha256": "4dfdb98ac876b29cc0d7b82f8358dd669921084d0bfa87fb00463afd3f746047",
-      "size_bytes": 53590460,
-      "release_tag": "auto-v1.1.0-2026.11.16-b181",
-      "tag": "auto-v1.1.0-2026.11.16-b181",
-      "updated_at": "2026-11-16T02:30:34Z",
+      "sha256": "4f12925b15c5b8c4591e79947faa9c198e172ccad2498a87a283078d5a101e22",
+      "size_bytes": 53596565,
+      "release_tag": "auto-v1.1.0-2026.11.17-b182",
+      "tag": "auto-v1.1.0-2026.11.17-b182",
+      "updated_at": "2026-11-17T04:56:22Z",
       "supported_archs": [
         "arm64-v8a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.16-b181/revancex-bundle-tools.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/revancex-bundle-tools.zip",
       "validation_status": "warning",
       "payload": [
         {

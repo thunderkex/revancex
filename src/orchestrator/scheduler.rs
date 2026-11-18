@@ -1129,6 +1129,24 @@ async fn build_single(req: &BuildSingleReq<'_>) -> (Option<String>, AppBuildRepo
         );
     }
 
+    if let Err(e) = builder::superpack::unpack_if_needed(
+        req.cfg,
+        ctx.id,
+        &fetch.raw_apk,
+        &req.net.github_client,
+    )
+    .await
+    {
+        return ctx.fail_with_fetch(
+            &fetch,
+            format!("{}: superpack unpack failed: {e}", ctx.id),
+            FailureCategory::PatcherError,
+            integrity_status,
+            None,
+            None,
+        );
+    }
+
     let (arch_mode, strip_arch, patch_res, root_payload_path) =
         execute_patch_variants(req.cfg, &ctx, req.arch, req.output_dir, &fetch.raw_apk).await;
 

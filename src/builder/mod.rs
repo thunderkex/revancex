@@ -1,5 +1,6 @@
 pub mod arch;
 pub mod lite;
+pub mod superpack;
 
 use crate::config::{AppConfig, Config};
 use crate::patcher::metadata;

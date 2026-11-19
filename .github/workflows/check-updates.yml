@@ -68,7 +68,7 @@ jobs:
             echo "changed_apps=all" >> "$GITHUB_OUTPUT"
           else
             step_run "Poll patch repositories for updates" revancex check-updates --json
-            OUTPUT=$(cat build/logs/poll-patch-repositories-for-updates.log)
+            OUTPUT=$(sed -n '/^{/,/^}/p' build/logs/poll-patch-repositories-for-updates.log)
             HAS_UPDATES=$(echo "$OUTPUT" | jq -r '.has_updates // false')
             CHANGED_APPS=$(echo "$OUTPUT" | jq -r '.changed_apps // [] | join(",")')
             [ -z "$CHANGED_APPS" ] && [ "$HAS_UPDATES" = "true" ] && CHANGED_APPS="all"

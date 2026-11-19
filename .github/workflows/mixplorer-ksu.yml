@@ -1,0 +1,121 @@
+name: MiXplorer KernelSU Module
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build and release even if no updates are detected'
+        required: false
+        default: false
+        type: boolean
+      arch:
+        description: 'Target architecture'
+        required: false
+        default: 'arm64'
+        type: choice
+        options:
+          - arm64
+          - universal
+      folder_id:
+        description: 'Google Drive folder ID containing MiXplorer and add-ons'
+        required: false
+        default: '1BfeK39boriHy-9q76eXLLqbCwfV17-Gv'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mixplorer-ksu
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check MiXplorer Drive Updates
+    runs-on: ubuntu-24.04
+    outputs:
+      has_updates: ${{ steps.check.outputs.has_updates }}
+      tag: ${{ steps.check.outputs.tag }}
+      mixplorer_version: ${{ steps.check.outputs.mixplorer_version }}
+      version_code: ${{ steps.check.outputs.version_code }}
+      changes_summary: ${{ steps.check.outputs.changes_summary }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check Google Drive folder for updates
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ARCH: ${{ inputs.arch || 'arm64' }}
+          FOLDER_ID: ${{ inputs.folder_id || '1BfeK39boriHy-9q76eXLLqbCwfV17-Gv' }}
+          FORCE_BUILD: ${{ inputs.force_build == true }}
+        run: |
+          ARGS=(--folder-id "$FOLDER_ID" --arch "$ARCH" --repo "$GITHUB_REPOSITORY")
+          if [ "$FORCE_BUILD" = "true" ]; then
+            ARGS+=(--force)
+          fi
+          python3 scripts/build_mixplorer_module.py check "${ARGS[@]}"
+
+  build-and-release:
+    name: Build & Release MiXplorer KSU Module
+    needs: check
+    if: needs.check.outputs.has_updates == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download APKs and build KernelSU module
+        id: build
+        env:
+          ARCH: ${{ inputs.arch || 'arm64' }}
+          FOLDER_ID: ${{ inputs.folder_id || '1BfeK39boriHy-9q76eXLLqbCwfV17-Gv' }}
+          TAG: ${{ needs.check.outputs.tag }}
+          VERSION_CODE: ${{ needs.check.outputs.version_code }}
+        run: |
+          python3 scripts/build_mixplorer_module.py build \
+            --folder-id "$FOLDER_ID" \
+            --arch "$ARCH" \
+            --tag "$TAG" \
+            --version-code "$VERSION_CODE" \
+            --work-dir tmp/mixplorer-ksu/apks \
+            --output-dir output
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.build.outputs.tag }}
+          MIX_VER: ${{ steps.build.outputs.mixplorer_version }}
+          ZIP_PATH: ${{ steps.build.outputs.zip_path }}
+          NOTES_PATH: ${{ steps.build.outputs.notes_path }}
+        run: |
+          TITLE="MiXplorer + Add-ons Suite v${MIX_VER} (KernelSU Module)"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES_PATH" --latest=false
+            gh release upload "$TAG" "$ZIP_PATH" --clobber
+          else
+            gh release create "$TAG" "$ZIP_PATH" \
+              --title "$TITLE" \
+              --notes-file "$NOTES_PATH" \
+              --latest=false
+          fi
+
+      - name: Write Release Summary
+        env:
+          TAG: ${{ steps.build.outputs.tag }}
+          ZIP_NAME: ${{ steps.build.outputs.zip_name }}
+          SHA256: ${{ steps.build.outputs.sha256 }}
+          CHANGES: ${{ needs.check.outputs.changes_summary }}
+        run: |
+          {
+            echo "### MiXplorer KernelSU Module Released"
+            echo ""
+            echo "- **Release**: [\`${TAG}\`](https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG})"
+            echo "- **Asset**: \`${ZIP_NAME}\`"
+            echo "- **SHA-256**: \`${SHA256}\`"
+            echo "- **Changes**: ${CHANGES}"
+          } >> "$GITHUB_STEP_SUMMARY"

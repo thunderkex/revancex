@@ -281,7 +281,7 @@ apps:
     name: "X Piko"
     package: com.twitter.android
     apk_url: https://d.apkpure.com/b/XAPK/com.twitter.android?versionCode=312191000&nc=arm64-v8a
-    patch_source: piko_newx
+    patch_source: newpiko
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/x-corp/twitter/
     archive_url: https://archive.org/download/geologically/apks/com.twitter.android
@@ -332,14 +332,8 @@ apps:
   pinterest:
     name: "Pinterest"
     package: com.pinterest
-    version: 14.23.0
-    patch_source: browzomje
+    patch_source: hushpinterest
     cli_source: MorpheApp/morphe-cli
-    excluded_patches:
-    - Keep Home feed
-    - Choose startup tab
-    - Hide save for later tooltip
-    - Repair Firebase registration
     apkmirror_url: https://www.apkmirror.com/apk/pinterest/pinterest-one-destination-for-a-world-of-inspiration
     uptodown_url: https://pinterest.en.uptodown.com/android
     apkpure_url: https://apkpure.com/pinterest/com.pinterest

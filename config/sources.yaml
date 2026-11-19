@@ -12,16 +12,13 @@ patch_sources:
     repo: RookieEnough/De-Vanced
     asset_pattern: "*.mpp"
 
-  piko:
+  newpiko:
     repo: crimera/piko
     asset_pattern: "*.mpp"
+    branch: x-lite
 
   piko_ig_lite:
     repo: crimera/piko-ig-lite
-    asset_pattern: "*.mpp"
-
-  piko_newx:
-    repo: crimera/piko-newx
     asset_pattern: "*.mpp"
 
   morphe_patches:
@@ -64,10 +61,6 @@ patch_sources:
     repo: SapitoSucio/FroggoMorphePatches
     asset_pattern: "*.mpp"
 
-  browzomje:
-    repo: browzomje/browzomje-patches
-    asset_pattern: "*.mpp"
-
   blazeftl:
     repo: BlazeFTL/FTL-Patches
     asset_pattern: "*.mpp"
@@ -86,6 +79,10 @@ patch_sources:
 
   hushthreads:
     repo: SysAdminDoc/HushThreads
+    asset_pattern: "*.mpp"
+
+  hushpinterest:
+    repo: SysAdminDoc/HushPinterest
     asset_pattern: "*.mpp"
 
   legendsciber:
@@ -112,7 +109,6 @@ patch_sources:
     repo: madushas/morphe-patches-custom
     asset_pattern: "*.mpp"
 
-    
 apk_sources:
   uptodown:
     base_url: https://uptodown.com

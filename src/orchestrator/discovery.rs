@@ -203,9 +203,15 @@ async fn filter_apps_by_relevant_changes(
                     );
                     sel
                 }
-                Ok(None) | Err(_) => {
+                Ok(None) => {
                     tracing::warn!(
-                        "{source_name}: cannot determine changed files {prev}...{latest}; rebuilding all its apps"
+                        "{source_name}: cannot determine changed files {prev}...{latest} (diff truncated); rebuilding all its apps"
+                    );
+                    apps.clone()
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "{source_name}: cannot determine changed files {prev}...{latest} ({e}); rebuilding all its apps"
                     );
                     apps.clone()
                 }

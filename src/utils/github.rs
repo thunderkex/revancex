@@ -256,10 +256,31 @@ pub async fn get_latest_release(
     }
 }
 
+const COMPARE_FILES_LIMIT: usize = 300;
+
 #[derive(Deserialize)]
 struct GhCompare {
     #[serde(default)]
     files: Vec<GhCompareFile>,
+    #[serde(default)]
+    merge_base_commit: Option<GhCompareCommit>,
+}
+
+#[derive(Deserialize)]
+struct GhCompareCommit {
+    #[serde(default)]
+    commit: Option<GhCompareCommitInner>,
+}
+
+#[derive(Deserialize)]
+struct GhCompareCommitInner {
+    #[serde(default)]
+    tree: Option<GhTreeRef>,
+}
+
+#[derive(Deserialize)]
+struct GhTreeRef {
+    sha: String,
 }
 
 #[derive(Deserialize)]
@@ -269,27 +290,118 @@ struct GhCompareFile {
     previous_filename: Option<String>,
 }
 
+#[derive(Deserialize)]
+struct GhGitTree {
+    #[serde(default)]
+    tree: Vec<GhGitTreeEntry>,
+    #[serde(default)]
+    truncated: bool,
+}
+
+#[derive(Deserialize)]
+struct GhGitTreeEntry {
+    path: String,
+    sha: String,
+    #[serde(rename = "type")]
+    entry_type: String,
+}
+
+fn diff_git_trees(base: &[GhGitTreeEntry], head: &[GhGitTreeEntry]) -> Vec<String> {
+    let base_map: std::collections::HashMap<&str, &str> = base
+        .iter()
+        .filter(|e| e.entry_type != "tree")
+        .map(|e| (e.path.as_str(), e.sha.as_str()))
+        .collect();
+    let head_map: std::collections::HashMap<&str, &str> = head
+        .iter()
+        .filter(|e| e.entry_type != "tree")
+        .map(|e| (e.path.as_str(), e.sha.as_str()))
+        .collect();
+
+    let mut changed = Vec::new();
+    for (&path, &sha) in &head_map {
+        if base_map.get(path) != Some(&sha) {
+            changed.push(path.to_string());
+        }
+    }
+    for &path in base_map.keys() {
+        if !head_map.contains_key(path) {
+            changed.push(path.to_string());
+        }
+    }
+    changed.sort();
+    changed
+}
+
+async fn fetch_recursive_tree(
+    client: &Client,
+    repo: &str,
+    tree_ref: &str,
+) -> std::result::Result<Option<GhGitTree>, FetchReleaseError> {
+    let url = format!("https://api.github.com/repos/{repo}/git/trees/{tree_ref}?recursive=1");
+    let Some((tree, _)) = send_github_json::<GhGitTree>(client, &url, repo, None).await? else {
+        return Ok(None);
+    };
+    Ok(Some(tree))
+}
+
+async fn get_changed_files_via_trees(
+    client: &Client,
+    repo: &str,
+    base_ref: &str,
+    head_ref: &str,
+) -> std::result::Result<Option<Vec<String>>, FetchReleaseError> {
+    let (base_tree, head_tree) = tokio::try_join!(
+        fetch_recursive_tree(client, repo, base_ref),
+        fetch_recursive_tree(client, repo, head_ref),
+    )?;
+    let (Some(base_tree), Some(head_tree)) = (base_tree, head_tree) else {
+        return Ok(None);
+    };
+    if base_tree.truncated || head_tree.truncated {
+        return Ok(None);
+    }
+    Ok(Some(diff_git_trees(&base_tree.tree, &head_tree.tree)))
+}
+
 pub async fn get_changed_files(
     client: &Client,
     repo: &str,
     base: &str,
     head: &str,
 ) -> std::result::Result<Option<Vec<String>>, FetchReleaseError> {
-    let url = format!("https://api.github.com/repos/{repo}/compare/{base}...{head}?per_page=100");
-    let Some((cmp, _)) = send_github_json::<GhCompare>(client, &url, repo, None).await? else {
-        return Ok(None);
-    };
-    if cmp.files.len() >= 100 {
-        return Ok(None);
-    }
-    let mut out = Vec::new();
-    for f in cmp.files {
-        out.push(f.filename);
-        if let Some(p) = f.previous_filename {
-            out.push(p);
+    let url = format!("https://api.github.com/repos/{repo}/compare/{base}...{head}?per_page=1");
+    match send_github_json::<GhCompare>(client, &url, repo, None).await {
+        Ok(Some((cmp, _))) if cmp.files.len() < COMPARE_FILES_LIMIT => {
+            let mut out = Vec::with_capacity(cmp.files.len());
+            for f in cmp.files {
+                out.push(f.filename);
+                if let Some(p) = f.previous_filename {
+                    out.push(p);
+                }
+            }
+            Ok(Some(out))
+        }
+        Ok(Some((cmp, _))) => {
+            let merge_base_tree = cmp
+                .merge_base_commit
+                .as_ref()
+                .and_then(|c| c.commit.as_ref())
+                .and_then(|c| c.tree.as_ref())
+                .map(|t| t.sha.as_str())
+                .unwrap_or(base);
+            get_changed_files_via_trees(client, repo, merge_base_tree, head).await
+        }
+        Ok(None) => Ok(None),
+        Err(
+            e @ (FetchReleaseError::RateLimited { .. }
+            | FetchReleaseError::NotFound { .. }
+            | FetchReleaseError::Unauthorized { .. }),
+        ) => Err(e),
+        Err(FetchReleaseError::Other(_)) => {
+            get_changed_files_via_trees(client, repo, base, head).await
         }
     }
-    Ok(Some(out))
 }
 pub fn pick_asset<'a>(release: &'a GhRelease, pattern: &str) -> Option<&'a GhAsset> {
     let prefix = pattern.split('*').next().unwrap_or("");
@@ -315,4 +427,80 @@ pub(crate) async fn resolve_asset_url(
     pick_asset(&release, pattern)
         .map(|a| a.browser_download_url.clone())
         .ok_or_else(|| anyhow::anyhow!("No asset matching '{pattern}' in {repo}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn entry(path: &str, sha: &str, entry_type: &str) -> GhGitTreeEntry {
+        GhGitTreeEntry {
+            path: path.to_string(),
+            sha: sha.to_string(),
+            entry_type: entry_type.to_string(),
+        }
+    }
+
+    #[test]
+    fn diff_git_trees_detects_added_modified_deleted_and_ignores_dirs() {
+        let base = vec![
+            entry("src", "tree_sha_old", "tree"),
+            entry("src/unchanged.rs", "aaa", "blob"),
+            entry("src/modified.rs", "bbb1", "blob"),
+            entry("src/deleted.rs", "ccc", "blob"),
+            entry("submod", "sub1", "commit"),
+        ];
+        let head = vec![
+            entry("src", "tree_sha_new", "tree"),
+            entry("src/unchanged.rs", "aaa", "blob"),
+            entry("src/modified.rs", "bbb2", "blob"),
+            entry("src/added.rs", "ddd", "blob"),
+            entry("submod", "sub2", "commit"),
+        ];
+
+        let changed = diff_git_trees(&base, &head);
+        assert_eq!(
+            changed,
+            vec![
+                "src/added.rs",
+                "src/deleted.rs",
+                "src/modified.rs",
+                "submod"
+            ]
+        );
+    }
+
+    #[test]
+    fn diff_git_trees_identical_returns_empty() {
+        let tree = vec![entry("a.txt", "111", "blob"), entry("dir", "222", "tree")];
+        assert!(diff_git_trees(&tree, &tree).is_empty());
+    }
+
+    #[tokio::test]
+    #[ignore = "requires live GitHub API access"]
+    async fn live_get_changed_files_handles_large_and_medium_diffs() {
+        let client = reqwest::Client::builder()
+            .user_agent("revancex-test")
+            .build()
+            .unwrap();
+
+        let cases = [
+            ("hxreborn/morphe-patches", "v1.80.0", "v1.82.0", 150),
+            ("SysAdminDoc/HushFeed", "v0.82.0", "v0.83.0", 600),
+            ("SysAdminDoc/Hushfacebook", "v0.22.0", "v0.23.0", 400),
+        ];
+
+        for (repo, base, head, min_expected) in cases {
+            let files = get_changed_files(&client, repo, base, head)
+                .await
+                .unwrap_or_else(|e| panic!("{repo} {base}...{head} failed: {e}"))
+                .unwrap_or_else(|| panic!("{repo} {base}...{head} returned None"));
+            assert!(
+                files.len() >= min_expected,
+                "{repo} {base}...{head}: expected >= {min_expected} files, got {}",
+                files.len()
+            );
+            println!("{repo} {base}...{head}: {} changed files", files.len());
+        }
+    }
 }

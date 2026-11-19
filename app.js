@@ -407,7 +407,11 @@ function renderCatalog() {
 
       const metaParts = [];
       if (item.sourceRepo) {
-        metaParts.push(`<span class="meta-item">Source: <strong class="mono">${escapeHtml(item.sourceRepo)}</strong></span>`);
+        const repoOk = /^[\w.-]+\/[\w.-]+$/.test(item.sourceRepo);
+      const srcText = repoOk
+        ? `<a href="https://github.com/${escapeHtml(item.sourceRepo)}" target="_blank" rel="noopener">${escapeHtml(item.sourceRepo)}</a>`
+        : escapeHtml(item.sourceRepo);
+      metaParts.push(`<span class="meta-item">Source: <strong class="mono">${srcText}</strong></span>`);
       }
       if (sizeStr) {
         metaParts.push(`<span class="meta-item">Size: <strong>${escapeHtml(sizeStr)}</strong></span>`);

@@ -484,7 +484,10 @@ pub fn handle_report_check(
     for (app, rep) in &apps {
         let allow_failure = config.apps.get(app).is_some_and(|a| a.allow_build_failure);
         let has_conflict = rep.version_conflict.is_some();
-        let is_failed = rep.status != "success";
+        let is_failed = !matches!(
+            rep.status,
+            report::BuildStatus::Success | report::BuildStatus::Degraded
+        );
         if (is_failed || has_conflict) && !allow_failure {
             bad.push(format!(
                 "{app} (status={}, conflict={has_conflict})",
@@ -534,4 +537,85 @@ pub fn handle_report_check(
         );
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    fn write_report(
+        dir: &tempfile::TempDir,
+        name: &str,
+        apps: BTreeMap<String, report::AppBuildReport>,
+    ) -> std::path::PathBuf {
+        let path = dir.path().join(name);
+        let json = serde_json::to_string_pretty(&apps).unwrap();
+        std::fs::write(&path, json).unwrap();
+        path
+    }
+
+    #[test]
+    fn report_check_does_not_count_degraded_as_fail_on_threshold() {
+        let dir = tempfile::tempdir().unwrap();
+        let cfg = config::load_config("./config").unwrap();
+
+        let mut apps = BTreeMap::new();
+        apps.insert(
+            "app_ok".to_string(),
+            report::AppBuildReport {
+                status: report::BuildStatus::Success,
+                ..Default::default()
+            },
+        );
+        apps.insert(
+            "app_deg1".to_string(),
+            report::AppBuildReport {
+                status: report::BuildStatus::Degraded,
+                ..Default::default()
+            },
+        );
+        apps.insert(
+            "app_deg2".to_string(),
+            report::AppBuildReport {
+                status: report::BuildStatus::Degraded,
+                ..Default::default()
+            },
+        );
+        let p1 = write_report(&dir, "degraded_only.json", apps);
+        assert!(handle_report_check(&cfg, p1, Some(0), false).is_ok());
+
+        let mut apps2 = BTreeMap::new();
+        apps2.insert(
+            "app_ok".to_string(),
+            report::AppBuildReport {
+                status: report::BuildStatus::Success,
+                ..Default::default()
+            },
+        );
+        apps2.insert(
+            "app_deg1".to_string(),
+            report::AppBuildReport {
+                status: report::BuildStatus::Degraded,
+                ..Default::default()
+            },
+        );
+        apps2.insert(
+            "app_deg2".to_string(),
+            report::AppBuildReport {
+                status: report::BuildStatus::Degraded,
+                ..Default::default()
+            },
+        );
+        apps2.insert(
+            "app_fail".to_string(),
+            report::AppBuildReport {
+                status: report::BuildStatus::Failed,
+                ..Default::default()
+            },
+        );
+        let p2 = write_report(&dir, "mixed.json", apps2);
+        assert!(handle_report_check(&cfg, p2.clone(), Some(30), false).is_ok());
+        assert!(handle_report_check(&cfg, p2, Some(20), false).is_err());
+    }
 }

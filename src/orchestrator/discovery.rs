@@ -122,6 +122,41 @@ fn is_ignorable_file(path: &str) -> bool {
         || p.contains("/res/values-")
 }
 
+fn foreign_app_dir(path: &str) -> bool {
+    const SHARED: &[&str] = &[
+        "shared",
+        "misc",
+        "all",
+        "util",
+        "utils",
+        "common",
+        "core",
+        "resources",
+        "src",
+        "main",
+        "kotlin",
+        "java",
+        "build",
+        "gradle",
+        "versions",
+        "api",
+        "integrations",
+    ];
+    let segs: Vec<String> = path.split('/').map(|s| s.to_ascii_lowercase()).collect();
+    let Some(pos) = segs
+        .iter()
+        .rposition(|s| matches!(s.as_str(), "patches" | "extensions" | "extension"))
+    else {
+        return false;
+    };
+    match segs.get(pos + 1) {
+        Some(next) if pos + 2 < segs.len() => {
+            !SHARED.contains(&next.as_str()) && !next.contains('.')
+        }
+        _ => false,
+    }
+}
+
 pub fn apps_affected_by_files(
     apps: &[(String, String)],
     all_apps: &[(String, String)],
@@ -134,18 +169,32 @@ pub fn apps_affected_by_files(
             continue;
         }
         let norm = normalize_key(file);
-        let mut matched = false;
-        for (i, keys) in all_keys.iter().enumerate() {
-            if keys.iter().any(|k| norm.contains(k.as_str())) {
-                matched = true;
-                let name = &all_apps[i].0;
-                if apps.iter().any(|(n, _)| n == name) && !affected.contains(name) {
-                    affected.push(name.clone());
-                }
+        let hits: Vec<(usize, usize)> = all_keys
+            .iter()
+            .enumerate()
+            .filter_map(|(i, keys)| {
+                keys.iter()
+                    .filter(|k| norm.contains(k.as_str()))
+                    .map(|k| k.len())
+                    .max()
+                    .map(|l| (i, l))
+            })
+            .collect();
+        if hits.is_empty() {
+            if foreign_app_dir(file) {
+                continue;
             }
-        }
-        if !matched {
             return apps.iter().map(|(n, _)| n.clone()).collect();
+        }
+        let best = hits.iter().map(|(_, l)| *l).max().unwrap_or(0);
+        for (i, l) in hits {
+            if l != best {
+                continue;
+            }
+            let name = &all_apps[i].0;
+            if apps.iter().any(|(n, _)| n == name) && !affected.contains(name) {
+                affected.push(name.clone());
+            }
         }
     }
     affected.sort();

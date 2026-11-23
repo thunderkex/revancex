@@ -3652,6 +3652,26 @@ fn test_apps_affected_by_files_only_relevant() {
         apps_affected_by_files(&all, &all, &f(&["extensions/shared/Utils.java"])).len(),
         2
     );
+    assert!(apps_affected_by_files(
+        &all,
+        &all,
+        &f(&["patches/src/main/kotlin/app/revanced/patches/tiktok/ads/Ads.kt"])
+    )
+    .is_empty());
+    let yt = vec![
+        (
+            "youtube".to_string(),
+            "com.google.android.youtube".to_string(),
+        ),
+        (
+            "youtube-music".to_string(),
+            "com.google.android.apps.youtube.music".to_string(),
+        ),
+    ];
+    assert_eq!(
+        apps_affected_by_files(&yt, &yt, &f(&["patches/youtube/music/Ads.kt"])),
+        vec!["youtube-music".to_string()]
+    );
     let rush = vec![
         ("adguard".to_string(), "com.adguard.android".to_string()),
         (

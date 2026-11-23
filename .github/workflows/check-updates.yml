@@ -12,7 +12,7 @@ on:
         type: boolean
       skip_fail_threshold:
         description: 'Skip fail_threshold check on build report validation'
-        required: false
+        required: true
         default: false
         type: boolean
 

@@ -19,11 +19,14 @@ DEFAULT_FOLDER_ID = "1BfeK39boriHy-9q76eXLLqbCwfV17-Gv"
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
 MANIFEST_RE = re.compile(r"<!--\s*mixplorer-manifest:\s*(\{.*?\})\s*-->", re.S)
 
-ABI_TO_ISA = {
-    "arm64-v8a": "arm64",
-    "armeabi-v7a": "arm",
-    "x86": "x86",
-    "x86_64": "x86_64",
+APP_DIR_TO_PACKAGE = {
+    "MiXplorer": "com.mixplorer",
+    "MiXArchive": "com.mixplorer.addon.archive",
+    "MiXEncrypt": "com.mixplorer.addon.encrypt",
+    "MiXImage": "com.mixplorer.addon.image",
+    "MiXPDF": "com.mixplorer.addon.pdf",
+    "MiXCodecs": "com.mixplorer.addon.codecs",
+    "MiXTagger": "com.mixplorer.addon.tagger",
 }
 
 
@@ -322,7 +325,7 @@ def build_module_zip(
     out_zip: Path,
     version_code: int,
     tag: str,
-) -> dict[str, int]:
+) -> dict[str, str]:
     arch = discovered["arch"]
     mix_ver = discovered["mixplorer_version"]
     out_zip.parent.mkdir(parents=True, exist_ok=True)
@@ -333,7 +336,7 @@ def build_module_zip(
         f"version=v{mix_ver}\n"
         f"versionCode={version_code}\n"
         "author=thunderkex\n"
-        f"description=Systemless KernelSU/Magisk module bundling MiXplorer v{mix_ver} and all official add-ons ({arch}).\n"
+        f"description=KernelSU/Magisk module bundling MiXplorer v{mix_ver} and all official add-ons ({arch}), installed directly via PackageManager (no metamodule required).\n"
         "minMagisk=24000\n"
         "minKernelSU=11000\n"
     )
@@ -362,72 +365,130 @@ def build_module_zip(
             "fi\n\n"
         )
 
+    pkg_map: dict[str, str] = {}
+    apks_list_lines: list[str] = []
+    for a in discovered["apps"]:
+        app_dir = a["app_dir"]
+        pkg = APP_DIR_TO_PACKAGE.get(app_dir, "")
+        pkg_map[app_dir] = pkg
+        apks_list_lines.append(f"{app_dir}:{pkg}")
+    apks_list = "\n".join(apks_list_lines) + "\n"
+
     app_lines = "\n".join(
         f'ui_print "  * {a["app_dir"]} ({a["build"]})"' for a in discovered["apps"]
     )
     customize_sh = (
         "#!/system/bin/sh\n"
-        "# MiXplorer + Add-ons Suite — Systemless KernelSU / Magisk Module\n\n"
+        "# MiXplorer + Add-ons Suite — KernelSU / Magisk Module\n\n"
         'ui_print "******************************************"\n'
         f'ui_print "*    MiXplorer + Add-ons Suite ({arch})   *"\n'
-        'ui_print "*  Systemless KernelSU / Magisk Module   *"\n'
+        'ui_print "*      KernelSU / Magisk Module          *"\n'
         'ui_print "******************************************"\n\n'
         f"{arch_guard}"
         f'ui_print "- Bundled apps (v{mix_ver}, {tag}):"\n'
         f"{app_lines}\n\n"
         'ui_print "- Setting permissions..."\n'
-        'set_perm_recursive "$MODPATH/system" 0 0 0755 0644\n\n'
-        "if [ -d /data/system/package_cache ]; then\n"
-        '    ui_print "- Clearing Android package cache..."\n'
-        "    rm -rf /data/system/package_cache/*\n"
+        'set_perm_recursive "$MODPATH" 0 0 0755 0644\n'
+        'set_perm "$MODPATH/service.sh" 0 0 0755\n'
+        'set_perm "$MODPATH/uninstall.sh" 0 0 0755\n\n'
+        "install_apk() {\n"
+        '    _ia_name="$1"\n'
+        '    _ia_apk="$2"\n'
+        '    _ia_size=$(wc -c < "$_ia_apk" | tr -d "[:space:]")\n'
+        '    _ia_res=$(pm install -r -d -S "$_ia_size" < "$_ia_apk" 2>&1) && return 0\n'
+        '    case "$_ia_res" in\n'
+        "        *INSTALL_FAILED_DEPRECATED_SDK_VERSION*)\n"
+        '            _ia_res=$(pm install -r -d --bypass-low-target-sdk-block -S "$_ia_size" < "$_ia_apk" 2>&1) && return 0\n'
+        "            ;;\n"
+        "        *INSTALL_FAILED_UPDATE_INCOMPATIBLE*|*INSTALL_FAILED_SHARED_USER_INCOMPATIBLE*)\n"
+        '            ui_print "  ! Signature mismatch for $_ia_name (uninstall existing copy first)."\n'
+        "            return 1\n"
+        "            ;;\n"
+        "    esac\n"
+        '    ui_print "  ! Failed to install $_ia_name: $_ia_res"\n'
+        "    return 1\n"
+        "}\n\n"
+        "if pm path android >/dev/null 2>&1; then\n"
+        '    ui_print "- Installing MiXplorer and add-ons..."\n'
+        "    _ok=0\n"
+        "    _fail=0\n"
+        '    while IFS=: read -r APP_ID PKG_NAME; do\n'
+        '        [ -z "$APP_ID" ] && continue\n'
+        '        APK_PATH="$MODPATH/apks/${APP_ID}.apk"\n'
+        '        [ -f "$APK_PATH" ] || continue\n'
+        '        if install_apk "$APP_ID" "$APK_PATH"; then\n'
+        '            ui_print "  + Installed $APP_ID"\n'
+        "            _ok=$((_ok + 1))\n"
+        "        else\n"
+        "            _fail=$((_fail + 1))\n"
+        "        fi\n"
+        '    done < "$MODPATH/apks.list"\n'
+        '    ui_print "- Installed $_ok app(s) (failed: $_fail)."\n'
+        "else\n"
+        '    ui_print "- PackageManager not ready; apps will install automatically on next boot."\n'
         "fi\n\n"
-        'ui_print "- Done! Reboot to activate MiXplorer and all add-ons."\n'
+        'ui_print "- Done!"\n'
+    )
+
+    service_sh = (
+        "#!/system/bin/sh\n"
+        'MODDIR="${0%/*}"\n\n'
+        "run() {\n"
+        '    until [ "$(getprop sys.boot_completed)" = "1" ]; do\n'
+        "        sleep 2\n"
+        "    done\n\n"
+        "    _wait=0\n"
+        '    while [ "$_wait" -lt 30 ]; do\n'
+        "        pm path android >/dev/null 2>&1 && break\n"
+        "        sleep 2\n"
+        "        _wait=$((_wait + 1))\n"
+        "    done\n"
+        "    pm path android >/dev/null 2>&1 || return 0\n\n"
+        '    [ -f "$MODDIR/apks.list" ] || return 0\n'
+        '    while IFS=: read -r APP_ID PKG_NAME; do\n'
+        '        [ -z "$APP_ID" ] && continue\n'
+        '        APK_PATH="$MODDIR/apks/${APP_ID}.apk"\n'
+        '        [ -f "$APK_PATH" ] || continue\n'
+        '        if [ -n "$PKG_NAME" ] && pm path "$PKG_NAME" >/dev/null 2>&1; then\n'
+        "            continue\n"
+        "        fi\n"
+        '        _size=$(wc -c < "$APK_PATH" | tr -d "[:space:]")\n'
+        '        pm install -r -d -S "$_size" < "$APK_PATH" >/dev/null 2>&1 || \\\n'
+        '            pm install -r -d --bypass-low-target-sdk-block -S "$_size" < "$APK_PATH" >/dev/null 2>&1 || :\n'
+        '    done < "$MODDIR/apks.list"\n'
+        "}\n\n"
+        "run &\n"
     )
 
     uninstall_sh = (
         "#!/system/bin/sh\n"
+        'MODDIR="${0%/*}"\n'
+        'if [ -f "$MODDIR/apks.list" ] && pm path android >/dev/null 2>&1; then\n'
+        '    while IFS=: read -r APP_ID PKG_NAME; do\n'
+        '        [ -z "$PKG_NAME" ] && continue\n'
+        '        pm uninstall "$PKG_NAME" >/dev/null 2>&1 || :\n'
+        '    done < "$MODDIR/apks.list"\n'
+        "fi\n"
         "rm -rf /data/system/package_cache/* 2>/dev/null || :\n"
     )
-
-    lib_counts: dict[str, int] = {}
 
     with zipfile.ZipFile(out_zip, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as out:
         out.writestr("META-INF/com/google/android/update-binary", update_binary.encode("utf-8"))
         out.writestr("META-INF/com/google/android/updater-script", updater_script.encode("utf-8"))
         out.writestr("module.prop", module_prop.encode("utf-8"))
         out.writestr("customize.sh", customize_sh.encode("utf-8"))
+        out.writestr("service.sh", service_sh.encode("utf-8"))
         out.writestr("uninstall.sh", uninstall_sh.encode("utf-8"))
+        out.writestr("apks.list", apks_list.encode("utf-8"))
 
         for app in discovered["apps"]:
             app_dir = app["app_dir"]
             apk_path = apk_paths[app_dir]
             out.write(
                 apk_path,
-                f"system/app/{app_dir}/{app_dir}.apk",
+                f"apks/{app_dir}.apk",
                 compress_type=zipfile.ZIP_STORED,
             )
-
-            count = 0
-            with zipfile.ZipFile(apk_path, "r") as apk_zf:
-                for entry in apk_zf.namelist():
-                    if not (entry.startswith("lib/") and entry.endswith(".so")):
-                        continue
-                    parts = entry.split("/")
-                    if len(parts) != 3:
-                        continue
-                    abi, so_name = parts[1], parts[2]
-                    if arch == "arm64" and abi != "arm64-v8a":
-                        continue
-                    isa = ABI_TO_ISA.get(abi)
-                    if not isa:
-                        continue
-                    out.writestr(
-                        f"system/app/{app_dir}/lib/{isa}/{so_name}",
-                        apk_zf.read(entry),
-                        compress_type=zipfile.ZIP_DEFLATED,
-                    )
-                    count += 1
-            lib_counts[app_dir] = count
 
     with zipfile.ZipFile(out_zip, "r") as zf:
         bad = zf.testzip()
@@ -436,20 +497,22 @@ def build_module_zip(
         for script in (
             "module.prop",
             "customize.sh",
+            "service.sh",
             "uninstall.sh",
+            "apks.list",
             "META-INF/com/google/android/update-binary",
             "META-INF/com/google/android/updater-script",
         ):
             if b"\r" in zf.read(script):
                 raise RuntimeError(f"CRLF line ending found in {script}")
 
-    return lib_counts
+    return pkg_map
 
 
 def render_release_notes(
     discovered: dict,
     out_zip: Path,
-    lib_counts: dict[str, int],
+    pkg_map: dict[str, str],
     tag: str,
     version_code: int,
 ) -> str:
@@ -468,8 +531,9 @@ def render_release_notes(
             if app["app_dir"] == "MiXplorer"
             else f"`{app['build']}`"
         )
+        pkg_col = f"`{pkg_map.get(app['app_dir']) or '—'}`"
         rows.append(
-            f"| **{app['app_dir']}** | {ver_col} | `{row_arch}` | {lib_counts.get(app['app_dir'], 0)} |"
+            f"| **{app['app_dir']}** | {ver_col} | `{row_arch}` | {pkg_col} |"
         )
 
     manifest_payload = json.dumps(
@@ -494,15 +558,15 @@ def render_release_notes(
 
     return "\n".join(
         [
-            f"Systemless KernelSU / Magisk module bundling **MiXplorer v{mix_ver}** and all official add-ons for `{arch_label}` devices.",
+            f"KernelSU / Magisk module bundling **MiXplorer v{mix_ver}** and all official add-ons for `{arch_label}` devices.",
             "",
             "### Included Apps",
-            "| App | APK Build | Architecture | Native `.so` libs |",
+            "| App | APK Build | Architecture | Package |",
             "| --- | --- | --- | --- |",
             *rows,
             "",
             "### Details",
-            "- **Install method**: Systemless `/system/app` overlay with native libraries extracted to `lib/<isa>/`",
+            "- **Install method**: Direct `pm install` via `customize.sh` (with boot-time fallback in `service.sh` and clean removal in `uninstall.sh`) — works with or without a KernelSU metamodule",
             f"- **Compatibility**: KernelSU, KernelSU Next, APatch, Magisk (`{arch_label}`)",
             f"- **Size**: `{size_mib:.2f} MiB`",
             f"- **SHA-256**: `{sha256}`",

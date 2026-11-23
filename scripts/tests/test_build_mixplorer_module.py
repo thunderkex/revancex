@@ -61,14 +61,13 @@ class TestMixplorerModule(unittest.TestCase):
         self.assertEqual(res_bump["tag"], "mixplorer-v6.71.15-r1")
         self.assertEqual(res_bump["version_code"], 6711501)
 
-    def test_build_module_zip_extracts_arm64_libs(self):
+    def test_build_module_zip_bundles_apks_for_pm_install(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             fake_apk = tmp_path / "MiXplorer_v6.71.15_B26090422-arm64.apk"
             with zipfile.ZipFile(fake_apk, "w") as zf:
                 zf.writestr("AndroidManifest.xml", b"manifest")
                 zf.writestr("lib/arm64-v8a/libmixbox.so", b"arm64so")
-                zf.writestr("lib/armeabi-v7a/libmixbox.so", b"arm32so")
 
             discovered = {
                 "folder_id": "root",
@@ -85,17 +84,24 @@ class TestMixplorerModule(unittest.TestCase):
                 ],
             }
             out_zip = tmp_path / "out.zip"
-            counts = mod.build_module_zip(
+            pkg_map = mod.build_module_zip(
                 discovered, {"MiXplorer": fake_apk}, out_zip, 6711500, "mixplorer-v6.71.15"
             )
-            self.assertEqual(counts, {"MiXplorer": 1})
+            self.assertEqual(pkg_map, {"MiXplorer": "com.mixplorer"})
             with zipfile.ZipFile(out_zip, "r") as zf:
                 names = set(zf.namelist())
-                self.assertIn("system/app/MiXplorer/MiXplorer.apk", names)
-                self.assertIn("system/app/MiXplorer/lib/arm64/libmixbox.so", names)
-                self.assertNotIn("system/app/MiXplorer/lib/arm/libmixbox.so", names)
-                self.assertNotIn(b"\r", zf.read("customize.sh"))
-                self.assertNotIn(b"\r", zf.read("module.prop"))
+                self.assertIn("apks/MiXplorer.apk", names)
+                self.assertIn("apks.list", names)
+                self.assertIn("service.sh", names)
+                self.assertIn("customize.sh", names)
+                self.assertIn("uninstall.sh", names)
+                self.assertFalse(any(n.startswith("system/") for n in names))
+                self.assertEqual(zf.read("apks.list").decode("utf-8"), "MiXplorer:com.mixplorer\n")
+                self.assertIn(b"pm install -r -d -S", zf.read("customize.sh"))
+                self.assertIn(b"pm install -r -d -S", zf.read("service.sh"))
+                self.assertIn(b"pm uninstall", zf.read("uninstall.sh"))
+                for script in ("customize.sh", "service.sh", "uninstall.sh", "module.prop", "apks.list"):
+                    self.assertNotIn(b"\r", zf.read(script))
 
 
 if __name__ == "__main__":

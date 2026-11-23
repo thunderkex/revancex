@@ -359,9 +359,83 @@ async fn get_changed_files_via_trees(
         return Ok(None);
     };
     if base_tree.truncated || head_tree.truncated {
-        return Ok(None);
+        return get_changed_files_via_level_walk(client, repo, base_ref, head_ref).await;
     }
     Ok(Some(diff_git_trees(&base_tree.tree, &head_tree.tree)))
+}
+
+const TREE_WALK_REQUEST_LIMIT: usize = 400;
+
+async fn get_changed_files_via_level_walk(
+    client: &Client,
+    repo: &str,
+    base_ref: &str,
+    head_ref: &str,
+) -> std::result::Result<Option<Vec<String>>, FetchReleaseError> {
+    async fn fetch(
+        client: &Client,
+        repo: &str,
+        sha: &str,
+    ) -> std::result::Result<Option<GhGitTree>, FetchReleaseError> {
+        let url = format!("https://api.github.com/repos/{repo}/git/trees/{sha}");
+        Ok(send_github_json::<GhGitTree>(client, &url, repo, None)
+            .await?
+            .map(|(t, _)| t))
+    }
+
+    let mut changed: Vec<String> = Vec::new();
+    let mut level: Vec<(String, String, String)> =
+        vec![(String::new(), base_ref.to_string(), head_ref.to_string())];
+    let mut requests = 0usize;
+
+    while !level.is_empty() {
+        requests += level.len() * 2;
+        if requests > TREE_WALK_REQUEST_LIMIT {
+            return Ok(None);
+        }
+        let fetched = futures::future::join_all(level.iter().map(|(_, b, h)| async move {
+            tokio::try_join!(fetch(client, repo, b), fetch(client, repo, h))
+        }))
+        .await;
+
+        let mut next = Vec::new();
+        for ((prefix, _, _), res) in level.iter().zip(fetched) {
+            let (Some(base), Some(head)) = res? else {
+                return Ok(None);
+            };
+            if base.truncated || head.truncated {
+                return Ok(None);
+            }
+            let base_map: std::collections::HashMap<&str, &GhGitTreeEntry> =
+                base.tree.iter().map(|e| (e.path.as_str(), e)).collect();
+            let full = |name: &str| format!("{prefix}{name}");
+            for e in &head.tree {
+                match base_map.get(e.path.as_str()) {
+                    Some(b) if b.sha == e.sha => {}
+                    Some(b) if b.entry_type == "tree" && e.entry_type == "tree" => {
+                        next.push((format!("{prefix}{}/", e.path), b.sha.clone(), e.sha.clone()));
+                    }
+                    Some(_) => changed.push(full(&e.path)),
+                    None if e.entry_type == "tree" => changed.push(format!("{}/", full(&e.path))),
+                    None => changed.push(full(&e.path)),
+                }
+            }
+            let head_names: std::collections::HashSet<&str> =
+                head.tree.iter().map(|e| e.path.as_str()).collect();
+            for b in &base.tree {
+                if !head_names.contains(b.path.as_str()) {
+                    if b.entry_type == "tree" {
+                        changed.push(format!("{}/", full(&b.path)));
+                    } else {
+                        changed.push(full(&b.path));
+                    }
+                }
+            }
+        }
+        level = next;
+    }
+    changed.sort();
+    Ok(Some(changed))
 }
 
 pub async fn get_changed_files(
@@ -488,6 +562,8 @@ mod tests {
             ("hxreborn/morphe-patches", "v1.80.0", "v1.82.0", 150),
             ("SysAdminDoc/HushFeed", "v0.82.0", "v0.83.0", 600),
             ("SysAdminDoc/Hushfacebook", "v0.22.0", "v0.23.0", 400),
+            ("anddea/revanced-patches", "v4.4.0-dev.7", "v4.4.0-dev.8", 1),
+            ("SysAdminDoc/HushFeed", "v0.83.0", "v0.84.0", 1),
         ];
 
         for (repo, base, head, min_expected) in cases {

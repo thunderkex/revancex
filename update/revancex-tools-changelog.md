@@ -1,9 +1,9 @@
 # ReVanceX Tools Bundle (`revancex-tools`)
 
-- **Release Tag**: `auto-v1.2.0-2026.11.23-b190`
-- **Version Code**: `2026112301`
-- **Updated**: 2026-11-23T03:02:36Z
-- **Download**: [revancex-bundle-tools.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/revancex-bundle-tools.zip)
+- **Release Tag**: `auto-v1.2.0-2026.11.24-b192`
+- **Version Code**: `2026112401`
+- **Updated**: 2026-11-24T06:31:05Z
+- **Download**: [revancex-bundle-tools.zip](https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-tools.zip)
 - **Upstream Patch Sources**: `hxreborn/morphe-patches`
 
 ## Payload APKs & App Versions

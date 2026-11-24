@@ -1,9 +1,9 @@
 {
   "schema_version": "2.0.0",
   "build_health": {
-    "release_tag": "auto-v1.2.0-2026.11.23-b190",
+    "release_tag": "auto-v1.2.0-2026.11.24-b192",
     "cli_version": "1.2.0",
-    "built_at": "2026-11-23T03:02:36Z",
+    "built_at": "2026-11-24T06:31:05Z",
     "pass_rate": 1.0,
     "active_sources": [
       "BholeyKaBhakt/android-patches-xtra",
@@ -758,18 +758,18 @@
       "sha256": "f49924e25caa35172aecfe76009e82b427d006e68ffdb15c666c4f5513c8a90d",
       "size_bytes": 45923072,
       "validation_status": "passed",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/microg.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/microg.apk",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "releases": {
         "stock": {
           "filename": "microg.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/microg.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/microg.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/microg.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/microg.apk",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "MorpheApp/MicroG-RE",
           "asset_pattern": "*.apk",
           "version": "7.3.2",
@@ -812,18 +812,18 @@
       "sha256": "ea8866a8446fca84fa418034ac315d4e374d2272790ed9e408365aacde386c8a",
       "size_bytes": 70146566,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Moviebox-4.0.03.1020.03.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Moviebox-4.0.03.1020.03.apk",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "releases": {
         "stock": {
           "filename": "Moviebox-4.0.03.1020.03.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Moviebox-4.0.03.1020.03.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Moviebox-4.0.03.1020.03.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Moviebox-4.0.03.1020.03.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Moviebox-4.0.03.1020.03.apk",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "hxreborn/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "4.0.03.1020.03",
@@ -868,18 +868,18 @@
       "sha256": "0810ab248aed638276ba87699f029b6648f19dadf4a6ed5a57a58112ddd52b4c",
       "size_bytes": 73742402,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/MX-Player-3.5.3.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/MX-Player-3.5.3.apk",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "releases": {
         "stock": {
           "filename": "MX-Player-3.5.3.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/MX-Player-3.5.3.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/MX-Player-3.5.3.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/MX-Player-3.5.3.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/MX-Player-3.5.3.apk",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "BlazeFTL/FTL-Patches",
           "asset_pattern": "*.mpp",
           "version": "3.5.3",
@@ -1028,26 +1028,26 @@
         "bundle": true
       },
       "version": "5.21.57.0",
-      "sha256": "810cdec5896bf3e6050f349298cf2935e0db434f1f86175041801e648f585832",
-      "size_bytes": 30036364,
+      "sha256": "d8669720504770b582e7456c420be6a0699ad15f053c9e2ce289cd84663a393e",
+      "size_bytes": 30044674,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Proton-VPN-5.21.57.0.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Proton-VPN-5.21.57.0.apk",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "releases": {
         "stock": {
           "filename": "Proton-VPN-5.21.57.0.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Proton-VPN-5.21.57.0.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Proton-VPN-5.21.57.0.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Proton-VPN-5.21.57.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Proton-VPN-5.21.57.0.apk",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "hxreborn/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "5.21.57.0",
-          "sha256": "810cdec5896bf3e6050f349298cf2935e0db434f1f86175041801e648f585832",
-          "size_bytes": 30036364,
+          "sha256": "d8669720504770b582e7456c420be6a0699ad15f053c9e2ce289cd84663a393e",
+          "size_bytes": 30044674,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -1248,18 +1248,18 @@
       "sha256": "501a4cf3becd28ebb11e1a667c05f37e8d8774762e62e199b7d45bcdf6ac040e",
       "size_bytes": 128839664,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Stellarium-1.16.10.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Stellarium-1.16.10.apk",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "releases": {
         "stock": {
           "filename": "Stellarium-1.16.10.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Stellarium-1.16.10.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Stellarium-1.16.10.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Stellarium-1.16.10.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Stellarium-1.16.10.apk",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "BholeyKaBhakt/android-patches-xtra",
           "asset_pattern": "*.mpp",
           "version": "1.16.10",
@@ -1631,25 +1631,25 @@
         "bundle": true
       },
       "version": "21.13.164",
-      "sha256": "4d09346c1bdbb5ad3ceddd6bad4a182a339d30e434571170d60a55b74ca96b74",
+      "sha256": "f200484427e6ea95ba93cd334be20d2d99e8198c43f5c5fc14cee207df22d184",
       "size_bytes": 97900508,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-21.13.164.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-21.13.164.apk",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "releases": {
         "stock": {
           "filename": "YouTube-21.13.164.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-21.13.164.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-21.13.164.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-21.13.164.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-21.13.164.apk",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "anddea/revanced-patches",
           "asset_pattern": "*.mpp",
           "version": "21.13.164",
-          "sha256": "4d09346c1bdbb5ad3ceddd6bad4a182a339d30e434571170d60a55b74ca96b74",
+          "sha256": "f200484427e6ea95ba93cd334be20d2d99e8198c43f5c5fc14cee207df22d184",
           "size_bytes": 97900508,
           "supported_archs": [
             "arm64-v8a"
@@ -1659,16 +1659,16 @@
         },
         "module": {
           "filename": "YouTube-21.13.164-module.zip",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-21.13.164-module.zip",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-21.13.164-module.zip",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-21.13.164-module.zip",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-21.13.164-module.zip",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "anddea/revanced-patches",
           "asset_pattern": "*.mpp",
           "version": "21.13.164",
-          "sha256": "973c34c85a9c07ed1e6b62e9d628804196127412f1dcaa0404a04000e80fdc09",
-          "size_bytes": 247385386,
+          "sha256": "ac50d3cfe355662f5a927664de1dc7e880ae86eebc87da0de0ce0768c9ad8850",
+          "size_bytes": 247385496,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -1708,25 +1708,25 @@
         "bundle": true
       },
       "version": "9.15.51",
-      "sha256": "a07e5028260cd9d5d0840e911421c791e99c862e97a117a0a199e7f6da8b7234",
+      "sha256": "28d278910684da1adbf530c57ff312a7d71c3b096234af4d6abe74a41f306d6f",
       "size_bytes": 81249877,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-Music-9.15.51.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-Music-9.15.51.apk",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "releases": {
         "stock": {
           "filename": "YouTube-Music-9.15.51.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-Music-9.15.51.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-Music-9.15.51.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-Music-9.15.51.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-Music-9.15.51.apk",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "anddea/revanced-patches",
           "asset_pattern": "*.mpp",
           "version": "9.15.51",
-          "sha256": "a07e5028260cd9d5d0840e911421c791e99c862e97a117a0a199e7f6da8b7234",
+          "sha256": "28d278910684da1adbf530c57ff312a7d71c3b096234af4d6abe74a41f306d6f",
           "size_bytes": 81249877,
           "supported_archs": [
             "arm64-v8a"
@@ -1736,16 +1736,16 @@
         },
         "module": {
           "filename": "YouTube-Music-9.15.51-module.zip",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-Music-9.15.51-module.zip",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/YouTube-Music-9.15.51-module.zip",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-Music-9.15.51-module.zip",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/YouTube-Music-9.15.51-module.zip",
+          "tag": "auto-v1.2.0-2026.11.24-b192",
+          "release_tag": "auto-v1.2.0-2026.11.24-b192",
+          "updated_at": "2026-11-24T06:31:05Z",
           "source_repo": "anddea/revanced-patches",
           "asset_pattern": "*.mpp",
           "version": "9.15.51",
-          "sha256": "c70aa186b0479a0cab9ba30e5824ff8ec69a7b52c7cba5eda908144cbf36d240",
-          "size_bytes": 91543685,
+          "sha256": "7df2623d4c77ed64e1053de71a223af2ee2470d070f99c5e466173563e0b6d2e",
+          "size_bytes": 91544349,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -1766,29 +1766,24 @@
       "source_repo": null,
       "asset_pattern": null,
       "sources": [
-        "SysAdminDoc/HushFeed",
-        "SysAdminDoc/Hushfacebook",
+        "BholeyKaBhakt/android-patches-xtra",
+        "BlazeFTL/FTL-Patches",
+        "anddea/revanced-patches",
         "hxreborn/morphe-patches"
       ],
-      "sha256": "228a8f0521bee3035d2429611d7572848dc3cf4de47360dcd805aef235169206",
-      "size_bytes": 910595137,
-      "release_tag": "auto-v1.2.0-2026.11.19-b185",
-      "tag": "auto-v1.2.0-2026.11.19-b185",
-      "updated_at": "2026-11-19T03:00:52Z",
+      "sha256": "a241a0bab81a75f42032180a70920ef1bbcd98b5c0925947610c0063af06c01c",
+      "size_bytes": 832791028,
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "supported_archs": [
         "arm64-v8a",
         "armeabi-v7a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.19-b185/revancex-bundle-all.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-all.zip",
       "validation_status": "warning",
       "payload": [
-        {
-          "app": "facebook",
-          "package": "com.facebook.katana",
-          "version": "587.0.0.39.55",
-          "path": "apks/facebook.apk"
-        },
         {
           "app": "moviebox",
           "package": "com.community.oneroom",
@@ -1796,16 +1791,34 @@
           "path": "apks/moviebox.apk"
         },
         {
+          "app": "mx_player",
+          "package": "com.mxtech.videoplayer.ad",
+          "version": "3.5.3",
+          "path": "apks/mx_player.apk"
+        },
+        {
           "app": "proton_vpn",
           "package": "ch.protonvpn.android",
-          "version": "5.21.9.0",
+          "version": "5.21.57.0",
           "path": "apks/proton_vpn.apk"
         },
         {
-          "app": "tiktok",
-          "package": "com.zhiliaoapp.musically",
-          "version": "47.8.3",
-          "path": "apks/tiktok.apk"
+          "app": "stellarium",
+          "package": "com.noctuasoftware.stellarium_free",
+          "version": "1.16.10",
+          "path": "apks/stellarium.apk"
+        },
+        {
+          "app": "youtube",
+          "package": "com.google.android.youtube",
+          "version": "21.13.164",
+          "path": "apks/youtube.apk"
+        },
+        {
+          "app": "youtube_music",
+          "package": "com.google.android.apps.youtube.music",
+          "version": "9.15.51",
+          "path": "apks/youtube_music.apk"
         }
       ]
     },
@@ -1818,27 +1831,20 @@
       "source_repo": null,
       "asset_pattern": null,
       "sources": [
-        "anddea/revanced-patches",
-        "jkennethcarino/adobo"
+        "anddea/revanced-patches"
       ],
-      "sha256": "84c335ee2e6fcef61adc5ac6ececd1402b831bc4d1c49d2478294a05035181a0",
-      "size_bytes": 455489835,
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "sha256": "8916ff6eec5a48dd64733bf00b7c12394f779021df4b7fa177d247c5ecbf5622",
+      "size_bytes": 338911270,
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "supported_archs": [
         "arm64-v8a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/revancex-bundle-core.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-core.zip",
       "validation_status": "warning",
       "payload": [
-        {
-          "app": "reddit",
-          "package": "com.reddit.frontpage",
-          "version": "2026.46.0",
-          "path": "apks/reddit.apk"
-        },
         {
           "app": "youtube",
           "package": "com.google.android.youtube",
@@ -1864,16 +1870,16 @@
       "sources": [
         "anddea/revanced-patches"
       ],
-      "sha256": "df0dfbdf7a5ec0316b4a7a531538b05e5afea308122abce4059aaf1713ca0934",
-      "size_bytes": 338910499,
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "sha256": "2fecbb437549ad66ef1d26ba4139906c6f88919181c7b298534a1727b9194478",
+      "size_bytes": 338911274,
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "supported_archs": [
         "arm64-v8a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/revancex-bundle-multimedia.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-multimedia.zip",
       "validation_status": "warning",
       "payload": [
         {
@@ -1990,16 +1996,16 @@
       "sources": [
         "hxreborn/morphe-patches"
       ],
-      "sha256": "31075684c7446e2bd570eed93b087ee20d9d69b90a33c6a45d7813684e541440",
-      "size_bytes": 52322185,
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "sha256": "e63a7d787b06b5c8f5a0c6cb85aef2d41d5c178c2ac0df30b8e4f201696c6dfd",
+      "size_bytes": 52333433,
+      "release_tag": "auto-v1.2.0-2026.11.24-b192",
+      "tag": "auto-v1.2.0-2026.11.24-b192",
+      "updated_at": "2026-11-24T06:31:05Z",
       "supported_archs": [
         "arm64-v8a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/revancex-bundle-tools.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-tools.zip",
       "validation_status": "warning",
       "payload": [
         {

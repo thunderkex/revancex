@@ -1,9 +1,9 @@
 {
   "schema_version": "2.0.0",
   "build_health": {
-    "release_tag": "auto-v1.2.0-2026.11.24-b192",
+    "release_tag": "auto-v1.2.0-2026.11.25-b194",
     "cli_version": "1.2.0",
-    "built_at": "2026-11-24T06:31:05Z",
+    "built_at": "2026-11-25T05:10:18Z",
     "pass_rate": 1.0,
     "active_sources": [
       "BholeyKaBhakt/android-patches-xtra",
@@ -592,18 +592,18 @@
       "sha256": "4d9fdfb514adbe39dc22f5d25fe1531e4c756f28b670eefa06cf9c9fc45f161b",
       "size_bytes": 200432530,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Hungry-Shark-Evolution-14.5.0.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Hungry-Shark-Evolution-14.5.0.apk",
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "release_tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
       "releases": {
         "stock": {
           "filename": "Hungry-Shark-Evolution-14.5.0.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Hungry-Shark-Evolution-14.5.0.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Hungry-Shark-Evolution-14.5.0.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Hungry-Shark-Evolution-14.5.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Hungry-Shark-Evolution-14.5.0.apk",
+          "tag": "auto-v1.2.0-2026.11.25-b194",
+          "release_tag": "auto-v1.2.0-2026.11.25-b194",
+          "updated_at": "2026-11-25T05:10:18Z",
           "source_repo": "legendsciber/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "14.5.0",
@@ -809,26 +809,26 @@
         "bundle": true
       },
       "version": "4.0.03.1020.03",
-      "sha256": "ea8866a8446fca84fa418034ac315d4e374d2272790ed9e408365aacde386c8a",
-      "size_bytes": 70146566,
+      "sha256": "6f0a476b3cce3091bae00a8a42e47bf41be5846ccc69207d8e427dfaa1f8732f",
+      "size_bytes": 70146636,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Moviebox-4.0.03.1020.03.apk",
-      "tag": "auto-v1.2.0-2026.11.24-b192",
-      "release_tag": "auto-v1.2.0-2026.11.24-b192",
-      "updated_at": "2026-11-24T06:31:05Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Moviebox-4.0.03.1020.03.apk",
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "release_tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
       "releases": {
         "stock": {
           "filename": "Moviebox-4.0.03.1020.03.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Moviebox-4.0.03.1020.03.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Moviebox-4.0.03.1020.03.apk",
-          "tag": "auto-v1.2.0-2026.11.24-b192",
-          "release_tag": "auto-v1.2.0-2026.11.24-b192",
-          "updated_at": "2026-11-24T06:31:05Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Moviebox-4.0.03.1020.03.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Moviebox-4.0.03.1020.03.apk",
+          "tag": "auto-v1.2.0-2026.11.25-b194",
+          "release_tag": "auto-v1.2.0-2026.11.25-b194",
+          "updated_at": "2026-11-25T05:10:18Z",
           "source_repo": "hxreborn/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "4.0.03.1020.03",
-          "sha256": "ea8866a8446fca84fa418034ac315d4e374d2272790ed9e408365aacde386c8a",
-          "size_bytes": 70146566,
+          "sha256": "6f0a476b3cce3091bae00a8a42e47bf41be5846ccc69207d8e427dfaa1f8732f",
+          "size_bytes": 70146636,
           "supported_archs": [
             "arm64-v8a",
             "armeabi-v7a"
@@ -1028,26 +1028,26 @@
         "bundle": true
       },
       "version": "5.21.57.0",
-      "sha256": "d8669720504770b582e7456c420be6a0699ad15f053c9e2ce289cd84663a393e",
-      "size_bytes": 30044674,
+      "sha256": "35d78dd2d0e2f456a50a549332d04f2148eab0b213f3d4c6b4f0f99727aab421",
+      "size_bytes": 30048829,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Proton-VPN-5.21.57.0.apk",
-      "tag": "auto-v1.2.0-2026.11.24-b192",
-      "release_tag": "auto-v1.2.0-2026.11.24-b192",
-      "updated_at": "2026-11-24T06:31:05Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Proton-VPN-5.21.57.0.apk",
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "release_tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
       "releases": {
         "stock": {
           "filename": "Proton-VPN-5.21.57.0.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Proton-VPN-5.21.57.0.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Proton-VPN-5.21.57.0.apk",
-          "tag": "auto-v1.2.0-2026.11.24-b192",
-          "release_tag": "auto-v1.2.0-2026.11.24-b192",
-          "updated_at": "2026-11-24T06:31:05Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Proton-VPN-5.21.57.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Proton-VPN-5.21.57.0.apk",
+          "tag": "auto-v1.2.0-2026.11.25-b194",
+          "release_tag": "auto-v1.2.0-2026.11.25-b194",
+          "updated_at": "2026-11-25T05:10:18Z",
           "source_repo": "hxreborn/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "5.21.57.0",
-          "sha256": "d8669720504770b582e7456c420be6a0699ad15f053c9e2ce289cd84663a393e",
-          "size_bytes": 30044674,
+          "sha256": "35d78dd2d0e2f456a50a549332d04f2148eab0b213f3d4c6b4f0f99727aab421",
+          "size_bytes": 30048829,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -1766,24 +1766,28 @@
       "source_repo": null,
       "asset_pattern": null,
       "sources": [
-        "BholeyKaBhakt/android-patches-xtra",
-        "BlazeFTL/FTL-Patches",
-        "anddea/revanced-patches",
-        "hxreborn/morphe-patches"
+        "hxreborn/morphe-patches",
+        "legendsciber/morphe-patches"
       ],
-      "sha256": "a241a0bab81a75f42032180a70920ef1bbcd98b5c0925947610c0063af06c01c",
-      "size_bytes": 832791028,
-      "release_tag": "auto-v1.2.0-2026.11.24-b192",
-      "tag": "auto-v1.2.0-2026.11.24-b192",
-      "updated_at": "2026-11-24T06:31:05Z",
+      "sha256": "da49e109e84f307b7f2494530a673f2dcb6983fbd7c8031ca07b75deabfb2619",
+      "size_bytes": 563769126,
+      "release_tag": "auto-v1.2.0-2026.11.25-b194",
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
       "supported_archs": [
         "arm64-v8a",
         "armeabi-v7a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-all.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/revancex-bundle-all.zip",
       "validation_status": "warning",
       "payload": [
+        {
+          "app": "hungry_shark_evolution",
+          "package": "com.fgol.HungrySharkEvolution",
+          "version": "14.5.0",
+          "path": "apks/hungry_shark_evolution.apk"
+        },
         {
           "app": "moviebox",
           "package": "com.community.oneroom",
@@ -1791,34 +1795,10 @@
           "path": "apks/moviebox.apk"
         },
         {
-          "app": "mx_player",
-          "package": "com.mxtech.videoplayer.ad",
-          "version": "3.5.3",
-          "path": "apks/mx_player.apk"
-        },
-        {
           "app": "proton_vpn",
           "package": "ch.protonvpn.android",
           "version": "5.21.57.0",
           "path": "apks/proton_vpn.apk"
-        },
-        {
-          "app": "stellarium",
-          "package": "com.noctuasoftware.stellarium_free",
-          "version": "1.16.10",
-          "path": "apks/stellarium.apk"
-        },
-        {
-          "app": "youtube",
-          "package": "com.google.android.youtube",
-          "version": "21.13.164",
-          "path": "apks/youtube.apk"
-        },
-        {
-          "app": "youtube_music",
-          "package": "com.google.android.apps.youtube.music",
-          "version": "9.15.51",
-          "path": "apks/youtube_music.apk"
         }
       ]
     },
@@ -1996,16 +1976,16 @@
       "sources": [
         "hxreborn/morphe-patches"
       ],
-      "sha256": "e63a7d787b06b5c8f5a0c6cb85aef2d41d5c178c2ac0df30b8e4f201696c6dfd",
-      "size_bytes": 52333433,
-      "release_tag": "auto-v1.2.0-2026.11.24-b192",
-      "tag": "auto-v1.2.0-2026.11.24-b192",
-      "updated_at": "2026-11-24T06:31:05Z",
+      "sha256": "ca095b406bb074cadd4f8c8cf1d8157ce6965511d0c09fca15b54489b529687d",
+      "size_bytes": 52337076,
+      "release_tag": "auto-v1.2.0-2026.11.25-b194",
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
       "supported_archs": [
         "arm64-v8a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-tools.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/revancex-bundle-tools.zip",
       "validation_status": "warning",
       "payload": [
         {

@@ -347,7 +347,7 @@ apps:
   mx_player:
     name: "MX Player"
     package: com.mxtech.videoplayer.ad
-    patch_source: blazeftl
+    patch_source: loki
     cli_source: MorpheApp/morphe-cli
     apkmirror_url: https://www.apkmirror.com/apk/mxtech/mx-player/
     uptodown_url: https://mx-player.en.uptodown.com/android

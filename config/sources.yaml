@@ -61,8 +61,8 @@ patch_sources:
     repo: SapitoSucio/FroggoMorphePatches
     asset_pattern: "*.mpp"
 
-  blazeftl:
-    repo: BlazeFTL/FTL-Patches
+  loki:
+    repo: lokesh-sparrow/loki-patches
     asset_pattern: "*.mpp"
 
   byehi98:

@@ -1,15 +1,21 @@
 {
   "build_health": {
     "active_sources": [],
-    "built_at": "2026-11-24T06:31:05Z",
+    "built_at": "2026-11-25T05:10:18Z",
     "cli_version": "1.2.0",
     "pass_rate": 1.0,
-    "release_tag": "auto-v1.2.0-2026.11.24-b192"
+    "release_tag": "auto-v1.2.0-2026.11.25-b194"
   },
   "bundles": {
     "revancex-bundle-all.zip": {
       "filename": "revancex-bundle-all.zip",
       "payload": [
+        {
+          "app": "hungry_shark_evolution",
+          "package": "com.fgol.HungrySharkEvolution",
+          "path": "apks/hungry_shark_evolution.apk",
+          "version": "14.5.0"
+        },
         {
           "app": "moviebox",
           "package": "com.community.oneroom",
@@ -17,42 +23,18 @@
           "version": "4.0.03.1020.03"
         },
         {
-          "app": "mx_player",
-          "package": "com.mxtech.videoplayer.ad",
-          "path": "apks/mx_player.apk",
-          "version": "3.5.3"
-        },
-        {
           "app": "proton_vpn",
           "package": "ch.protonvpn.android",
           "path": "apks/proton_vpn.apk",
           "version": "5.21.57.0"
-        },
-        {
-          "app": "stellarium",
-          "package": "com.noctuasoftware.stellarium_free",
-          "path": "apks/stellarium.apk",
-          "version": "1.16.10"
-        },
-        {
-          "app": "youtube",
-          "package": "com.google.android.youtube",
-          "path": "apks/youtube.apk",
-          "version": "21.13.164"
-        },
-        {
-          "app": "youtube_music",
-          "package": "com.google.android.apps.youtube.music",
-          "path": "apks/youtube_music.apk",
-          "version": "9.15.51"
         }
       ],
-      "sha256": "a241a0bab81a75f42032180a70920ef1bbcd98b5c0925947610c0063af06c01c",
-      "size_bytes": 832791028,
-      "tag": "auto-v1.2.0-2026.11.24-b192",
-      "updated_at": "2026-11-24T06:31:05Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-all.zip",
-      "version_code": 2026112401
+      "sha256": "da49e109e84f307b7f2494530a673f2dcb6983fbd7c8031ca07b75deabfb2619",
+      "size_bytes": 563769126,
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/revancex-bundle-all.zip",
+      "version_code": 2026112501
     },
     "revancex-bundle-core.zip": {
       "filename": "revancex-bundle-core.zip",
@@ -168,12 +150,12 @@
           "version": "5.21.57.0"
         }
       ],
-      "sha256": "e63a7d787b06b5c8f5a0c6cb85aef2d41d5c178c2ac0df30b8e4f201696c6dfd",
-      "size_bytes": 52333433,
-      "tag": "auto-v1.2.0-2026.11.24-b192",
-      "updated_at": "2026-11-24T06:31:05Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/revancex-bundle-tools.zip",
-      "version_code": 2026112401
+      "sha256": "ca095b406bb074cadd4f8c8cf1d8157ce6965511d0c09fca15b54489b529687d",
+      "size_bytes": 52337076,
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/revancex-bundle-tools.zip",
+      "version_code": 2026112501
     }
   },
   "custom_bundles": {},
@@ -350,9 +332,9 @@
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Hungry-Shark-Evolution-14.5.0.apk",
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Hungry-Shark-Evolution-14.5.0.apk",
       "validation_status": "warning",
       "version": "14.5.0"
     },
@@ -401,15 +383,15 @@
     "moviebox": {
       "filename": "Moviebox-4.0.03.1020.03.apk",
       "optimization_mode": "full",
-      "sha256": "ea8866a8446fca84fa418034ac315d4e374d2272790ed9e408365aacde386c8a",
-      "size_bytes": 70146566,
+      "sha256": "6f0a476b3cce3091bae00a8a42e47bf41be5846ccc69207d8e427dfaa1f8732f",
+      "size_bytes": 70146636,
       "supported_archs": [
         "arm64-v8a",
         "armeabi-v7a"
       ],
-      "tag": "auto-v1.2.0-2026.11.24-b192",
-      "updated_at": "2026-11-24T06:31:05Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Moviebox-4.0.03.1020.03.apk",
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Moviebox-4.0.03.1020.03.apk",
       "validation_status": "warning",
       "version": "4.0.03.1020.03"
     },
@@ -458,14 +440,14 @@
     "proton_vpn": {
       "filename": "Proton-VPN-5.21.57.0.apk",
       "optimization_mode": "full",
-      "sha256": "d8669720504770b582e7456c420be6a0699ad15f053c9e2ce289cd84663a393e",
-      "size_bytes": 30044674,
+      "sha256": "35d78dd2d0e2f456a50a549332d04f2148eab0b213f3d4c6b4f0f99727aab421",
+      "size_bytes": 30048829,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.2.0-2026.11.24-b192",
-      "updated_at": "2026-11-24T06:31:05Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.24-b192/Proton-VPN-5.21.57.0.apk",
+      "tag": "auto-v1.2.0-2026.11.25-b194",
+      "updated_at": "2026-11-25T05:10:18Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Proton-VPN-5.21.57.0.apk",
       "validation_status": "warning",
       "version": "5.21.57.0"
     },

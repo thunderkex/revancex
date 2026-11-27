@@ -1,20 +1,38 @@
 {
   "build_health": {
     "active_sources": [],
-    "built_at": "2026-11-25T05:10:18Z",
+    "built_at": "2026-11-27T04:46:19Z",
     "cli_version": "1.2.0",
-    "pass_rate": 1.0,
-    "release_tag": "auto-v1.2.0-2026.11.25-b194"
+    "pass_rate": 0.8571,
+    "release_tag": "auto-v1.2.0-2026.11.27-b196"
   },
   "bundles": {
     "revancex-bundle-all.zip": {
       "filename": "revancex-bundle-all.zip",
       "payload": [
         {
+          "app": "facebook",
+          "package": "com.facebook.katana",
+          "path": "apks/facebook.apk",
+          "version": "588.0.0.42.55"
+        },
+        {
+          "app": "gboard",
+          "package": "com.google.android.inputmethod.latin",
+          "path": "apks/gboard.apk",
+          "version": "18.5.4.993608717-release-arm64-v8a"
+        },
+        {
+          "app": "google_maps",
+          "package": "com.google.android.apps.maps",
+          "path": "apks/google_maps.apk",
+          "version": "26.44.06.1006895251"
+        },
+        {
           "app": "hungry_shark_evolution",
           "package": "com.fgol.HungrySharkEvolution",
           "path": "apks/hungry_shark_evolution.apk",
-          "version": "14.5.0"
+          "version": "14.6.0"
         },
         {
           "app": "moviebox",
@@ -27,14 +45,20 @@
           "package": "ch.protonvpn.android",
           "path": "apks/proton_vpn.apk",
           "version": "5.21.57.0"
+        },
+        {
+          "app": "tiktok",
+          "package": "com.zhiliaoapp.musically",
+          "path": "apks/tiktok.apk",
+          "version": "47.9.3"
         }
       ],
-      "sha256": "da49e109e84f307b7f2494530a673f2dcb6983fbd7c8031ca07b75deabfb2619",
-      "size_bytes": 563769126,
-      "tag": "auto-v1.2.0-2026.11.25-b194",
-      "updated_at": "2026-11-25T05:10:18Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/revancex-bundle-all.zip",
-      "version_code": 2026112501
+      "sha256": "60e437811f141633d40e601a6ac85055d53a898b319db91ea1d59dcb3c2c2e89",
+      "size_bytes": 1617666106,
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/revancex-bundle-all.zip",
+      "version_code": 2026112701
     },
     "revancex-bundle-core.zip": {
       "filename": "revancex-bundle-core.zip",
@@ -121,24 +145,18 @@
           "version": "588.0.0.42.55"
         },
         {
-          "app": "reddit",
-          "package": "com.reddit.frontpage",
-          "path": "apks/reddit.apk",
-          "version": "2026.46.0"
-        },
-        {
           "app": "tiktok",
           "package": "com.zhiliaoapp.musically",
           "path": "apks/tiktok.apk",
           "version": "47.9.3"
         }
       ],
-      "sha256": "99351cc4a6a2cad9622c561e54ae95f8d36b0fc8aae36918a4896852648434f8",
-      "size_bytes": 861064008,
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/revancex-bundle-social.zip",
-      "version_code": 2026112301
+      "sha256": "7695a227f0db1bd1d1ccf94d4a621e25fa5aab16887882b2c87e126f86243c55",
+      "size_bytes": 746620530,
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/revancex-bundle-social.zip",
+      "version_code": 2026112701
     },
     "revancex-bundle-tools.zip": {
       "filename": "revancex-bundle-tools.zip",
@@ -150,12 +168,12 @@
           "version": "5.21.57.0"
         }
       ],
-      "sha256": "ca095b406bb074cadd4f8c8cf1d8157ce6965511d0c09fca15b54489b529687d",
-      "size_bytes": 52337076,
-      "tag": "auto-v1.2.0-2026.11.25-b194",
-      "updated_at": "2026-11-25T05:10:18Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/revancex-bundle-tools.zip",
-      "version_code": 2026112501
+      "sha256": "eddba8ef27d503290a6f19d890379a2f3b9f5e1d27efac533704d6a373332b06",
+      "size_bytes": 52356152,
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/revancex-bundle-tools.zip",
+      "version_code": 2026112701
     }
   },
   "custom_bundles": {},
@@ -271,14 +289,14 @@
     "facebook": {
       "filename": "Facebook-588.0.0.42.55.apk",
       "optimization_mode": "full",
-      "sha256": "7ec1fc284a75733053a894e5998ece4c1abb2067f8d46bbad0955f6fac77c977",
-      "size_bytes": 152977864,
+      "sha256": "72cbebc55d82a352f6064fbc1d83cac613fd3bce51472f81276c26540b4ee38e",
+      "size_bytes": 153440790,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Facebook-588.0.0.42.55.apk",
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Facebook-588.0.0.42.55.apk",
       "validation_status": "warning",
       "version": "588.0.0.42.55"
     },
@@ -299,28 +317,28 @@
     "gboard": {
       "filename": "Gboard-18.5.4.993608717-release-arm64-v8a.apk",
       "optimization_mode": "full",
-      "sha256": "7a5821f916c3a920b24054b2d107331b17b6b9be95ae9f6e3671e8bdaf43f27c",
-      "size_bytes": 89635784,
+      "sha256": "c60bfe4b43a41e950521a337771d0dce202bc369f46464ab38af1531aa48916c",
+      "size_bytes": 90127490,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Gboard-18.5.4.993608717-release-arm64-v8a.apk",
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Gboard-18.5.4.993608717-release-arm64-v8a.apk",
       "validation_status": "warning",
       "version": "18.5.4.993608717-release-arm64-v8a"
     },
     "google_maps": {
       "filename": "Google-Maps-26.44.06.1006895251.apk",
       "optimization_mode": "full",
-      "sha256": "eccaf1b417bf842441cceb7aad9ac6cd5e9572c38012d97de6eba0cf105913b5",
-      "size_bytes": 140775702,
+      "sha256": "c0b6b76f8981aa5be20a838184752a5f5a09f4c009e7ff88c5282ade3048e469",
+      "size_bytes": 140829028,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.1.0-2026.11.17-b182",
-      "updated_at": "2026-11-17T04:56:22Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.17-b182/Google-Maps-26.44.06.1006895251.apk",
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Google-Maps-26.44.06.1006895251.apk",
       "validation_status": "warning",
       "version": "26.44.06.1006895251"
     },
@@ -383,15 +401,15 @@
     "moviebox": {
       "filename": "Moviebox-4.0.03.1020.03.apk",
       "optimization_mode": "full",
-      "sha256": "6f0a476b3cce3091bae00a8a42e47bf41be5846ccc69207d8e427dfaa1f8732f",
-      "size_bytes": 70146636,
+      "sha256": "8cdb2e3e74c4e7accb000fc7661f7e705d3c29426f87ad1d9863e578abe64933",
+      "size_bytes": 70150732,
       "supported_archs": [
         "arm64-v8a",
         "armeabi-v7a"
       ],
-      "tag": "auto-v1.2.0-2026.11.25-b194",
-      "updated_at": "2026-11-25T05:10:18Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Moviebox-4.0.03.1020.03.apk",
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Moviebox-4.0.03.1020.03.apk",
       "validation_status": "warning",
       "version": "4.0.03.1020.03"
     },
@@ -440,14 +458,14 @@
     "proton_vpn": {
       "filename": "Proton-VPN-5.21.57.0.apk",
       "optimization_mode": "full",
-      "sha256": "35d78dd2d0e2f456a50a549332d04f2148eab0b213f3d4c6b4f0f99727aab421",
-      "size_bytes": 30048829,
+      "sha256": "f0e1a26656638805f25b4b116ab5832d5581281382e0b21f3c5cb9a558490af9",
+      "size_bytes": 30069387,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.2.0-2026.11.25-b194",
-      "updated_at": "2026-11-25T05:10:18Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.25-b194/Proton-VPN-5.21.57.0.apk",
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Proton-VPN-5.21.57.0.apk",
       "validation_status": "warning",
       "version": "5.21.57.0"
     },
@@ -552,14 +570,14 @@
     "tiktok": {
       "filename": "TikTok-47.9.3.apk",
       "optimization_mode": "full",
-      "sha256": "b8bd7ace9947b3cfa360beaf17ecd1521a73e254f4d39580676df5bf4c698600",
-      "size_bytes": 262614590,
+      "sha256": "39e60d12fc9ea487407e6502bbb8b3c59e65611c6f4ca5f2545baa6c611e525e",
+      "size_bytes": 264292393,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/TikTok-47.9.3.apk",
+      "tag": "auto-v1.2.0-2026.11.27-b196",
+      "updated_at": "2026-11-27T04:46:19Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/TikTok-47.9.3.apk",
       "validation_status": "warning",
       "version": "47.9.3"
     },

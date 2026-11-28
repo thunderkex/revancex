@@ -1,10 +1,10 @@
 {
   "schema_version": "2.0.0",
   "build_health": {
-    "release_tag": "auto-v1.2.0-2026.11.27-b196",
+    "release_tag": "auto-v1.2.0-2026.11.28-b197",
     "cli_version": "1.2.0",
-    "built_at": "2026-11-27T04:44:22Z",
-    "pass_rate": 0.8571,
+    "built_at": "2026-11-28T04:27:00Z",
+    "pass_rate": 0.75,
     "active_sources": [
       "BholeyKaBhakt/android-patches-xtra",
       "Fripe070/PixivPatches",
@@ -536,26 +536,26 @@
         "bundle": true
       },
       "version": "26.44.06.1006895251",
-      "sha256": "c0b6b76f8981aa5be20a838184752a5f5a09f4c009e7ff88c5282ade3048e469",
-      "size_bytes": 140829028,
+      "sha256": "2361f2871f7da686c55da4b3cfc9c1af3dd5ecab343e7e4425e487d8a05f9b34",
+      "size_bytes": 140894564,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Google-Maps-26.44.06.1006895251.apk",
-      "tag": "auto-v1.2.0-2026.11.27-b196",
-      "release_tag": "auto-v1.2.0-2026.11.27-b196",
-      "updated_at": "2026-11-27T04:46:19Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Google-Maps-26.44.06.1006895251.apk",
+      "tag": "auto-v1.2.0-2026.11.28-b197",
+      "release_tag": "auto-v1.2.0-2026.11.28-b197",
+      "updated_at": "2026-11-28T04:28:00Z",
       "releases": {
         "stock": {
           "filename": "Google-Maps-26.44.06.1006895251.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Google-Maps-26.44.06.1006895251.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Google-Maps-26.44.06.1006895251.apk",
-          "tag": "auto-v1.2.0-2026.11.27-b196",
-          "release_tag": "auto-v1.2.0-2026.11.27-b196",
-          "updated_at": "2026-11-27T04:46:19Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Google-Maps-26.44.06.1006895251.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Google-Maps-26.44.06.1006895251.apk",
+          "tag": "auto-v1.2.0-2026.11.28-b197",
+          "release_tag": "auto-v1.2.0-2026.11.28-b197",
+          "updated_at": "2026-11-28T04:28:00Z",
           "source_repo": "bearinmindcat/morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "26.44.06.1006895251",
-          "sha256": "c0b6b76f8981aa5be20a838184752a5f5a09f4c009e7ff88c5282ade3048e469",
-          "size_bytes": 140829028,
+          "sha256": "2361f2871f7da686c55da4b3cfc9c1af3dd5ecab343e7e4425e487d8a05f9b34",
+          "size_bytes": 140894564,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -920,7 +920,7 @@
       "version": "14.23.0",
       "sha256": "33b916a63c51059e2b7233057daa5496ca12f6e2ac4e90535475334e3811086a",
       "size_bytes": 63234061,
-      "validation_status": "failed",
+      "validation_status": "warning",
       "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/Pinterest-14.23.0.apk",
       "tag": "auto-v1.1.0-2026.11.13-b178",
       "release_tag": "auto-v1.1.0-2026.11.13-b178",
@@ -942,7 +942,7 @@
             "arm64-v8a"
           ],
           "optimization_mode": "full",
-          "validation_status": "failed"
+          "validation_status": "warning"
         },
         "module": null
       }
@@ -1081,26 +1081,26 @@
         "bundle": true
       },
       "version": "3.19.0",
-      "sha256": "aa2c54ee0e3ef91e1e2e091201521b523671a4bdfd8d0aced52643fe16554fad",
-      "size_bytes": 119496131,
+      "sha256": "b619b891dd3aaba3007b101f65f5decc3c41e6efbbc76ceb1d2046748c6dc9ef",
+      "size_bytes": 119500305,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Plants-vs-Zombies-3.19.0.apk",
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "release_tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Plants-vs-Zombies-3.19.0.apk",
+      "tag": "auto-v1.2.0-2026.11.28-b197",
+      "release_tag": "auto-v1.2.0-2026.11.28-b197",
+      "updated_at": "2026-11-28T04:28:00Z",
       "releases": {
         "stock": {
           "filename": "Plants-vs-Zombies-3.19.0.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Plants-vs-Zombies-3.19.0.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Plants-vs-Zombies-3.19.0.apk",
-          "tag": "auto-v1.2.0-2026.11.23-b190",
-          "release_tag": "auto-v1.2.0-2026.11.23-b190",
-          "updated_at": "2026-11-23T03:02:36Z",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Plants-vs-Zombies-3.19.0.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Plants-vs-Zombies-3.19.0.apk",
+          "tag": "auto-v1.2.0-2026.11.28-b197",
+          "release_tag": "auto-v1.2.0-2026.11.28-b197",
+          "updated_at": "2026-11-28T04:28:00Z",
           "source_repo": "byehi98/okish-morphe-patches",
           "asset_pattern": "*.mpp",
           "version": "3.19.0",
-          "sha256": "aa2c54ee0e3ef91e1e2e091201521b523671a4bdfd8d0aced52643fe16554fad",
-          "size_bytes": 119496131,
+          "sha256": "b619b891dd3aaba3007b101f65f5decc3c41e6efbbc76ceb1d2046748c6dc9ef",
+          "size_bytes": 119500305,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -1350,27 +1350,27 @@
         "single": false,
         "bundle": true
       },
-      "version": "486.11",
-      "sha256": "e2cb6b9a32d58aa749b35cbfd2dd703c50810e1a295733cab8ed83d6a6e9ed21",
-      "size_bytes": 135170567,
+      "version": "490.15",
+      "sha256": "3601c1e04248b9d7b315e3bad8d7af07b49d4cdaecce6fc77ad003f45fbe1647",
+      "size_bytes": 128651767,
       "validation_status": "warning",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/Strava-486.11.apk",
-      "tag": "auto-v1.1.0-2026.11.13-b178",
-      "release_tag": "auto-v1.1.0-2026.11.13-b178",
-      "updated_at": "2026-11-13T08:23:36Z",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Strava-490.15.apk",
+      "tag": "auto-v1.2.0-2026.11.28-b197",
+      "release_tag": "auto-v1.2.0-2026.11.28-b197",
+      "updated_at": "2026-11-28T04:28:00Z",
       "releases": {
         "stock": {
-          "filename": "Strava-486.11.apk",
-          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/Strava-486.11.apk",
-          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/Strava-486.11.apk",
-          "tag": "auto-v1.1.0-2026.11.13-b178",
-          "release_tag": "auto-v1.1.0-2026.11.13-b178",
-          "updated_at": "2026-11-13T08:23:36Z",
+          "filename": "Strava-490.15.apk",
+          "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Strava-490.15.apk",
+          "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Strava-490.15.apk",
+          "tag": "auto-v1.2.0-2026.11.28-b197",
+          "release_tag": "auto-v1.2.0-2026.11.28-b197",
+          "updated_at": "2026-11-28T04:28:00Z",
           "source_repo": "madushas/morphe-patches-custom",
           "asset_pattern": "*.mpp",
-          "version": "486.11",
-          "sha256": "e2cb6b9a32d58aa749b35cbfd2dd703c50810e1a295733cab8ed83d6a6e9ed21",
-          "size_bytes": 135170567,
+          "version": "490.15",
+          "sha256": "3601c1e04248b9d7b315e3bad8d7af07b49d4cdaecce6fc77ad003f45fbe1647",
+          "size_bytes": 128651767,
           "supported_archs": [
             "arm64-v8a"
           ],
@@ -1766,38 +1766,23 @@
       "source_repo": null,
       "asset_pattern": null,
       "sources": [
-        "SysAdminDoc/HushFeed",
-        "SysAdminDoc/Hushfacebook",
         "bearinmindcat/morphe-patches",
-        "hxreborn/morphe-patches",
-        "jasonwu1994/Gboard-patches",
-        "legendsciber/morphe-patches"
+        "byehi98/okish-morphe-patches",
+        "legendsciber/morphe-patches",
+        "madushas/morphe-patches-custom"
       ],
-      "sha256": "60e437811f141633d40e601a6ac85055d53a898b319db91ea1d59dcb3c2c2e89",
-      "size_bytes": 1617666106,
-      "release_tag": "auto-v1.2.0-2026.11.27-b196",
-      "tag": "auto-v1.2.0-2026.11.27-b196",
-      "updated_at": "2026-11-27T04:46:19Z",
+      "sha256": "835538bd80b672f7182d85ee70741e2348f502b9190c9e935138e02637b157a5",
+      "size_bytes": 1022714221,
+      "release_tag": "auto-v1.2.0-2026.11.28-b197",
+      "tag": "auto-v1.2.0-2026.11.28-b197",
+      "updated_at": "2026-11-28T04:28:00Z",
       "supported_archs": [
-        "arm64-v8a",
-        "armeabi-v7a"
+        "arm64-v8a"
       ],
       "optimization_mode": "full",
-      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/revancex-bundle-all.zip",
+      "download_url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/revancex-bundle-all.zip",
       "validation_status": "failed",
       "payload": [
-        {
-          "app": "facebook",
-          "package": "com.facebook.katana",
-          "version": "588.0.0.42.55",
-          "path": "apks/facebook.apk"
-        },
-        {
-          "app": "gboard",
-          "package": "com.google.android.inputmethod.latin",
-          "version": "18.5.4.993608717-release-arm64-v8a",
-          "path": "apks/gboard.apk"
-        },
         {
           "app": "google_maps",
           "package": "com.google.android.apps.maps",
@@ -1811,22 +1796,16 @@
           "path": "apks/hungry_shark_evolution.apk"
         },
         {
-          "app": "moviebox",
-          "package": "com.community.oneroom",
-          "version": "4.0.03.1020.03",
-          "path": "apks/moviebox.apk"
+          "app": "pvz_free",
+          "package": "com.ea.game.pvzfree_row",
+          "version": "3.19.0",
+          "path": "apks/pvz_free.apk"
         },
         {
-          "app": "proton_vpn",
-          "package": "ch.protonvpn.android",
-          "version": "5.21.57.0",
-          "path": "apks/proton_vpn.apk"
-        },
-        {
-          "app": "tiktok",
-          "package": "com.zhiliaoapp.musically",
-          "version": "47.9.3",
-          "path": "apks/tiktok.apk"
+          "app": "strava",
+          "package": "com.strava",
+          "version": "490.15",
+          "path": "apks/strava.apk"
         }
       ]
     },

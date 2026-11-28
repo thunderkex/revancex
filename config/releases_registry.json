@@ -1,27 +1,15 @@
 {
   "build_health": {
     "active_sources": [],
-    "built_at": "2026-11-27T04:46:19Z",
+    "built_at": "2026-11-28T04:28:00Z",
     "cli_version": "1.2.0",
-    "pass_rate": 0.8571,
-    "release_tag": "auto-v1.2.0-2026.11.27-b196"
+    "pass_rate": 0.75,
+    "release_tag": "auto-v1.2.0-2026.11.28-b197"
   },
   "bundles": {
     "revancex-bundle-all.zip": {
       "filename": "revancex-bundle-all.zip",
       "payload": [
-        {
-          "app": "facebook",
-          "package": "com.facebook.katana",
-          "path": "apks/facebook.apk",
-          "version": "588.0.0.42.55"
-        },
-        {
-          "app": "gboard",
-          "package": "com.google.android.inputmethod.latin",
-          "path": "apks/gboard.apk",
-          "version": "18.5.4.993608717-release-arm64-v8a"
-        },
         {
           "app": "google_maps",
           "package": "com.google.android.apps.maps",
@@ -35,30 +23,24 @@
           "version": "14.6.0"
         },
         {
-          "app": "moviebox",
-          "package": "com.community.oneroom",
-          "path": "apks/moviebox.apk",
-          "version": "4.0.03.1020.03"
+          "app": "pvz_free",
+          "package": "com.ea.game.pvzfree_row",
+          "path": "apks/pvz_free.apk",
+          "version": "3.19.0"
         },
         {
-          "app": "proton_vpn",
-          "package": "ch.protonvpn.android",
-          "path": "apks/proton_vpn.apk",
-          "version": "5.21.57.0"
-        },
-        {
-          "app": "tiktok",
-          "package": "com.zhiliaoapp.musically",
-          "path": "apks/tiktok.apk",
-          "version": "47.9.3"
+          "app": "strava",
+          "package": "com.strava",
+          "path": "apks/strava.apk",
+          "version": "490.15"
         }
       ],
-      "sha256": "60e437811f141633d40e601a6ac85055d53a898b319db91ea1d59dcb3c2c2e89",
-      "size_bytes": 1617666106,
-      "tag": "auto-v1.2.0-2026.11.27-b196",
-      "updated_at": "2026-11-27T04:46:19Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/revancex-bundle-all.zip",
-      "version_code": 2026112701
+      "sha256": "835538bd80b672f7182d85ee70741e2348f502b9190c9e935138e02637b157a5",
+      "size_bytes": 1022714221,
+      "tag": "auto-v1.2.0-2026.11.28-b197",
+      "updated_at": "2026-11-28T04:28:00Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/revancex-bundle-all.zip",
+      "version_code": 2026112801
     },
     "revancex-bundle-core.zip": {
       "filename": "revancex-bundle-core.zip",
@@ -331,14 +313,14 @@
     "google_maps": {
       "filename": "Google-Maps-26.44.06.1006895251.apk",
       "optimization_mode": "full",
-      "sha256": "c0b6b76f8981aa5be20a838184752a5f5a09f4c009e7ff88c5282ade3048e469",
-      "size_bytes": 140829028,
+      "sha256": "2361f2871f7da686c55da4b3cfc9c1af3dd5ecab343e7e4425e487d8a05f9b34",
+      "size_bytes": 140894564,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.2.0-2026.11.27-b196",
-      "updated_at": "2026-11-27T04:46:19Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.27-b196/Google-Maps-26.44.06.1006895251.apk",
+      "tag": "auto-v1.2.0-2026.11.28-b197",
+      "updated_at": "2026-11-28T04:28:00Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Google-Maps-26.44.06.1006895251.apk",
       "validation_status": "warning",
       "version": "26.44.06.1006895251"
     },
@@ -472,14 +454,14 @@
     "pvz_free": {
       "filename": "Plants-vs-Zombies-3.19.0.apk",
       "optimization_mode": "full",
-      "sha256": "aa2c54ee0e3ef91e1e2e091201521b523671a4bdfd8d0aced52643fe16554fad",
-      "size_bytes": 119496131,
+      "sha256": "b619b891dd3aaba3007b101f65f5decc3c41e6efbbc76ceb1d2046748c6dc9ef",
+      "size_bytes": 119500305,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.2.0-2026.11.23-b190",
-      "updated_at": "2026-11-23T03:02:36Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.23-b190/Plants-vs-Zombies-3.19.0.apk",
+      "tag": "auto-v1.2.0-2026.11.28-b197",
+      "updated_at": "2026-11-28T04:28:00Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Plants-vs-Zombies-3.19.0.apk",
       "validation_status": "warning",
       "version": "3.19.0"
     },
@@ -540,18 +522,18 @@
       "version": "1.0.12-7"
     },
     "strava": {
-      "filename": "Strava-486.11.apk",
+      "filename": "Strava-490.15.apk",
       "optimization_mode": "full",
-      "sha256": "e2cb6b9a32d58aa749b35cbfd2dd703c50810e1a295733cab8ed83d6a6e9ed21",
-      "size_bytes": 135170567,
+      "sha256": "3601c1e04248b9d7b315e3bad8d7af07b49d4cdaecce6fc77ad003f45fbe1647",
+      "size_bytes": 128651767,
       "supported_archs": [
         "arm64-v8a"
       ],
-      "tag": "auto-v1.1.0-2026.11.13-b178",
-      "updated_at": "2026-11-13T08:23:36Z",
-      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.1.0-2026.11.13-b178/Strava-486.11.apk",
+      "tag": "auto-v1.2.0-2026.11.28-b197",
+      "updated_at": "2026-11-28T04:28:00Z",
+      "url": "https://github.com/thunderkex/revancex/releases/download/auto-v1.2.0-2026.11.28-b197/Strava-490.15.apk",
       "validation_status": "warning",
-      "version": "486.11"
+      "version": "490.15"
     },
     "threads": {
       "filename": "Threads-455.0.0.55.72.apk",
